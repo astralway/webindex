@@ -2,13 +2,13 @@
 
 ### Requirements
 
-    * Hadoop (HDFS & YARN)
+* Hadoop (HDFS & YARN)
 
 ### Load Data
 
 Data can be downloaded from AWS and loaded in HDFS using the following command:
 
-    ./bin/load.sh <numFiles>
+    ./bin/load.sh <fileType> <numFiles>
 
 ### Run WordCount M/R
 

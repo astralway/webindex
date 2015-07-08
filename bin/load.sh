@@ -1,27 +1,45 @@
 #!/bin/bash
 
+
+function print_usage {
+  echo -e "Usage: load.sh <fileType> <numFiles>\n"
+  echo "where:"
+  echo "  <fileType>    Common crawl file type (ie. warc, wet, wat)"
+  echo "  <numFiles>    Number of files to load"
+  exit 1
+}
+
 CC_URL_PREFIX=https://aws-publicdatasets.s3.amazonaws.com
 CC_PATHS_PREFIX=common-crawl/crawl-data/CC-MAIN-2015-18
-CC_PATHS_FILE=wet.paths
+
+if [ -z "$1" ]; then
+  echo -e "Argument <fileType> cannot be empty\n"
+  print_usage
+fi
+
+CC_TYPE=$1
+if [[ ! "wat wet warc" =~ $1 ]]; then
+  echo "Unknown file type: $CC_TYPE"
+  print_usage
+  exit 1
+fi
+CC_PATHS_FILE=$CC_TYPE.paths
+
+if [ -z "$2" ]; then
+  echo -e "Argument <numFiles> cannot be empty\n"
+  print_usage
+fi
+NUM_FILES=$2
 
 BIN_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 CC_HOME=$( cd "$( dirname "$BIN_DIR" )" && pwd )
-
+LOCAL_DATA=$CC_HOME/data/
 
 if [ -f $CC_HOME/conf/env.sh ]; then
  . $CC_HOME/conf/env.sh
 else
  . $CC_HOME/conf/env.sh.example
 fi
-
-LOCAL_DATA=$CC_HOME/data/
-
-if [ -z "$1" ]; then
-  echo "Usage: load.sh <numFiles>"
-  exit 1
-fi
-
-NUM_FILES=$1
 
 command -v hdfs >/dev/null 2>&1 || { echo >&2 "The 'hdfs' command must be available on PATH.  Aborting."; exit 1; }
 
