@@ -20,4 +20,4 @@ fi
 
 command -v yarn >/dev/null 2>&1 || { echo >&2 "The 'yarn' command must be available on PATH.  Aborting."; exit 1; }
 
-yarn jar $CC_JAR io.fluo.commoncrawl.wordcount.WordCount $CC_DATA/wet/ $CC_OUTPUT
+yarn jar $CC_JAR io.fluo.commoncrawl.inbound.InboundLinks $CC_DATA/wat/ $CC_OUTPUT

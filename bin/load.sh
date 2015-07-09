@@ -47,9 +47,9 @@ if [ ! -d $LOCAL_DATA ]; then
   mkdir -p $LOCAL_DATA
 fi
 
-hdfs dfs -ls $CC_DATA > /dev/null
+hdfs dfs -ls $CC_DATA/$CC_TYPE > /dev/null
 if [ $? -ne 0 ]; then
-  hdfs dfs -mkdir -p $CC_DATA
+  hdfs dfs -mkdir -p $CC_DATA/$CC_TYPE
 fi
 
 if [ ! -f $LOCAL_DATA/$CC_PATHS_FILE ]; then
@@ -61,11 +61,11 @@ head -n $NUM_FILES $LOCAL_DATA/$CC_PATHS_FILE | while read line
 do
   CC_URL=$line
   CC_FILE=`echo $line | cut -d / -f 7`
-  hdfs dfs -ls $CC_DATA/$CC_FILE > /dev/null 
+  hdfs dfs -ls $CC_DATA/$CC_TYPE/$CC_FILE > /dev/null 
   if [ $? -ne 0 ]; then
     echo "Downloading and loading: $CC_FILE"
     wget -c -P $LOCAL_DATA $CC_URL_PREFIX/$CC_URL
-    hdfs dfs -put $LOCAL_DATA/$CC_FILE $CC_DATA/$CC_FILE
+    hdfs dfs -put $LOCAL_DATA/$CC_FILE $CC_DATA/$CC_TYPE/$CC_FILE
   else
     echo "File exists in HDFS: $CC_FILE"
   fi

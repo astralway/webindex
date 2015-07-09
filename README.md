@@ -13,3 +13,7 @@ Data can be downloaded from AWS and loaded in HDFS using the following command:
 ### Run WordCount M/R
 
     ./bin/wordcount.sh
+
+### Run Inbound Links M/R 
+
+    ./bin/wordcount.sh
