@@ -17,7 +17,7 @@
 package io.fluo.commoncrawl.inbound;
 
 import java.io.IOException;
-import java.util.Map;
+import java.util.Set;
 
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
@@ -32,7 +32,7 @@ public class LinkMap {
 
   protected enum MAPCOUNTER {
     PAGES,
-    PAGES_BAD_URI,
+    PAGES_BAD_URL,
     PAGES_NO_LINKS,
     PAGES_NO_EXTERNAL_LINKS,
     PAGES_WITH_LINKS,
@@ -52,14 +52,11 @@ public class LinkMap {
 
         try {
           context.getCounter(MAPCOUNTER.PAGES).increment(1);
-          Page page = new Page(r);
-          String srcUri;
-          try {
-            srcUri = page.getUri();
-          } catch (Exception e) {
-            context.getCounter(MAPCOUNTER.PAGES_BAD_URI).increment(1);
+          if (!Link.isValid(r.getHeader().getUrl())) {
+            context.getCounter(MAPCOUNTER.PAGES_BAD_URL).increment(1);
             continue;
           }
+          Page page = Page.from(r);
 
           int totalLinks = page.getNumLinks();
           if (totalLinks == 0) {
@@ -68,7 +65,7 @@ public class LinkMap {
           }
           context.getCounter(MAPCOUNTER.LINKS_FOUND).increment(page.getNumLinks());
 
-          Map<String, String> links = page.getExternalUriLinks();
+          Set<Link> links = page.getExternalLinks();
           if (links.size() == 0) {
             context.getCounter(MAPCOUNTER.PAGES_NO_EXTERNAL_LINKS).increment(1);
             continue;
@@ -76,15 +73,13 @@ public class LinkMap {
           context.getCounter(MAPCOUNTER.PAGES_WITH_LINKS).increment(1);
           context.getCounter(MAPCOUNTER.LINKS_USED).increment(links.size());
 
-          for (Map.Entry<String, String> entry : links.entrySet()) {
-            String uri = entry.getKey();
-            String domain = LinkUtil.getDomainFromUri(uri);
-            String text = entry.getValue();
-            outKey.set("u:" + uri + "\tcount");
+          for (Link link : links) {
+            outKey.set("u:" + link.getUri() + "\tcount");
             context.write(outKey, outVal);
-            outKey.set("u:" + uri + "\tl:" + srcUri + "\t" + text);
+            outKey.set("u:" + link.getUri() + "\tl:" + page.getLink().getUri()
+                       + "\t" + link.getAnchorText());
             context.write(outKey, outVal);
-            outKey.set("u:" + domain + "\tcount");
+            outKey.set("d:" + link.getReverseTopPrivate() + "\tu:" + link.getUri());
             context.write(outKey, outVal);
           }
         } catch (Exception e) {

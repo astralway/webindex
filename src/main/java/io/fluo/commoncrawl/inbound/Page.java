@@ -17,8 +17,9 @@
 package io.fluo.commoncrawl.inbound;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import java.text.ParseException;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
 import org.archive.io.ArchiveRecord;
@@ -30,32 +31,27 @@ public class Page {
 
   private ArchiveRecord archiveRecord;
   private JSONObject json;
+  private Link link;
 
-  public Page(ArchiveRecord archiveRecord) {
+  private Page(ArchiveRecord archiveRecord, JSONObject json, Link link) {
     this.archiveRecord = archiveRecord;
+    this.json = json;
+    this.link = link;
+  }
+
+  public static Page from(ArchiveRecord archiveRecord) throws IOException, ParseException {
     byte[] rawData;
-    try {
-      rawData = IOUtils.toByteArray(archiveRecord, archiveRecord.available());
-    } catch (IOException e) {
-      throw new IllegalStateException(e);
-    }
-    json = new JSONObject(new String(rawData));
+    rawData = IOUtils.toByteArray(archiveRecord, archiveRecord.available());
+    JSONObject json = new JSONObject(new String(rawData));
+    return new Page(archiveRecord, json, Link.from(archiveRecord.getHeader().getUrl()));
   }
 
   public String getMimeType() {
     return archiveRecord.getHeader().getMimetype();
   }
 
-  public String getUrl() {
-    return archiveRecord.getHeader().getUrl();
-  }
-
-  public String getUri() {
-    return LinkUtil.transform(getUrl());
-  }
-
-  public String getDomain() {
-    return LinkUtil.getDomainFromUrl(getUrl());
+  public Link getLink() {
+    return link;
   }
 
   private JSONArray getLinksArray() {
@@ -75,38 +71,33 @@ public class Page {
     return getLinksArray().length();
   }
 
-  public Map<String, String> getUrlLinks() {
+  public Set<Link> getLinks() {
     JSONArray array = getLinksArray();
-    Map<String, String> links = new HashMap<>();
+    Set<Link> links = new HashSet<>();
     for (int i=0; i < array.length(); i++) {
       JSONObject link = array.getJSONObject(i);
       if (link.has("path") && link.get("path").equals("A@/href") && link.has("url")) {
-        String url = LinkUtil.clean(link.getString("url"));
         String text = "";
         if (link.has("text")) {
           text = link.getString("text");
         } else if (link.has("title")) {
           text = link.getString("title");
         }
-        links.put(url, text);
+        try {
+          links.add(Link.from(link.getString("url"), text));
+        } catch (Exception e) {
+        }
       }
     }
     return links;
   }
 
-  public Map<String, String> getExternalUriLinks() {
-    String domain = getDomain().toLowerCase();
-    Map<String, String> links = new HashMap<>();
-    for (Map.Entry<String, String> entry : getUrlLinks().entrySet()) {
-      String url = entry.getKey();
-      String text = entry.getValue();
-      try {
-        String linkDomain = LinkUtil.getDomainFromUrl(url).toLowerCase();
-        if (url.toLowerCase().startsWith("http") && !linkDomain.equals(domain)) {
-          links.put(LinkUtil.transform(url), text);
-        }
-      } catch (Exception e) {
-        continue;
+  public Set<Link> getExternalLinks() {
+    String topPrivate = getLink().getTopPrivate();
+    Set<Link> links = new HashSet<>();
+    for (Link link : getLinks()) {
+      if (!topPrivate.equalsIgnoreCase(link.getTopPrivate())) {
+        links.add(link);
       }
     }
     return links;
