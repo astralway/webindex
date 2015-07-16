@@ -15,7 +15,11 @@ if [ ! -f $CC_JAR ]; then
   if [ ! -f $CC_JAR ]; then
     echo "Failed to build $CC_JAR"
     exit 1
-  fi 
+  fi
+  # If running OSX, remove file from Jar that causes problems
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    zip -d $CC_JAR META-INF/LICENSE
+  fi
 fi
 
 command -v yarn >/dev/null 2>&1 || { echo >&2 "The 'yarn' command must be available on PATH.  Aborting."; exit 1; }
