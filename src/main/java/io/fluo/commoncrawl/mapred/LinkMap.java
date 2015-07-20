@@ -14,11 +14,13 @@
  * limitations under the License.
  */
 
-package io.fluo.commoncrawl.inbound;
+package io.fluo.commoncrawl.mapred;
 
 import java.io.IOException;
 import java.util.Set;
 
+import io.fluo.commoncrawl.inbound.Link;
+import io.fluo.commoncrawl.inbound.Page;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;

@@ -22,6 +22,28 @@ if [ ! -f $CC_JAR ]; then
   fi
 fi
 
-command -v yarn >/dev/null 2>&1 || { echo >&2 "The 'yarn' command must be available on PATH.  Aborting."; exit 1; }
+command -v hdfs >/dev/null 2>&1 || { echo >&2 "The 'hdfs' command must be available on PATH.  Aborting."; exit 1; }
+hdfs dfs -rm -r $CC_OUTPUT
 
-yarn jar $CC_JAR io.fluo.commoncrawl.wordcount.WordCount $CC_DATA/wet/ $CC_OUTPUT
+case "$1" in
+spark)
+  command -v spark-submit >/dev/null 2>&1 || { echo >&2 "The 'spark-submit' command must be available on PATH.  Aborting."; exit 1; }
+  spark-submit --class io.fluo.commoncrawl.spark.WordCount \
+      --master yarn-cluster \
+      --num-executors 1 \
+      --driver-memory 500m \
+      --executor-memory 2g \
+      --executor-cores 1 \
+      $CC_JAR \
+      $CC_DATA/wet/ $CC_OUTPUT
+  ;;
+mapred)
+  command -v yarn >/dev/null 2>&1 || { echo >&2 "The 'yarn' command must be available on PATH.  Aborting."; exit 1; }
+  yarn jar $CC_JAR io.fluo.commoncrawl.mapred.WordCount $CC_DATA/wet/ $CC_OUTPUT
+  ;;
+*)
+  echo -e "Usage: wordcount.sh <execution>\n"
+  echo -e "where:\n"
+  echo "  <execution>   How to execute (mapred or spark)"
+  exit 1
+esac

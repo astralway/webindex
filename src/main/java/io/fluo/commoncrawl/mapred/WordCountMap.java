@@ -1,4 +1,4 @@
-package io.fluo.commoncrawl.wordcount;
+package io.fluo.commoncrawl.mapred;
 
 import java.io.IOException;
 import java.util.StringTokenizer;

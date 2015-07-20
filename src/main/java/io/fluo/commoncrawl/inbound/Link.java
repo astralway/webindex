@@ -137,4 +137,10 @@ public class Link {
   public boolean isImage() {
     return url.getFile().matches("([^\\s]+(\\.(?i)(jpeg|jpg|png|gif|bmp))$)");
   }
+
+  @Override
+  public boolean equals(Object obj) {
+
+    return super.equals(obj);
+  }
 }

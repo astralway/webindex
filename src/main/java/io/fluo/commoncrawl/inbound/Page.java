@@ -26,28 +26,46 @@ import org.archive.io.ArchiveRecord;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Page {
 
-  private ArchiveRecord archiveRecord;
-  private JSONObject json;
-  private Link link;
+  private static final Logger log = LoggerFactory.getLogger(Page.class);
 
-  private Page(ArchiveRecord archiveRecord, JSONObject json, Link link) {
-    this.archiveRecord = archiveRecord;
+  private JSONObject json = null;
+  private Link link = null;
+  private String mimeType = null;
+
+  public static Page EMPTY = new Page();
+
+  private Page() { }
+
+  private Page(JSONObject json, Link link, String mimeType) {
     this.json = json;
     this.link = link;
+    this.mimeType = mimeType;
   }
 
   public static Page from(ArchiveRecord archiveRecord) throws IOException, ParseException {
     byte[] rawData;
     rawData = IOUtils.toByteArray(archiveRecord, archiveRecord.available());
     JSONObject json = new JSONObject(new String(rawData));
-    return new Page(archiveRecord, json, Link.from(archiveRecord.getHeader().getUrl()));
+    return new Page(json, Link.from(archiveRecord.getHeader().getUrl()),
+                    archiveRecord.getHeader().getMimetype());
+  }
+
+  public static Page fromIgnoringErrors(ArchiveRecord record) {
+    try {
+      return from(record);
+    } catch (Exception e) {
+      log.debug("Exception parsing Archive Record", e);
+      return EMPTY;
+    }
   }
 
   public String getMimeType() {
-    return archiveRecord.getHeader().getMimetype();
+    return mimeType;
   }
 
   public Link getLink() {
@@ -102,4 +120,9 @@ public class Page {
     }
     return links;
   }
+
+  public boolean isEmpty() {
+    return (json == null) && (link == null) && (mimeType == null);
+  }
+
 }
