@@ -30,6 +30,7 @@
 
   <properties>
     <hadoop.version>2.7.0</hadoop.version>
+    <accumulo.version>1.6.1</accumulo.version>
   </properties>
 
   <build>
@@ -82,6 +83,11 @@
       <groupId>org.apache.spark</groupId>
       <artifactId>spark-core_2.10</artifactId>
       <version>1.4.1</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.accumulo</groupId>
+      <artifactId>accumulo-core</artifactId>
+      <version>${accumulo.version}</version>
     </dependency>
     <dependency>
       <groupId>junit</groupId>

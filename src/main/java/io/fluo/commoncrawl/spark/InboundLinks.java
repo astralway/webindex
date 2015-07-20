@@ -1,14 +1,17 @@
 package io.fluo.commoncrawl.spark;
 
 import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.Base64;
 import java.util.List;
 import java.util.Set;
 
 import io.fluo.commoncrawl.inbound.Link;
 import io.fluo.commoncrawl.inbound.Page;
 import io.fluo.commoncrawl.warc.WARCFileInputFormat;
-import org.apache.commons.lang.ArrayUtils;
+import org.apache.accumulo.core.client.lexicoder.Lexicoder;
+import org.apache.accumulo.core.client.lexicoder.ReverseLexicoder;
+import org.apache.accumulo.core.client.lexicoder.ULongLexicoder;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
@@ -18,12 +21,12 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.FlatMapFunction;
-import org.apache.spark.api.java.function.PairFlatMapFunction;
+import org.apache.spark.api.java.function.PairFunction;
+import org.apache.spark.storage.StorageLevel;
 import org.archive.io.ArchiveReader;
 import org.archive.io.ArchiveRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import scala.Array;
 import scala.Tuple2;
 
 public class InboundLinks {
@@ -75,11 +78,32 @@ public class InboundLinks {
           }
         });
 
-    JavaPairRDD<String, Integer> ones = urls.mapToPair(s -> new Tuple2<>(s, 1));
+    final Long one = new Long(1);
+    JavaPairRDD<String, Long> ones = urls.mapToPair(s -> new Tuple2<>(s, one));
+    ones.persist(StorageLevel.MEMORY_AND_DISK());
 
-    JavaPairRDD<String, Integer> counts = ones.reduceByKey((i1, i2) -> i1 + i2);
+    JavaPairRDD<String, Long> counts = ones.reduceByKey((i1, i2) -> i1 + i2);
 
-    JavaPairRDD<String, Integer> sortedCounts = counts.sortByKey();
+    JavaPairRDD<String, Long> topCounts = counts.mapToPair(
+        new PairFunction<Tuple2<String, Long>, String, Long>() {
+          @Override
+          public Tuple2<String, Long> call(Tuple2<String, Long> t)
+              throws Exception {
+            if (t._1().startsWith("d:")) {
+              String[] args = t._1().split("\t");
+              String domain = args[0];
+              String link = args[1];
+              Long numLinks = t._2();
+              Lexicoder<Long> lexicoder = new ReverseLexicoder<>(new ULongLexicoder());
+              String numLinksEnc = Hex.encodeHexString(lexicoder.encode(numLinks));
+              return new Tuple2<>(String.format("%s\t%s\t%s", domain, numLinksEnc, link),
+                                              numLinks);
+            }
+            return t;
+          }
+        });
+
+    JavaPairRDD<String, Long> sortedCounts = topCounts.sortByKey();
 
     sortedCounts.saveAsHadoopFile(args[1], Text.class, LongWritable.class, TextOutputFormat.class);
 

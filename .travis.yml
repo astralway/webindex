@@ -13,5 +13,5 @@
 # limitations under the License.
 language: java
 jdk:
-  - oraclejdk7
+  - oraclejdk8
 script: mvn verify

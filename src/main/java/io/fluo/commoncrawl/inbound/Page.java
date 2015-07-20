@@ -124,5 +124,4 @@ public class Page {
   public boolean isEmpty() {
     return (json == null) && (link == null) && (mimeType == null);
   }
-
 }
