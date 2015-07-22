@@ -19,8 +19,10 @@ package io.fluo.commoncrawl.inbound;
 import java.io.File;
 import java.io.IOException;
 import java.text.ParseException;
+import java.util.Iterator;
 
 import org.archive.io.ArchiveReader;
+import org.archive.io.ArchiveRecord;
 import org.archive.io.warc.WARCReaderFactory;
 import org.junit.Assert;
 import org.junit.Test;
@@ -40,5 +42,21 @@ public class PageTest {
     Assert.assertEquals(10, page.getNumLinks());
     Assert.assertEquals(1, page.getLinks().size());
     Assert.assertEquals(0, page.getExternalLinks().size());
+
+    ArchiveReader ar2 = WARCReaderFactory.get(new File("src/test/resources/wat-18.warc"));
+
+    int valid = 0;
+    int invalid = 0;
+    Iterator<ArchiveRecord> records = ar2.iterator();
+    while (records.hasNext()) {
+      ArchiveRecord r = records.next();
+      if (Page.isValid(r)) {
+        valid++;
+      } else {
+        invalid++;
+      }
+    }
+    Assert.assertEquals(17, valid);
+    Assert.assertEquals(1, invalid);
   }
 }

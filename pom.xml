@@ -29,8 +29,9 @@
   <url>https://github.com/fluo-io/common-crawl</url>
 
   <properties>
-    <hadoop.version>2.7.0</hadoop.version>
     <accumulo.version>1.6.1</accumulo.version>
+    <hadoop.version>2.7.0</hadoop.version>
+    <fluo.version>1.0.0-beta-1</fluo.version>
   </properties>
 
   <build>
@@ -75,6 +76,11 @@
       </exclusions>
     </dependency>
     <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <version>14.0.1</version>
+    </dependency>
+    <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-lang3</artifactId>
       <version>3.4</version>
@@ -88,6 +94,21 @@
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-core</artifactId>
       <version>${accumulo.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.fluo</groupId>
+      <artifactId>fluo-api</artifactId>
+      <version>${fluo.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.fluo</groupId>
+      <artifactId>fluo-core</artifactId>
+      <version>${fluo.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.fluo</groupId>
+      <artifactId>fluo-mapreduce</artifactId>
+      <version>${fluo.version}</version>
     </dependency>
     <dependency>
       <groupId>junit</groupId>

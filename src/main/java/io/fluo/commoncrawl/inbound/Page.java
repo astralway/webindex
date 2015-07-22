@@ -48,19 +48,31 @@ public class Page {
   }
 
   public static Page from(ArchiveRecord archiveRecord) throws IOException, ParseException {
-    byte[] rawData;
-    rawData = IOUtils.toByteArray(archiveRecord, archiveRecord.available());
-    JSONObject json = new JSONObject(new String(rawData));
-    return new Page(json, Link.from(archiveRecord.getHeader().getUrl()),
-                    archiveRecord.getHeader().getMimetype());
+    if (archiveRecord.getHeader().getMimetype().equalsIgnoreCase("application/json")) {
+      byte[] rawData = IOUtils.toByteArray(archiveRecord, archiveRecord.available());
+      JSONObject json = new JSONObject(new String(rawData));
+      Page p = new Page(json, Link.from(archiveRecord.getHeader().getUrl()),
+                        archiveRecord.getHeader().getMimetype());
+      return p;
+    }
+    return EMPTY;
   }
 
   public static Page fromIgnoringErrors(ArchiveRecord record) {
     try {
       return from(record);
     } catch (Exception e) {
-      log.debug("Exception parsing Archive Record", e);
+      log.info("Exception parsing Archive Record with url: " + record.getHeader().getUrl(), e);
       return EMPTY;
+    }
+  }
+
+  public static boolean isValid(ArchiveRecord record) {
+    try {
+      from(record);
+      return true;
+    } catch (Exception e) {
+      return false;
     }
   }
 

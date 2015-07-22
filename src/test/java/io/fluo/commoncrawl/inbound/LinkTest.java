@@ -67,6 +67,5 @@ public class LinkTest {
     Assert.assertEquals("com.c", Link.fromValid("http://a.b.c.com").getReverseTopPrivate());
     Assert.assertEquals("c.co.uk", Link.fromValid("http://a.b.c.co.uk").getTopPrivate());
     Assert.assertEquals("uk.co.c", Link.fromValid("http://a.b.c.co.uk").getReverseTopPrivate());
-
   }
 }
