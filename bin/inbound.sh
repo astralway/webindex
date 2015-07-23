@@ -61,7 +61,7 @@ spark)
       --executor-memory 1g \
       --executor-cores 2 \
       $CC_JAR \
-      $CC_DATA/wat/ $2 $CC_OUTPUT $FLUO_PROPS
+      $CC_DATA/wat/ $2 $CC_OUTPUT $CC_FLUO_PROPS
   ;;
 mapred)
   setup

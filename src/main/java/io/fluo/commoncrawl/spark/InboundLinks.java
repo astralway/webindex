@@ -5,12 +5,9 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Function;
 
 import io.fluo.api.config.FluoConfiguration;
-import io.fluo.api.data.Bytes;
 import io.fluo.api.data.Column;
-import io.fluo.api.data.RowColumn;
 import io.fluo.commoncrawl.inbound.Link;
 import io.fluo.commoncrawl.inbound.Page;
 import io.fluo.commoncrawl.warc.WARCFileInputFormat;
@@ -29,7 +26,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.TextOutputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.spark.Accumulator;
@@ -115,7 +111,7 @@ public class InboundLinks {
           }
         });
 
-    final Long one = new Long(1);
+    final Long one = (long) 1;
     JavaPairRDD<String, Long> ones = urls.mapToPair(s -> new Tuple2<>(s, one));
     ones.persist(StorageLevel.DISK_ONLY());
 
