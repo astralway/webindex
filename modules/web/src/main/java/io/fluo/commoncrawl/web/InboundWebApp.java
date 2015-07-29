@@ -5,6 +5,7 @@ import java.io.File;
 import io.dropwizard.Application;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
+import io.dropwizard.views.ViewBundle;
 import io.fluo.api.config.FluoConfiguration;
 
 public class InboundWebApp extends Application<InboundConfiguration> {
@@ -20,7 +21,7 @@ public class InboundWebApp extends Application<InboundConfiguration> {
 
   @Override
   public void initialize(Bootstrap<InboundConfiguration> bootstrap) {
-    // nothing to do ye
+    bootstrap.addBundle(new ViewBundle<InboundConfiguration>());
   }
 
   @Override

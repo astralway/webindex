@@ -2,18 +2,42 @@
 
 ### Requirements
 
+In order run this application you need the following installed and running on your
+machine:
+
 * Hadoop (HDFS & YARN)
+* Accumulo
+* Fluo
 
-### Load Data
+Consider using [fluo-dev] to run these requirments
 
-Data can be downloaded from AWS and loaded in HDFS using the following command:
+### Run InboundLinks web application
 
-    ./bin/load.sh <fileType> <numFiles>
+First, A WAT CommonCrawl data file must downloaded from AWS and loaded into HDFS 
+using the following command:
 
-### Run WordCount M/R
+    ./bin/load.sh wat 1
 
-    ./bin/wordcount.sh
+Next, you must create `env.sh` and `web.yml` files and edit them for your environment:
 
-### Run Inbound Links M/R 
+    cd conf
+    cp env.sh.example env.sh
+    cp web.yml.example web.yml
 
-    ./bin/wordcount.sh
+Run the following commands to create a Fluo application:
+
+    fluo new ccrawl
+    fluo init ccrawl
+    fluo start ccrawl
+
+Load data into Fluo using Spark:
+
+    ./bin/inbound.sh spark fluo
+
+Finally, run the following command to run the web server:
+
+    ./bin/webserver.sh
+
+Browse to http://localhost:8080/ 
+
+[fluo-dev]: https://github.com/fluo-io/fluo-dev

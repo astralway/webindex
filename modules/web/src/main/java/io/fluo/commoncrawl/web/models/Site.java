@@ -6,18 +6,18 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.hibernate.validator.constraints.Length;
 
-public class TopPages {
+public class Site {
 
   @Length(max = 100)
   private String domain;
 
   private List<PageCount> pages = new ArrayList<>();
 
-  public TopPages() {
+  public Site() {
     // Jackson deserialization
   }
 
-  public TopPages(String domain) {
+  public Site(String domain) {
     this.domain = domain;
   }
 

@@ -72,7 +72,10 @@
       <groupId>io.dropwizard</groupId>
       <artifactId>dropwizard-core</artifactId>
     </dependency>
-
+    <dependency>
+      <groupId>io.dropwizard</groupId>
+      <artifactId>dropwizard-views-freemarker</artifactId>
+    </dependency>
     <dependency>
       <groupId>io.fluo</groupId>
       <artifactId>fluo-api</artifactId>

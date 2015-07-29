@@ -102,10 +102,10 @@ public class InboundLinks {
 
             List<String> retval = new ArrayList<>();
             for (Link link : links) {
-              retval.add("u:" + link.getUri() + "\tcount");
-              retval.add("u:" + link.getUri() + "\tl:" + page.getLink().getUri() + "\t" + link
+              retval.add("p:" + link.getUri() + "\tcount");
+              retval.add("p:" + link.getUri() + "\tp:" + page.getLink().getUri() + "\t" + link
                   .getAnchorText());
-              retval.add("d:" + link.getReverseTopPrivate() + "\tu:" + link.getUri());
+              retval.add("d:" + link.getReverseTopPrivate() + "\tp:" + link.getUri());
             }
             return retval;
           }
