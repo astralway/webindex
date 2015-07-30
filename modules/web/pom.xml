@@ -69,6 +69,10 @@
 
   <dependencies>
     <dependency>
+      <groupId>io.fluo</groupId>
+      <artifactId>cc-core</artifactId>
+    </dependency>
+    <dependency>
       <groupId>io.dropwizard</groupId>
       <artifactId>dropwizard-core</artifactId>
     </dependency>
@@ -89,7 +93,6 @@
     <dependency>
       <groupId>io.fluo</groupId>
       <artifactId>fluo-core</artifactId>
-      <scope>runtime</scope>
       <exclusions>
         <exclusion>
           <groupId>log4j</groupId>
@@ -114,7 +117,21 @@
       </exclusions>
     </dependency>
     <dependency>
-      <groupId>junit</groupId>
+      <groupId>org.apache.accumulo</groupId>
+      <artifactId>accumulo-core</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>log4j</groupId>
+          <artifactId>log4j</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>com.google.guava</groupId>
+          <artifactId>guava</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+    <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <scope>test</scope>
     </dependency>

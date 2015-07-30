@@ -29,6 +29,7 @@
   <url>https://github.com/fluo-io/common-crawl</url>
 
   <modules>
+    <module>modules/core</module>
     <module>modules/data</module>
     <module>modules/web</module>
   </modules>
@@ -66,6 +67,21 @@
 
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>io.fluo</groupId>
+        <artifactId>cc-core</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.fluo</groupId>
+        <artifactId>cc-data</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.fluo</groupId>
+        <artifactId>cc-web</artifactId>
+        <version>${project.version}</version>
+      </dependency>
       <dependency>
         <groupId>io.dropwizard</groupId>
         <artifactId>dropwizard-core</artifactId>
@@ -125,6 +141,11 @@
         <groupId>io.fluo</groupId>
         <artifactId>fluo-mapreduce</artifactId>
         <version>${fluo.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.esotericsoftware.yamlbeans</groupId>
+        <artifactId>yamlbeans</artifactId>
+        <version>1.09</version>
       </dependency>
       <dependency>
         <groupId>junit</groupId>

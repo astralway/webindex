@@ -30,6 +30,10 @@
 
   <dependencies>
     <dependency>
+      <groupId>io.fluo</groupId>
+      <artifactId>cc-core</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
       <version>14.0.1</version>

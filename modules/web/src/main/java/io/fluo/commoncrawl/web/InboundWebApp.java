@@ -7,6 +7,9 @@ import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import io.dropwizard.views.ViewBundle;
 import io.fluo.api.config.FluoConfiguration;
+import io.fluo.commoncrawl.core.DataConfig;
+import io.fluo.core.util.AccumuloUtil;
+import org.apache.accumulo.core.client.Connector;
 
 public class InboundWebApp extends Application<InboundConfiguration> {
 
@@ -28,8 +31,12 @@ public class InboundWebApp extends Application<InboundConfiguration> {
   public void run(InboundConfiguration config,
       Environment environment) {
 
-    FluoConfiguration fluoConfig = new FluoConfiguration(new File(config.getFluoPropsPath()));
-    final InboundResource resource = new InboundResource(fluoConfig);
+    DataConfig dataConfig = config.getDataConfig();
+    File fluoConfigFile = new File(dataConfig.fluoPropsPath);
+    FluoConfiguration fluoConfig = new FluoConfiguration(fluoConfigFile);
+
+    Connector conn = AccumuloUtil.getConnector(fluoConfig);
+    final InboundResource resource = new InboundResource(fluoConfig, conn, dataConfig);
     environment.healthChecks().register("fluo", new FluoHealthCheck());
     environment.jersey().register(resource);
   }

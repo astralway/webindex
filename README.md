@@ -18,11 +18,11 @@ using the following command:
 
     ./bin/load.sh wat 1
 
-Next, you must create `env.sh` and `web.yml` files and edit them for your environment:
+Next, you must create `data.yml` and `dropwizard.yml` files and edit them for your environment:
 
     cd conf
-    cp env.sh.example env.sh
-    cp web.yml.example web.yml
+    cp data.yml.example data.yml
+    cp dropwizard.yml.example dropwizard.yml
 
 Run the following commands to create a Fluo application:
 
@@ -30,13 +30,15 @@ Run the following commands to create a Fluo application:
     fluo init ccrawl
     fluo start ccrawl
 
-Load data into Fluo using Spark:
+Make sure that `fluoPropsPath` in `data.yml` point the `fluo.properties` file of this application.
 
-    ./bin/inbound.sh spark fluo
+Run the Spark job to initialize Accumulo and Fluo with data:
 
-Finally, run the following command to run the web server:
+    ./bin/init.sh
 
-    ./bin/webserver.sh
+Finally, run the following command to run the web app:
+
+    ./bin/webapp.sh
 
 Browse to http://localhost:8080/ 
 

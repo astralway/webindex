@@ -1,8 +1,5 @@
 package io.fluo.commoncrawl.web.views;
 
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-
 import io.dropwizard.views.View;
 import io.fluo.commoncrawl.web.models.Site;
 
