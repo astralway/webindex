@@ -1,5 +1,7 @@
 package io.fluo.commoncrawl.web;
 
+import java.net.MalformedURLException;
+import java.text.ParseException;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -9,10 +11,10 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
-import com.google.common.base.Joiner;
 import io.fluo.api.config.FluoConfiguration;
 import io.fluo.commoncrawl.core.DataConfig;
-import io.fluo.commoncrawl.web.models.Link;
+import io.fluo.commoncrawl.core.DataUtil;
+import io.fluo.commoncrawl.web.models.WebLink;
 import io.fluo.commoncrawl.web.models.Page;
 import io.fluo.commoncrawl.web.models.PageCount;
 import io.fluo.commoncrawl.web.models.Site;
@@ -26,7 +28,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.commons.lang.ArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,12 +46,6 @@ public class InboundResource {
     this.dataConfig = dataConfig;
   }
 
-  private static String reverseDomain(String domain) {
-    String[] domainArgs = domain.split("\\.");
-    ArrayUtils.reverse(domainArgs);
-    return Joiner.on(".").join(domainArgs);
-  }
-
   @GET
   @Produces(MediaType.TEXT_HTML)
   public HomeView getHome() {
@@ -64,7 +59,7 @@ public class InboundResource {
     Site tp = new Site(domain);
     try {
       Scanner scanner = conn.createScanner(dataConfig.accumuloIndexTable, Authorizations.EMPTY);
-      scanner.setRange(Range.exact("d:" + reverseDomain(domain)));
+      scanner.setRange(Range.exact("d:" + DataUtil.reverseDomain(domain)));
       Iterator<Map.Entry<Key, Value>> iterator = scanner.iterator();
       long num = 0;
       while (iterator.hasNext() && (num <= 50)) {
@@ -73,7 +68,7 @@ public class InboundResource {
         Value value = entry.getValue();
         String[] colArgs = key.getColumnFamily().toString().split("\t", 2);
         if (colArgs.length == 2) {
-          tp.addPage(new PageCount(colArgs[1], Long.parseLong(value.toString())));
+          tp.addPage(new PageCount(DataUtil.toUrl(colArgs[1].substring(2)), Long.parseLong(value.toString())));
           num++;
         }
       }
@@ -91,7 +86,7 @@ public class InboundResource {
 
     try {
       Scanner scanner = conn.createScanner(dataConfig.accumuloIndexTable, Authorizations.EMPTY);
-      scanner.setRange(Range.exact(url));
+      scanner.setRange(Range.exact("p:" + DataUtil.toUri(url)));
       Iterator<Map.Entry<Key, Value>> iterator = scanner.iterator();
       long num = 0;
       while (iterator.hasNext() && (num <= 50)) {
@@ -101,13 +96,15 @@ public class InboundResource {
         if (key.getColumnFamily().toString().startsWith("p:")) {
           String[] colArgs = key.getColumnFamily().toString().split("\t", 2);
           if (colArgs.length == 2) {
-            page.addLink(new Link(colArgs[0], colArgs[1]));
+            page.addLink(new WebLink(DataUtil.toUrl(colArgs[0].substring(2)), colArgs[1]));
             num++;
           }
         }
       }
     } catch (TableNotFoundException e) {
       log.error("Table {} not found", dataConfig.accumuloIndexTable);
+    } catch (MalformedURLException e) {
+      log.error("Failed to parse URL {}", url);
     }
     return new PageView(page);
   }

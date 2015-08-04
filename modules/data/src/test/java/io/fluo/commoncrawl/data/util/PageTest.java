@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.fluo.commoncrawl.data.inbound;
+package io.fluo.commoncrawl.data.util;
 
 import java.io.File;
 import java.io.IOException;

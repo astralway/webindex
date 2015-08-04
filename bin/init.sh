@@ -31,7 +31,7 @@ fi
 
 command -v spark-submit >/dev/null 2>&1 || { echo >&2 "The 'spark-submit' command must be available on PATH.  Aborting."; exit 1; }
 spark-submit --class io.fluo.commoncrawl.data.Init \
-    --master yarn-cluster \
+    --master yarn-client \
     --num-executors 1 \
     --driver-memory 500m \
     --executor-memory 1g \

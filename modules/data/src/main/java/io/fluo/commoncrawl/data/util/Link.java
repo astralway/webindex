@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.fluo.commoncrawl.data.inbound;
+package io.fluo.commoncrawl.data.util;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -23,6 +23,7 @@ import java.text.ParseException;
 import com.google.common.base.Joiner;
 import com.google.common.net.HostSpecifier;
 import com.google.common.net.InternetDomainName;
+import io.fluo.commoncrawl.core.DataUtil;
 import org.apache.commons.lang.ArrayUtils;
 
 public class Link {
@@ -35,7 +36,7 @@ public class Link {
     this.anchorText = anchorText;
   }
 
-  public static Link from(String url, String anchorText) throws ParseException {
+  public static Link fromUrl(String url, String anchorText) throws ParseException {
     try {
       URL u = new URL(url);
       if (!HostSpecifier.isValid(u.getHost())) {
@@ -52,25 +53,25 @@ public class Link {
     }
   }
 
-  public static Link from(String url) throws ParseException {
-    return from(url, "");
+  public static Link fromUrl(String url) throws ParseException {
+    return fromUrl(url, "");
   }
 
-  public static Link fromValid(String url, String anchorText) {
+  public static Link fromValidUrl(String url, String anchorText) {
     try {
-      return from(url, anchorText);
+      return fromUrl(url, anchorText);
     } catch (ParseException e) {
       throw new IllegalArgumentException(e.getMessage());
     }
   }
 
-  public static Link fromValid(String url) {
-    return fromValid(url, "");
+  public static Link fromValidUrl(String url) {
+    return fromValidUrl(url, "");
   }
 
   public static boolean isValid(String url) {
     try {
-      from(url);
+      fromUrl(url);
       return true;
     } catch (Exception e) {
       return false;
@@ -81,40 +82,30 @@ public class Link {
     return url.getHost();
   }
 
-  private static String reverseDomain(String domain) {
-    String[] domainArgs = domain.split("\\.");
-    ArrayUtils.reverse(domainArgs);
-    return Joiner.on(".").join(domainArgs);
-  }
-
   public String getReverseHost() {
-    if (hasDomain()) {
-      return reverseDomain(getHost());
-    } else {
-      return getHost();
-    }
+    return DataUtil.getReverseHost(getHost());
   }
 
   public String getAnchorText() {
     return anchorText;
   }
 
-  public boolean hasDomain() {
-    return InternetDomainName.isValid(getHost());
+  public boolean hasIP() {
+    return DataUtil.isValidIP(getHost());
   }
 
   public String getTopPrivate() {
-    if (hasDomain()) {
-      return InternetDomainName.from(getHost()).topPrivateDomain().name();
+    if (hasIP()) {
+      return getHost();
     }
-    return getHost();
+    return InternetDomainName.from(getHost()).topPrivateDomain().name();
   }
 
   public String getReverseTopPrivate() {
-    if (hasDomain()) {
-      return reverseDomain(getTopPrivate());
+    if (hasIP()) {
+      return getHost();
     }
-    return getTopPrivate();
+    return DataUtil.reverseDomain(getTopPrivate());
   }
 
   public String getUrl() {
@@ -122,16 +113,7 @@ public class Link {
   }
 
   public String getUri() {
-    StringBuilder uri = new StringBuilder();
-    uri.append(getReverseHost());
-    if ((url.getPort() != -1) && (url.getPort() != 80)) {
-      uri.append(":" + Integer.toString(url.getPort()));
-    }
-    uri.append(url.getPath());
-    if (url.getQuery() != null && !url.getQuery().isEmpty()) {
-      uri.append("?" + url.getQuery());
-    }
-    return uri.toString();
+    return DataUtil.toUri(url);
   }
 
   public boolean isImage() {

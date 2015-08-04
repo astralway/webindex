@@ -1,4 +1,4 @@
-package io.fluo.commoncrawl.data.warc;
+package io.fluo.commoncrawl.data.util;
 
 import java.io.IOException;
 

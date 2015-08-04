@@ -9,7 +9,7 @@ public class Page {
 
   private String url;
 
-  private List<Link> links = new ArrayList<>();
+  private List<WebLink> links = new ArrayList<>();
 
   public Page() {
     // Jackson deserialization
@@ -25,11 +25,11 @@ public class Page {
   }
 
   @JsonProperty
-  public List<Link> getLinks() {
+  public List<WebLink> getLinks() {
     return links;
   }
 
-  public void addLink(Link link) {
+  public void addLink(WebLink link) {
     links.add(link);
   }
 }

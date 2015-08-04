@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.fluo.commoncrawl.data.inbound;
+package io.fluo.commoncrawl.data.util;
 
 import java.io.IOException;
 import java.text.ParseException;
@@ -51,7 +51,7 @@ public class Page {
     if (archiveRecord.getHeader().getMimetype().equalsIgnoreCase("application/json")) {
       byte[] rawData = IOUtils.toByteArray(archiveRecord, archiveRecord.available());
       JSONObject json = new JSONObject(new String(rawData));
-      Page p = new Page(json, Link.from(archiveRecord.getHeader().getUrl()),
+      Page p = new Page(json, Link.fromUrl(archiveRecord.getHeader().getUrl()),
                         archiveRecord.getHeader().getMimetype());
       return p;
     }
@@ -62,7 +62,8 @@ public class Page {
     try {
       return from(record);
     } catch (Exception e) {
-      log.info("Exception parsing Archive Record with url: " + record.getHeader().getUrl(), e);
+      log.info("Exception parsing ArchiveRecord with url {} due to {}", record.getHeader().getUrl(),
+               e.getMessage());
       return EMPTY;
     }
   }
@@ -114,7 +115,7 @@ public class Page {
           text = link.getString("title");
         }
         try {
-          links.add(Link.from(link.getString("url"), text));
+          links.add(Link.fromUrl(link.getString("url"), text));
         } catch (Exception e) {
         }
       }

@@ -2,12 +2,12 @@ package io.fluo.commoncrawl.web.models;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class Link {
+public class WebLink {
 
   private String url;
   private String anchorText;
 
-  public Link(String url, String anchorText) {
+  public WebLink(String url, String anchorText) {
     this.url = url;
     this.anchorText = anchorText;
   }

@@ -10,9 +10,9 @@ import io.fluo.api.config.FluoConfiguration;
 import io.fluo.api.data.Bytes;
 import io.fluo.api.data.Column;
 import io.fluo.commoncrawl.core.DataConfig;
-import io.fluo.commoncrawl.data.inbound.Link;
-import io.fluo.commoncrawl.data.inbound.Page;
-import io.fluo.commoncrawl.data.warc.WARCFileInputFormat;
+import io.fluo.commoncrawl.data.util.Link;
+import io.fluo.commoncrawl.data.util.Page;
+import io.fluo.commoncrawl.data.util.WARCFileInputFormat;
 import io.fluo.core.util.AccumuloUtil;
 import io.fluo.mapreduce.FluoKeyValue;
 import io.fluo.mapreduce.FluoKeyValueGenerator;
@@ -37,7 +37,6 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.FlatMapFunction;
-import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.PairFlatMapFunction;
 import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.storage.StorageLevel;
@@ -180,7 +179,7 @@ public class Init {
 
     JavaRDD<Page> pages = records.map(r -> Page.fromIgnoringErrors(r));
 
-    JavaRDD<String> urls = pages.flatMap(
+    JavaRDD<String> links = pages.flatMap(
         new FlatMapFunction<Page, String>() {
           @Override
           public Iterable<String> call(Page page) throws Exception {
@@ -197,6 +196,7 @@ public class Init {
               retval.add("p:" + link.getUri() + "\tcount");
               retval.add("p:" + link.getUri() + "\tp:" + page.getLink().getUri() + "\t" + link
                   .getAnchorText());
+              retval.add("p:" + link.getUri() + "\td:" + page.getLink().getReverseTopPrivate());
               retval.add("d:" + link.getReverseTopPrivate() + "\tp:" + link.getUri());
             }
             return retval;
@@ -204,12 +204,16 @@ public class Init {
         });
 
     final Long one = (long) 1;
-    JavaPairRDD<String, Long> ones = urls.mapToPair(s -> new Tuple2<>(s, one));
+    JavaPairRDD<String, Long> ones = links.mapToPair(s -> new Tuple2<>(s, one));
     ones.persist(StorageLevel.DISK_ONLY());
 
-    JavaPairRDD<String, Long> counts = ones.reduceByKey((i1, i2) -> i1 + i2);
+    JavaPairRDD<String, Long> linkCounts = ones.reduceByKey((i1, i2) -> i1 + i2);
+    JavaPairRDD<String, Long> sortedLinkCounts = linkCounts.sortByKey();
 
-    JavaPairRDD<String, Long> topCounts = counts.mapToPair(
+    // Load intermediate results into Fluo
+    loadFluo(sortedLinkCounts);
+
+    JavaPairRDD < String, Long > topCounts = sortedLinkCounts.mapToPair(
         new PairFunction<Tuple2<String, Long>, String, Long>() {
           @Override
           public Tuple2<String, Long> call(Tuple2<String, Long> t)
@@ -229,14 +233,13 @@ public class Init {
         });
     topCounts.persist(StorageLevel.DISK_ONLY());
 
-    JavaPairRDD<String, Long> sortedCounts = topCounts.sortByKey();
+    JavaPairRDD<String, Long> sortedTopCounts = topCounts.sortByKey();
 
-    loadAccumulo(sortedCounts);
+    // Load final indexes into Accumulo
+    loadAccumulo(sortedTopCounts);
 
-    // Loading into HDFS only used for testing
+    // For testing, Load into HDFS
     //loadHDFS(sortedCounts);
-
-    loadFluo(sortedCounts);
 
     log.info("Num empty = {}", numEmpty.value());
     log.info("Num pages = {}", numPages.value());
