@@ -15,7 +15,7 @@ function get_prop {
 export HADOOP_CONF_DIR=`get_prop hadoopConfDir`
 
 cd $CC_HOME
-mvn clean package
+mvn clean install
 cd $CC_HOME/modules/data
 mvn package assembly:single
 

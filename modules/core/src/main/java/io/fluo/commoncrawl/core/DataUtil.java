@@ -23,11 +23,11 @@ public class DataUtil {
   }
 
   public static String toUrl(String uri) {
-    String[] args = uri.split("/", 2);
+    String[] args = uri.split("[\\/\\?]", 2);
     String[] hostArgs = args[0].split(":", 2);
-    String domain = reverseDomain(hostArgs[0]);
+    String domain = getReverseHost(hostArgs[0]);
     StringBuilder url = new StringBuilder();
-    if ((hostArgs.length == 2) && !hostArgs[1].isEmpty() && !hostArgs[1].equals("80")) {
+    if ((hostArgs.length == 2) && !hostArgs[1].isEmpty()) {
       if (hostArgs[1].equals("443")) {
         url.append("https://" + domain);
       } else {
@@ -37,7 +37,9 @@ public class DataUtil {
       url.append("http://" + domain);
     }
     if (args.length == 2) {
-      url.append("/" + args[1]);
+      int sepIndex = args[0].length();
+      url.append(uri.substring(sepIndex, sepIndex + 1));
+      url.append(args[1]);
     }
     return url.toString();
   }
@@ -59,16 +61,21 @@ public class DataUtil {
 
   public static String toUri(URL url) {
     StringBuilder uri = new StringBuilder();
+
     uri.append(getReverseHost(url.getHost()));
-    if ((url.getPort() != -1) && (url.getPort() != 80)) {
+    if ((url.getPort() != -1)) {
       uri.append(":" + Integer.toString(url.getPort()));
     } else if (url.getProtocol().equalsIgnoreCase("https")) {
       uri.append(":443");
     }
-    uri.append(url.getPath());
-    if (url.getQuery() != null && !url.getQuery().isEmpty()) {
-      uri.append("?" + url.getQuery());
+
+    StringBuilder urlStart = new StringBuilder();
+    urlStart.append(url.getProtocol() + "://" + url.getHost());
+    if (url.getPort() != -1) {
+      urlStart.append(":" + Integer.toString(url.getPort()));
     }
+    uri.append(url.toString().substring(urlStart.length()));
+
     return uri.toString();
   }
 }

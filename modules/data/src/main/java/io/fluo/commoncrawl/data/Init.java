@@ -9,6 +9,7 @@ import java.util.Set;
 import io.fluo.api.config.FluoConfiguration;
 import io.fluo.api.data.Bytes;
 import io.fluo.api.data.Column;
+import io.fluo.commoncrawl.core.AccumuloConstants;
 import io.fluo.commoncrawl.core.DataConfig;
 import io.fluo.commoncrawl.data.util.Link;
 import io.fluo.commoncrawl.data.util.Page;
@@ -65,11 +66,21 @@ public class Init {
             String[] keyArgs = tuple._1().split("\t", 2);
             if (keyArgs.length != 2) {
               return null;
-            } else {
-              return new Tuple2<>(new Key(new Text(keyArgs[0]), new Text(keyArgs[1])),
-                                  new Value(tuple._2().toString().getBytes()));
             }
-          }
+            String row = keyArgs[0];
+            String cf = keyArgs[1].split(":", 2)[0];
+            String cq = keyArgs[1].split(":", 2)[1];
+            byte[] val = tuple._2().toString().getBytes();
+            if (row.startsWith("p:") && cf.equals(AccumuloConstants.INLINKS)) {
+              String[] tempArgs = cq.split("\t", 2);
+              cq = tempArgs[0];
+              if (tuple._2() > 1) {
+                log.info("Found key {} with count of {}", tuple._1(), tuple._2().toString());
+              }
+              val = tempArgs[1].getBytes();
+            }
+            return new Tuple2<>(new Key(new Text(row), new Text(cf), new Text(cq)), new Value(val));
+            }
         });
     Job accJob = Job.getInstance(ctx.hadoopConfiguration());
 
@@ -104,7 +115,8 @@ public class Init {
             String[] keyArgs = tuple._1().split("\t", 2);
             if (keyArgs.length != 2) {
               System.out.println("Data lacks tab: " + tuple._1());
-            } else if (keyArgs[0].startsWith("p:") && keyArgs[1].startsWith("p:")) {
+            } else if (keyArgs[0].startsWith("p:") &&
+                       keyArgs[1].startsWith(AccumuloConstants.INLINKS)) {
               FluoKeyValueGenerator fkvg = new FluoKeyValueGenerator();
               fkvg.setRow(keyArgs[0]).setColumn(new Column(keyArgs[1])).setValue(Bytes.of("1"));
               for (FluoKeyValue kv : fkvg.getKeyValues()) {
@@ -192,12 +204,24 @@ public class Init {
             numExternalLinks.add(links.size());
 
             List<String> retval = new ArrayList<>();
+            String pageUri = page.getLink().getUri();
+            if (links.size() > 0) {
+              retval.add(String.format("p:%s\t%s:%s", pageUri,
+                                       AccumuloConstants.CRAWLS,
+                                       page.getLink().getUrl().toString()));
+            }
             for (Link link : links) {
-              retval.add("p:" + link.getUri() + "\tcount");
-              retval.add("p:" + link.getUri() + "\tp:" + page.getLink().getUri() + "\t" + link
-                  .getAnchorText());
-              retval.add("p:" + link.getUri() + "\td:" + page.getLink().getReverseTopPrivate());
-              retval.add("d:" + link.getReverseTopPrivate() + "\tp:" + link.getUri());
+              String linkUri = link.getUri();
+              retval.add(String.format("p:%s\t%s:", pageUri, AccumuloConstants.OUTLINKCOUNT));
+              retval.add(String.format("p:%s\t%s:%s", pageUri, AccumuloConstants.OUTLINKS, linkUri));
+              retval.add(String.format("p:%s\t%s:", linkUri, AccumuloConstants.INLINKCOUNT));
+              retval.add(String.format("p:%s\t%s:%s\t%s", linkUri, AccumuloConstants.INLINKS,
+                                       pageUri, link.getAnchorText()));
+              retval.add(String.format("p:%s\t%s:%s", linkUri, AccumuloConstants.DOMAINS,
+                                       page.getLink().getReverseTopPrivate()));
+              retval.add(String.format("d:%s\t%s:%s", link.getReverseTopPrivate(),
+                                       AccumuloConstants.PAGES, linkUri));
+
             }
             return retval;
           }
@@ -211,7 +235,7 @@ public class Init {
     JavaPairRDD<String, Long> sortedLinkCounts = linkCounts.sortByKey();
 
     // Load intermediate results into Fluo
-    loadFluo(sortedLinkCounts);
+    //loadFluo(sortedLinkCounts);
 
     JavaPairRDD < String, Long > topCounts = sortedLinkCounts.mapToPair(
         new PairFunction<Tuple2<String, Long>, String, Long>() {
@@ -221,12 +245,12 @@ public class Init {
             if (t._1().startsWith("d:")) {
               String[] args = t._1().split("\t", 2);
               String domain = args[0];
-              String link = args[1];
+              String link = args[1].substring(AccumuloConstants.PAGES.length() + 1);
               Long numLinks = t._2();
               Lexicoder<Long> lexicoder = new ReverseLexicoder<>(new ULongLexicoder());
               String numLinksEnc = Hex.encodeHexString(lexicoder.encode(numLinks));
-              return new Tuple2<>(String.format("%s\t%s\t%s", domain, numLinksEnc, link),
-                                  numLinks);
+              return new Tuple2<>(String.format("%s\t%s:%s:%s", domain, AccumuloConstants.PAGEDESC,
+                                                numLinksEnc, link), numLinks);
             }
             return t;
           }

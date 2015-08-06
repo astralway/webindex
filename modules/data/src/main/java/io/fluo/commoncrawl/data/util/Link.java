@@ -25,8 +25,12 @@ import com.google.common.net.HostSpecifier;
 import com.google.common.net.InternetDomainName;
 import io.fluo.commoncrawl.core.DataUtil;
 import org.apache.commons.lang.ArrayUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Link {
+
+  private static final Logger log = LoggerFactory.getLogger(Link.class);
 
   private URL url;
   private String anchorText;
@@ -34,11 +38,25 @@ public class Link {
   private Link(URL url, String anchorText) {
     this.url = url;
     this.anchorText = anchorText;
+    validate();
+  }
+
+  private void validate() {
+    String reformUrl = DataUtil.toUrl(getUri());
+    if (!reformUrl.equals(getUrl()) && !getUrl().contains(":443")) {
+      log.error("Url {} creates url {} when reformed from uri {}", getUrl(), reformUrl, getUri());
+    }
   }
 
   public static Link fromUrl(String url, String anchorText) throws ParseException {
     try {
       URL u = new URL(url);
+      if (!u.getProtocol().equalsIgnoreCase("http") && !u.getProtocol().equalsIgnoreCase("https")) {
+        throw new ParseException("Bad protocol: " + u.toString(), 0);
+      }
+      if (u.getUserInfo() != null) {
+        throw new ParseException("No user info: " + u.toString(), 0);
+      }
       if (!HostSpecifier.isValid(u.getHost())) {
         throw new ParseException("Invalid host: " + u.getHost(), 0);
       }
@@ -118,5 +136,19 @@ public class Link {
 
   public boolean isImage() {
     return url.getFile().matches("([^\\s]+(\\.(?i)(jpeg|jpg|png|gif|bmp))$)");
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o instanceof Link) {
+      Link other = (Link) o;
+      return url.toString().equals(other.url.toString());
+    }
+    return false;
+  }
+
+  @Override
+  public int hashCode() {
+    return url.toString().hashCode();
   }
 }

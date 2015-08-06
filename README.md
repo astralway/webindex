@@ -11,7 +11,7 @@ machine:
 
 Consider using [fluo-dev] to run these requirments
 
-### Run InboundLinks web application
+### Run the web application
 
 First, A WAT CommonCrawl data file must downloaded from AWS and loaded into HDFS 
 using the following command:

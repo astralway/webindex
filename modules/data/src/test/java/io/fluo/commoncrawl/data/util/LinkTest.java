@@ -39,24 +39,29 @@ public class LinkTest {
     Assert.assertFalse(Link.isValid("http:://example.com/"));
     Assert.assertFalse(Link.isValid("example.com"));
     Assert.assertFalse(Link.isValid("127.0.0.1"));
+    Assert.assertFalse(Link.isValid("http://ab@example.com"));
+    Assert.assertFalse(Link.isValid("ftp://example.com"));
 
     Assert.assertEquals("http://a.b.com:281/1/2", Link.fromValidUrl("http://a.b.com:281/1/2").getUrl());
     Assert.assertEquals("http://1.2.3.4:281/1/2", Link.fromValidUrl("http://1.2.3.4:281/1/2").getUrl());
 
     Assert.assertEquals("example.com", Link.fromValidUrl("http://example.com:281/1/2").getHost());
     Assert.assertEquals("a.b.example.com", Link.fromValidUrl("http://a.b.example.com/1/2").getHost());
-    Assert.assertEquals("1.2.3.4", Link.fromValidUrl("https://1.2.3.4:89/1/2").getHost());
+    Assert.assertEquals("1.2.3.4", Link.fromValidUrl("http://1.2.3.4:89/1/2").getHost());
 
     Assert.assertEquals("com.example", Link.fromValidUrl("http://example.com:281/1").getReverseHost());
     Assert.assertEquals("com.example.b.a", Link.fromValidUrl("http://a.b.example.com/1/2").getReverseHost());
-    Assert.assertEquals("1.2.3.4", Link.fromValidUrl("https://1.2.3.4:89/1/2").getReverseHost());
+    Assert.assertEquals("1.2.3.4", Link.fromValidUrl("http://1.2.3.4:89/1/2").getReverseHost());
 
     Assert.assertEquals("com.example/1/2/3?c&d&e", Link.fromValidUrl(
         "http://example.com/1/2/3?c&d&e").getUri());
+
     Assert.assertEquals("com.example.b.a", Link.fromValidUrl("http://a.b.example.com").getUri());
+    Assert.assertEquals("com.example.b.a:443/", Link.fromValidUrl("https://a.b.example.com:443/").getUri());
     Assert.assertEquals("com.example:443/", Link.fromValidUrl("https://example.com/").getUri());
     Assert.assertEquals("com.example?b", Link.fromValidUrl("http://example.com?b").getUri());
-    Assert.assertEquals("com.example/b", Link.fromValidUrl("http://example.com:80/b").getUri());
+    Assert.assertEquals("com.example:80/b", Link.fromValidUrl("http://example.com:80/b").getUri());
+    Assert.assertEquals("com.example/b?1#2&3#4", Link.fromValidUrl("http://example.com/b?1#2&3#4").getUri());
     Assert.assertEquals("com.example:8080/b", Link.fromValidUrl("http://example.com:8080/b").getUri());
     Assert.assertEquals("1.2.3.4////c", Link.fromValidUrl("http://1.2.3.4////c").getUri());
 
@@ -70,5 +75,13 @@ public class LinkTest {
     Assert.assertEquals("uk.co.c", Link.fromValidUrl("http://a.b.c.co.uk").getReverseTopPrivate());
     Assert.assertEquals("d.com.au", Link.fromValidUrl("http://www.d.com.au").getTopPrivate());
     Assert.assertEquals("au.com.d", Link.fromValidUrl("http://www.d.com.au").getReverseTopPrivate());
+
+    Link link1 = Link.fromUrl("http://example.com/test?a=b&c=d");
+    Link link2 = Link.fromUrl("http://example.com/test?a=b&c=d");
+    Link link3 = Link.fromUrl("http://example.com/");
+    Assert.assertTrue(link1.equals(link2));
+    Assert.assertTrue(link1.hashCode() == link2.hashCode());
+    Assert.assertFalse(link1.equals(link3));
+    Assert.assertFalse(link1.hashCode() == link3.hashCode());
   }
 }

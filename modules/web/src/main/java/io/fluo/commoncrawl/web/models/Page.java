@@ -8,6 +8,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public class Page {
 
   private String url;
+  private String domain;
+  private String next = "";
+  private Integer pageNum;
 
   private List<WebLink> links = new ArrayList<>();
 
@@ -15,13 +18,20 @@ public class Page {
     // Jackson deserialization
   }
 
-  public Page(String url) {
+  public Page(String url, String domain, Integer pageNum) {
     this.url = url;
+    this.domain = domain;
+    this.pageNum = pageNum;
   }
 
   @JsonProperty
   public String getUrl() {
     return url;
+  }
+
+  @JsonProperty
+  public String getDomain() {
+    return domain;
   }
 
   @JsonProperty
@@ -31,5 +41,19 @@ public class Page {
 
   public void addLink(WebLink link) {
     links.add(link);
+  }
+
+  @JsonProperty
+  public Integer getPageNum() {
+    return pageNum;
+  }
+
+  @JsonProperty
+  public String getNext() {
+    return next;
+  }
+
+  public void setNext(String next) {
+    this.next = next;
   }
 }
