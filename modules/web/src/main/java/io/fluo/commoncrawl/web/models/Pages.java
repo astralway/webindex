@@ -6,7 +6,7 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.hibernate.validator.constraints.Length;
 
-public class Site {
+public class Pages {
 
   @Length(max = 100)
   private String domain;
@@ -15,13 +15,13 @@ public class Site {
 
   private Integer pageNum;
 
-  private List<PageCount> pages = new ArrayList<>();
+  private List<PageScore> pages = new ArrayList<>();
 
-  public Site() {
+  public Pages() {
     // Jackson deserialization
   }
 
-  public Site(String domain, Integer pageNum) {
+  public Pages(String domain, Integer pageNum) {
     this.domain = domain;
     this.pageNum = pageNum;
   }
@@ -32,7 +32,7 @@ public class Site {
   }
 
   @JsonProperty
-  public List<PageCount> getPages() {
+  public List<PageScore> getPages() {
     return pages;
   }
 
@@ -50,7 +50,7 @@ public class Site {
     return pageNum;
   }
 
-  public void addPage(PageCount pc) {
+  public void addPage(PageScore pc) {
     pages.add(pc);
   }
 }

@@ -205,23 +205,22 @@ public class Init {
 
             List<String> retval = new ArrayList<>();
             String pageUri = page.getLink().getUri();
+            String pageDomain = page.getLink().getReverseTopPrivate();
             if (links.size() > 0) {
-              retval.add(String.format("p:%s\t%s:%s", pageUri,
-                                       AccumuloConstants.CRAWLS,
-                                       page.getLink().getUrl().toString()));
+              retval.add(String.format("p:%s\t%s:%s", pageUri, AccumuloConstants.STATS, AccumuloConstants.CRAWLS));
+              retval.add(String.format("p:%s\t%s:%s", pageUri, AccumuloConstants.STATS, AccumuloConstants.PAGESCORE));
+              retval.add(String.format("d:%s\t%s:%s", pageDomain, AccumuloConstants.PAGES, pageUri));
             }
             for (Link link : links) {
               String linkUri = link.getUri();
-              retval.add(String.format("p:%s\t%s:", pageUri, AccumuloConstants.OUTLINKCOUNT));
+              String linkDomain = link.getReverseTopPrivate();
+              retval.add(String.format("p:%s\t%s:%s", pageUri, AccumuloConstants.STATS, AccumuloConstants.OUTLINKCOUNT));
               retval.add(String.format("p:%s\t%s:%s", pageUri, AccumuloConstants.OUTLINKS, linkUri));
-              retval.add(String.format("p:%s\t%s:", linkUri, AccumuloConstants.INLINKCOUNT));
-              retval.add(String.format("p:%s\t%s:%s\t%s", linkUri, AccumuloConstants.INLINKS,
-                                       pageUri, link.getAnchorText()));
-              retval.add(String.format("p:%s\t%s:%s", linkUri, AccumuloConstants.DOMAINS,
-                                       page.getLink().getReverseTopPrivate()));
-              retval.add(String.format("d:%s\t%s:%s", link.getReverseTopPrivate(),
-                                       AccumuloConstants.PAGES, linkUri));
-
+              retval.add(String.format("p:%s\t%s:%s", linkUri, AccumuloConstants.STATS, AccumuloConstants.INLINKCOUNT));
+              retval.add(String.format("p:%s\t%s:%s", linkUri, AccumuloConstants.STATS, AccumuloConstants.PAGESCORE));
+              retval.add(String.format("p:%s\t%s:%s\t%s", linkUri, AccumuloConstants.INLINKS, pageUri, link.getAnchorText()));
+              retval.add(String.format("d:%s\t%s:%s", linkDomain, AccumuloConstants.STATS, AccumuloConstants.PAGECOUNT));
+              retval.add(String.format("d:%s\t%s:%s", linkDomain, AccumuloConstants.PAGES, linkUri));
             }
             return retval;
           }

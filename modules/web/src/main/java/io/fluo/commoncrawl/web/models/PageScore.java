@@ -2,14 +2,14 @@ package io.fluo.commoncrawl.web.models;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class PageCount {
+public class PageScore {
 
   private String url;
-  private Long count;
+  private Long score;
 
-  public PageCount(String url, Long count) {
+  public PageScore(String url, Long score) {
     this.url = url;
-    this.count = count;
+    this.score = score;
   }
 
   @JsonProperty
@@ -18,7 +18,7 @@ public class PageCount {
   }
 
   @JsonProperty
-  public Long getCount() {
-    return count;
+  public Long getScore() {
+    return score;
   }
 }
