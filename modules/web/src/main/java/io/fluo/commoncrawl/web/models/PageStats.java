@@ -1,13 +1,13 @@
 package io.fluo.commoncrawl.web.models;
 
-public class Page {
+public class PageStats {
 
   private String url;
   private Integer numInbound = 0;
   private Integer numOutbound = 0;
   private Integer score = 0;
 
-  public Page(String url) {
+  public PageStats(String url) {
     this.url = url;
   }
 

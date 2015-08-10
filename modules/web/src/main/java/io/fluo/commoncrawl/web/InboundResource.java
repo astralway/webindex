@@ -15,7 +15,8 @@ import io.fluo.api.config.FluoConfiguration;
 import io.fluo.commoncrawl.core.AccumuloConstants;
 import io.fluo.commoncrawl.core.DataConfig;
 import io.fluo.commoncrawl.core.DataUtil;
-import io.fluo.commoncrawl.web.models.Page;
+import io.fluo.commoncrawl.web.models.DomainStats;
+import io.fluo.commoncrawl.web.models.PageStats;
 import io.fluo.commoncrawl.web.models.WebLink;
 import io.fluo.commoncrawl.web.models.Links;
 import io.fluo.commoncrawl.web.models.PageScore;
@@ -62,7 +63,9 @@ public class InboundResource {
   public PagesView getPages(@QueryParam("domain") String domain,
                           @DefaultValue("") @QueryParam("next") String next,
                           @DefaultValue("0") @QueryParam("pageNum") Integer pageNum) {
-    Pages site = new Pages(domain, pageNum);
+    DomainStats stats = getDomainStats(domain);
+    Pages pages = new Pages(domain, pageNum);
+    pages.setTotal(stats.getTotal());
     try {
       Scanner scanner = conn.createScanner(dataConfig.accumuloIndexTable, Authorizations.EMPTY);
       new Pager(scanner, "d:" + DataUtil.reverseDomain(domain), AccumuloConstants.PAGEDESC, next, pageNum) {
@@ -71,25 +74,29 @@ public class InboundResource {
         public void foundPageEntry(Map.Entry<Key, Value> entry) {
           String url = DataUtil.toUrl(entry.getKey().getColumnQualifier().toString().split(":", 2)[1]);
           Long count = Long.parseLong(entry.getValue().toString());
-          site.addPage(new PageScore(url, count));
+          pages.addPage(new PageScore(url, count));
         }
 
         @Override
         public void foundNextEntry(Map.Entry<Key, Value> entry) {
-          site.setNext(entry.getKey().getColumnQualifier().toString());
+          pages.setNext(entry.getKey().getColumnQualifier().toString());
         }
       }.getPage();
     } catch (TableNotFoundException e) {
       log.error("Table {} not found", dataConfig.accumuloIndexTable);
     }
-    return new PagesView(site);
+    return new PagesView(pages);
   }
 
   @GET
   @Path("page")
   @Produces({MediaType.TEXT_HTML, MediaType.APPLICATION_JSON})
   public PageView getPage(@QueryParam("url") String url) {
-    Page page = new Page(url);
+    return new PageView(getPageStats(url));
+  }
+
+  private PageStats getPageStats(String url) {
+    PageStats page = new PageStats(url);
     Scanner scanner = null;
     try {
       scanner = conn.createScanner(dataConfig.accumuloIndexTable, Authorizations.EMPTY);
@@ -116,13 +123,37 @@ public class InboundResource {
     } catch (MalformedURLException e) {
       log.error("Failed to parse URL {}", url);
     }
-    return new PageView(page);
+    return page;
   }
 
+  private DomainStats getDomainStats(String domain) {
+    DomainStats stats = new DomainStats(domain);
+    Scanner scanner = null;
+    try {
+      scanner = conn.createScanner(dataConfig.accumuloIndexTable, Authorizations.EMPTY);
+      scanner.setRange(Range.exact("d:" + DataUtil.reverseDomain(domain), AccumuloConstants.STATS));
+      Iterator<Map.Entry<Key, Value>> iterator = scanner.iterator();
+      while (iterator.hasNext()) {
+        Map.Entry<Key, Value> entry = iterator.next();
+        switch(entry.getKey().getColumnQualifier().toString()) {
+          case AccumuloConstants.PAGECOUNT:
+            stats.setTotal(getLongValue(entry));
+            break;
+          default:
+            log.error("Unknown page domain {}", entry.getKey().getColumnQualifier());
+        }
+      }
+    } catch (TableNotFoundException e) {
+      e.printStackTrace();
+    }
+    return stats;
+  }
   private static Integer getIntValue(Map.Entry<Key, Value> entry) {
     return Integer.parseInt(entry.getValue().toString());
   }
-
+  private static Long getLongValue(Map.Entry<Key, Value> entry) {
+    return Long.parseLong(entry.getValue().toString());
+  }
   @GET
   @Path("links")
   @Produces({MediaType.TEXT_HTML, MediaType.APPLICATION_JSON})
@@ -130,12 +161,17 @@ public class InboundResource {
                           @QueryParam("linkType") String linkType,
                           @DefaultValue("") @QueryParam("next") String next,
                           @DefaultValue("0") @QueryParam("pageNum") Integer pageNum) {
-    Links page = new Links(pageUrl, linkType, pageNum);
+
+    PageStats stats = getPageStats(pageUrl);
+    Links links = new Links(pageUrl, linkType, pageNum);
     try {
       Scanner scanner = conn.createScanner(dataConfig.accumuloIndexTable, Authorizations.EMPTY);
       String cf = AccumuloConstants.INLINKS;
       if (linkType.equals("out")) {
         cf = AccumuloConstants.OUTLINKS;
+        links.setTotal(stats.getNumOutbound());
+      } else {
+        links.setTotal(stats.getNumInbound());
       }
       new Pager(scanner, "p:" + DataUtil.toUri(pageUrl), cf, next, pageNum) {
 
@@ -143,12 +179,12 @@ public class InboundResource {
         public void foundPageEntry(Map.Entry<Key, Value> entry) {
           String url = DataUtil.toUrl(entry.getKey().getColumnQualifier().toString());
           String anchorText = entry.getValue().toString();
-          page.addLink(new WebLink(url, anchorText));
+          links.addLink(new WebLink(url, anchorText));
         }
 
         @Override
         public void foundNextEntry(Map.Entry<Key, Value> entry) {
-          page.setNext(entry.getKey().getColumnQualifier().toString());
+          links.setNext(entry.getKey().getColumnQualifier().toString());
         }
       }.getPage();
     } catch (TableNotFoundException e) {
@@ -156,6 +192,6 @@ public class InboundResource {
     } catch (MalformedURLException e) {
       log.error("Failed to parse URL {}", pageUrl);
     }
-    return new LinksView(page);
+    return new LinksView(links);
   }
 }

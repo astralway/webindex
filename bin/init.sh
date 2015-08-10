@@ -33,7 +33,8 @@ command -v spark-submit >/dev/null 2>&1 || { echo >&2 "The 'spark-submit' comman
 spark-submit --class io.fluo.commoncrawl.data.Init \
     --master yarn-client \
     --num-executors 1 \
-    --driver-memory 500m \
-    --executor-memory 1g \
+    --driver-memory 256m \
+    --executor-memory 2g \
     --executor-cores 2 \
+    --conf spark.executor.extraJavaOptions=-XX:+UseCompressedOops \
     $CC_JAR $CC_HOME/conf/data.yml

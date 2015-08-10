@@ -44,7 +44,7 @@ public class Link {
   private void validate() {
     String reformUrl = DataUtil.toUrl(getUri());
     if (!reformUrl.equals(getUrl()) && !getUrl().contains(":443")) {
-      log.error("Url {} creates url {} when reformed from uri {}", getUrl(), reformUrl, getUri());
+      log.info("Url {} creates url {} when reformed from uri {}", getUrl(), reformUrl, getUri());
     }
   }
 

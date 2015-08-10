@@ -71,7 +71,7 @@ public class Init {
             String cf = keyArgs[1].split(":", 2)[0];
             String cq = keyArgs[1].split(":", 2)[1];
             byte[] val = tuple._2().toString().getBytes();
-            if (row.startsWith("p:") && cf.equals(AccumuloConstants.INLINKS)) {
+            if (cf.equals(AccumuloConstants.INLINKS) || cf.equals(AccumuloConstants.OUTLINKS)) {
               String[] tempArgs = cq.split("\t", 2);
               cq = tempArgs[0];
               if (tuple._2() > 1) {
@@ -115,8 +115,7 @@ public class Init {
             String[] keyArgs = tuple._1().split("\t", 2);
             if (keyArgs.length != 2) {
               System.out.println("Data lacks tab: " + tuple._1());
-            } else if (keyArgs[0].startsWith("p:") &&
-                       keyArgs[1].startsWith(AccumuloConstants.INLINKS)) {
+            } else {
               FluoKeyValueGenerator fkvg = new FluoKeyValueGenerator();
               fkvg.setRow(keyArgs[0]).setColumn(new Column(keyArgs[1])).setValue(Bytes.of("1"));
               for (FluoKeyValue kv : fkvg.getKeyValues()) {
@@ -156,9 +155,10 @@ public class Init {
 
     fluoConfig = new FluoConfiguration(new File(dataConfig.fluoPropsPath));
     conn = AccumuloUtil.getConnector(fluoConfig);
-    if (!conn.tableOperations().exists(dataConfig.accumuloIndexTable)) {
-      conn.tableOperations().create(dataConfig.accumuloIndexTable);
+    if (conn.tableOperations().exists(dataConfig.accumuloIndexTable)) {
+      conn.tableOperations().delete(dataConfig.accumuloIndexTable);
     }
+    conn.tableOperations().create(dataConfig.accumuloIndexTable);
 
     SparkConf sparkConf = new SparkConf().setAppName("CC-Init");
     ctx = new JavaSparkContext(sparkConf);
@@ -215,48 +215,53 @@ public class Init {
               String linkUri = link.getUri();
               String linkDomain = link.getReverseTopPrivate();
               retval.add(String.format("p:%s\t%s:%s", pageUri, AccumuloConstants.STATS, AccumuloConstants.OUTLINKCOUNT));
-              retval.add(String.format("p:%s\t%s:%s", pageUri, AccumuloConstants.OUTLINKS, linkUri));
+              retval.add(String.format("p:%s\t%s:%s\t%s", pageUri, AccumuloConstants.OUTLINKS, linkUri, link.getAnchorText()));
               retval.add(String.format("p:%s\t%s:%s", linkUri, AccumuloConstants.STATS, AccumuloConstants.INLINKCOUNT));
               retval.add(String.format("p:%s\t%s:%s", linkUri, AccumuloConstants.STATS, AccumuloConstants.PAGESCORE));
               retval.add(String.format("p:%s\t%s:%s\t%s", linkUri, AccumuloConstants.INLINKS, pageUri, link.getAnchorText()));
-              retval.add(String.format("d:%s\t%s:%s", linkDomain, AccumuloConstants.STATS, AccumuloConstants.PAGECOUNT));
               retval.add(String.format("d:%s\t%s:%s", linkDomain, AccumuloConstants.PAGES, linkUri));
             }
             return retval;
           }
         });
+    links.persist(StorageLevel.DISK_ONLY());
 
     final Long one = (long) 1;
     JavaPairRDD<String, Long> ones = links.mapToPair(s -> new Tuple2<>(s, one));
-    ones.persist(StorageLevel.DISK_ONLY());
 
     JavaPairRDD<String, Long> linkCounts = ones.reduceByKey((i1, i2) -> i1 + i2);
+
     JavaPairRDD<String, Long> sortedLinkCounts = linkCounts.sortByKey();
 
     // Load intermediate results into Fluo
     //loadFluo(sortedLinkCounts);
 
-    JavaPairRDD < String, Long > topCounts = sortedLinkCounts.mapToPair(
-        new PairFunction<Tuple2<String, Long>, String, Long>() {
+    JavaPairRDD < String, Long > topCounts = sortedLinkCounts.flatMapToPair(
+        new PairFlatMapFunction<Tuple2<String, Long>, String, Long>() {
           @Override
-          public Tuple2<String, Long> call(Tuple2<String, Long> t)
+          public Iterable<Tuple2<String, Long>> call(Tuple2<String, Long> t)
               throws Exception {
-            if (t._1().startsWith("d:")) {
-              String[] args = t._1().split("\t", 2);
+            List<Tuple2<String, Long>> retval = new ArrayList<>();
+            String[] args = t._1().split("\t", 2);
+            if (args[0].startsWith("d:") && (args[1].startsWith(AccumuloConstants.PAGES))) {
               String domain = args[0];
               String link = args[1].substring(AccumuloConstants.PAGES.length() + 1);
               Long numLinks = t._2();
               Lexicoder<Long> lexicoder = new ReverseLexicoder<>(new ULongLexicoder());
               String numLinksEnc = Hex.encodeHexString(lexicoder.encode(numLinks));
-              return new Tuple2<>(String.format("%s\t%s:%s:%s", domain, AccumuloConstants.PAGEDESC,
-                                                numLinksEnc, link), numLinks);
+              retval.add(new Tuple2<>(String.format("%s\t%s:%s:%s", domain, AccumuloConstants.PAGEDESC,
+                                                    numLinksEnc, link), numLinks));
+              retval.add(new Tuple2<>(String.format("%s\t%s:%s", domain, AccumuloConstants.STATS,
+                                                    AccumuloConstants.PAGECOUNT), one));
+            } else {
+              retval.add(t);
             }
-            return t;
+            return retval;
           }
         });
-    topCounts.persist(StorageLevel.DISK_ONLY());
 
-    JavaPairRDD<String, Long> sortedTopCounts = topCounts.sortByKey();
+    JavaPairRDD<String, Long> reducedTopCounts = topCounts.reduceByKey((i1, i2) -> i1 + i2);
+    JavaPairRDD<String, Long> sortedTopCounts = reducedTopCounts.sortByKey();
 
     // Load final indexes into Accumulo
     loadAccumulo(sortedTopCounts);

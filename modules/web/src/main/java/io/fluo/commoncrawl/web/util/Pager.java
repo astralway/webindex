@@ -30,7 +30,7 @@ public abstract class Pager {
       scanner.setRange(Range.exact(row, cf));
     } else {
       scanner.setRange(new Range(new Key(row, cf, nextCq),
-                                 new Key(row, cf).followingKey(PartialKey.ROW)));
+                                 new Key(row, cf).followingKey(PartialKey.ROW_COLFAM)));
     }
     Iterator<Map.Entry<Key, Value>> iterator = scanner.iterator();
     if (nextCq.isEmpty() && (pageNum > 0)) {

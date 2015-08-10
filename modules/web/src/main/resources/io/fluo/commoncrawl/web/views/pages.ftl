@@ -4,6 +4,7 @@
 <body>
   <#if pages.pages?has_content>
     <h3>Top pages for site: ${pages.domain?html}</h3>
+    <p>Page ${pages.pageNum+1} of ${pages.total} results</p>
     <#if (pages.pageNum - 1 >= 0)>
       <a href="/pages?domain=${pages.domain?url}&pageNum=${pages.pageNum - 1}">Previous</a>
     </#if>

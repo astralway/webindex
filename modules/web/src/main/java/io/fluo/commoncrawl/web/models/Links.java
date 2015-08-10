@@ -11,7 +11,7 @@ public class Links {
   private String linkType;
   private String next = "";
   private Integer pageNum;
-
+  private Integer total;
   private List<WebLink> links = new ArrayList<>();
 
   public Links() {
@@ -22,6 +22,15 @@ public class Links {
     this.url = url;
     this.linkType = linkType;
     this.pageNum = pageNum;
+  }
+
+  @JsonProperty
+  public Integer getTotal() {
+    return total;
+  }
+
+  public void setTotal(Integer total) {
+    this.total = total;
   }
 
   @JsonProperty

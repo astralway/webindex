@@ -14,7 +14,7 @@ public class Pages {
   private String next = "";
 
   private Integer pageNum;
-
+  private Long total;
   private List<PageScore> pages = new ArrayList<>();
 
   public Pages() {
@@ -24,6 +24,15 @@ public class Pages {
   public Pages(String domain, Integer pageNum) {
     this.domain = domain;
     this.pageNum = pageNum;
+  }
+
+  @JsonProperty
+  public Long getTotal() {
+    return total;
+  }
+
+  public void setTotal(Long total) {
+    this.total = total;
   }
 
   @JsonProperty
