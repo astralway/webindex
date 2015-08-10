@@ -1,11 +1,13 @@
-<#setting url_escaping_charset='ISO-8859-1'>
-<html>
-  <body>
-    <h4>Page ${page.url?html}</h4>
-    <table border="1">
-      <tr><td>Score<td>${page.score}</tr>
+<#include "common/header.ftl">
+<div class="row>
+  <div class="col-md-8 col-md-offset-4">
+    <h3>Page Info</h3>
+    <table class="table table-striped">
+      <tr><td>URL<td>${page.url?html} &nbsp;- &nbsp;<a href="${page.url?html}">Go to page</a></tr>
+      <tr><td>Page Score<td>${page.score}</tr>
       <tr><td>Inbound links<td><a href="/links?pageUrl=${page.url?url}&linkType=in">${page.numInbound}</a></tr>
       <tr><td>Outbound links<td><a href="/links?pageUrl=${page.url?url}&linkType=out">${page.numOutbound}</a></tr>
     </table>
-  </body>
-</html>
+  </div>
+</div>
+<#include "common/footer.ftl">
