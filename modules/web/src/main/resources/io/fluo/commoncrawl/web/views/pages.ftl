@@ -1,8 +1,15 @@
 <#include "common/header.ftl">
 <#if pages.pages?has_content>
 <div class="row">
-  <div class="col-md-12">
-    <h3>Top pages for domain: ${pages.domain?html}</h3>
+  <div class="col-md-6">
+    <form action="pages" method="get">
+    <div class="input-group">
+      <input type="text" class="form-control" name="domain" value="${pages.domain?html}">
+      <span class="input-group-btn">
+        <button class="btn btn-default" type="submit">Search</button>
+       </span>
+    </div>
+    </form>
   </div>
 </div>
 <div class="row">
