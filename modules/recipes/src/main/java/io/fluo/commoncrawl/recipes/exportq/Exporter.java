@@ -8,21 +8,21 @@ import io.fluo.api.data.Column;
 import io.fluo.api.observer.AbstractObserver;
 import io.fluo.commoncrawl.recipes.Encoder;
 
-public abstract class ExportQueueObserver<K,V> extends AbstractObserver {
+public abstract class Exporter<K,V> extends AbstractObserver {
 
-  private String exportQueueId;
+  private String queueId;
   
   protected abstract Encoder<K> getKeyEncoder();
   
   protected abstract Encoder<V> getValueEncoder();
   
-  protected ExportQueueObserver(String queueId){
-    this.exportQueueId = queueId;
+  protected Exporter(String queueId){
+    this.queueId = queueId;
   }
   
   @Override
   public ObservedColumn getObservedColumn() {
-    return new ObservedColumn(new Column("fluoRecipes", "exportQ"), NotificationType.WEAK);
+    return new ObservedColumn(new Column("fluoRecipes", "eq:"+queueId), NotificationType.WEAK);
   }
 
   @Override
@@ -31,16 +31,20 @@ public abstract class ExportQueueObserver<K,V> extends AbstractObserver {
     
     int bucket = model.getBucket(row, column);
     
-    Iterator<ExportEntry> exportIterator = model.getExportIterator(exportQueueId, bucket);
+    Iterator<ExportEntry> exportIterator = model.getExportIterator(queueId, bucket);
+    
+    startingToProcessBatch();
     
     while(exportIterator.hasNext()) {
       ExportEntry ee = exportIterator.next();
       processExport(getKeyEncoder().decode(ee.key), ee.seq, getValueEncoder().decode(ee.value));
       exportIterator.remove();
     }
+    
+    finishedProcessingBatch();
   }
 
-  //public void startingToProcessBatch()
+  protected void startingToProcessBatch(){}
   
   /**
    * Must be able to handle same key being exported multiple times and key being exported out of order.   The sequence number is meant to help with this.
@@ -49,8 +53,8 @@ public abstract class ExportQueueObserver<K,V> extends AbstractObserver {
    * @param sequenceNumber
    * @param value
    */
-  public abstract void processExport(K key, long sequenceNumber, V value);
+  protected abstract void processExport(K key, long sequenceNumber, V value);
   
-  //public void finishedProcessingBatch()
+  protected void finishedProcessingBatch(){}
   
 }
