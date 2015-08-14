@@ -32,6 +32,7 @@
     <module>modules/core</module>
     <module>modules/data</module>
     <module>modules/web</module>
+    <module>modules/recipes</module>
   </modules>
 
   <properties>
