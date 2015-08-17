@@ -9,10 +9,12 @@ import java.util.Set;
 import io.fluo.api.config.FluoConfiguration;
 import io.fluo.api.data.Bytes;
 import io.fluo.api.data.Column;
-import io.fluo.commoncrawl.core.AccumuloConstants;
+import io.fluo.commoncrawl.core.ColumnConstants;
 import io.fluo.commoncrawl.core.DataConfig;
-import io.fluo.commoncrawl.data.util.Link;
-import io.fluo.commoncrawl.data.util.Page;
+import io.fluo.commoncrawl.core.Page;
+import io.fluo.commoncrawl.core.Page.Link;
+import io.fluo.commoncrawl.data.util.ArchiveUtil;
+import io.fluo.commoncrawl.data.util.LinkUtil;
 import io.fluo.commoncrawl.data.util.WARCFileInputFormat;
 import io.fluo.core.util.AccumuloUtil;
 import io.fluo.mapreduce.FluoKeyValue;
@@ -71,7 +73,7 @@ public class Init {
             String cf = keyArgs[1].split(":", 2)[0];
             String cq = keyArgs[1].split(":", 2)[1];
             byte[] val = tuple._2().toString().getBytes();
-            if (cf.equals(AccumuloConstants.INLINKS) || cf.equals(AccumuloConstants.OUTLINKS)) {
+            if (cf.equals(ColumnConstants.INLINKS) || cf.equals(ColumnConstants.OUTLINKS)) {
               String[] tempArgs = cq.split("\t", 2);
               cq = tempArgs[0];
               if (tuple._2() > 1) {
@@ -189,7 +191,7 @@ public class Init {
           }
         });
 
-    JavaRDD<Page> pages = records.map(r -> Page.fromIgnoringErrors(r));
+    JavaRDD<Page> pages = records.map(r -> ArchiveUtil.buildPageIgnoreErrors(r));
 
     JavaRDD<String> links = pages.flatMap(
         new FlatMapFunction<Page, String>() {
@@ -204,22 +206,22 @@ public class Init {
             numExternalLinks.add(links.size());
 
             List<String> retval = new ArrayList<>();
-            String pageUri = page.getLink().getUri();
-            String pageDomain = page.getLink().getReverseTopPrivate();
+            String pageUri = page.getPageUri();
+            String pageDomain = LinkUtil.getReverseTopPrivate(page.getPageUrl());
             if (links.size() > 0) {
-              retval.add(String.format("p:%s\t%s:%s", pageUri, AccumuloConstants.STATS, AccumuloConstants.CRAWLS));
-              retval.add(String.format("p:%s\t%s:%s", pageUri, AccumuloConstants.STATS, AccumuloConstants.PAGESCORE));
-              retval.add(String.format("d:%s\t%s:%s", pageDomain, AccumuloConstants.PAGES, pageUri));
+              retval.add(String.format("p:%s\t%s:%s", pageUri, ColumnConstants.PAGE, ColumnConstants.CRAWLS));
+              retval.add(String.format("p:%s\t%s:%s", pageUri, ColumnConstants.PAGE, ColumnConstants.PAGESCORE));
+              retval.add(String.format("d:%s\t%s:%s", pageDomain, ColumnConstants.PAGES, pageUri));
             }
             for (Link link : links) {
               String linkUri = link.getUri();
-              String linkDomain = link.getReverseTopPrivate();
-              retval.add(String.format("p:%s\t%s:%s", pageUri, AccumuloConstants.STATS, AccumuloConstants.OUTLINKCOUNT));
-              retval.add(String.format("p:%s\t%s:%s\t%s", pageUri, AccumuloConstants.OUTLINKS, linkUri, link.getAnchorText()));
-              retval.add(String.format("p:%s\t%s:%s", linkUri, AccumuloConstants.STATS, AccumuloConstants.INLINKCOUNT));
-              retval.add(String.format("p:%s\t%s:%s", linkUri, AccumuloConstants.STATS, AccumuloConstants.PAGESCORE));
-              retval.add(String.format("p:%s\t%s:%s\t%s", linkUri, AccumuloConstants.INLINKS, pageUri, link.getAnchorText()));
-              retval.add(String.format("d:%s\t%s:%s", linkDomain, AccumuloConstants.PAGES, linkUri));
+              String linkDomain = LinkUtil.getReverseTopPrivate(link.getUrl());
+              retval.add(String.format("p:%s\t%s:%s", pageUri, ColumnConstants.PAGE, ColumnConstants.OUTLINKCOUNT));
+              retval.add(String.format("p:%s\t%s:%s\t%s", pageUri, ColumnConstants.OUTLINKS, linkUri, link.getAnchorText()));
+              retval.add(String.format("p:%s\t%s:%s", linkUri, ColumnConstants.PAGE, ColumnConstants.INLINKCOUNT));
+              retval.add(String.format("p:%s\t%s:%s", linkUri, ColumnConstants.PAGE, ColumnConstants.PAGESCORE));
+              retval.add(String.format("p:%s\t%s:%s\t%s", linkUri, ColumnConstants.INLINKS, pageUri, link.getAnchorText()));
+              retval.add(String.format("d:%s\t%s:%s", linkDomain, ColumnConstants.PAGES, linkUri));
             }
             return retval;
           }
@@ -243,16 +245,16 @@ public class Init {
               throws Exception {
             List<Tuple2<String, Long>> retval = new ArrayList<>();
             String[] args = t._1().split("\t", 2);
-            if (args[0].startsWith("d:") && (args[1].startsWith(AccumuloConstants.PAGES))) {
+            if (args[0].startsWith("d:") && (args[1].startsWith(ColumnConstants.PAGES))) {
               String domain = args[0];
-              String link = args[1].substring(AccumuloConstants.PAGES.length() + 1);
+              String link = args[1].substring(ColumnConstants.PAGES.length() + 1);
               Long numLinks = t._2();
               Lexicoder<Long> lexicoder = new ReverseLexicoder<>(new ULongLexicoder());
               String numLinksEnc = Hex.encodeHexString(lexicoder.encode(numLinks));
-              retval.add(new Tuple2<>(String.format("%s\t%s:%s:%s", domain, AccumuloConstants.PAGEDESC,
+              retval.add(new Tuple2<>(String.format("%s\t%s:%s:%s", domain, ColumnConstants.RANK,
                                                     numLinksEnc, link), numLinks));
-              retval.add(new Tuple2<>(String.format("%s\t%s:%s", domain, AccumuloConstants.STATS,
-                                                    AccumuloConstants.PAGECOUNT), one));
+              retval.add(new Tuple2<>(String.format("%s\t%s:%s", domain, ColumnConstants.PAGE,
+                                                    ColumnConstants.PAGECOUNT), one));
             } else {
               retval.add(t);
             }

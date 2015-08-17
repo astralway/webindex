@@ -12,7 +12,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import io.fluo.api.config.FluoConfiguration;
-import io.fluo.commoncrawl.core.AccumuloConstants;
+import io.fluo.commoncrawl.core.ColumnConstants;
 import io.fluo.commoncrawl.core.DataConfig;
 import io.fluo.commoncrawl.core.DataUtil;
 import io.fluo.commoncrawl.web.models.DomainStats;
@@ -68,7 +68,7 @@ public class InboundResource {
     pages.setTotal(stats.getTotal());
     try {
       Scanner scanner = conn.createScanner(dataConfig.accumuloIndexTable, Authorizations.EMPTY);
-      new Pager(scanner, "d:" + DataUtil.reverseDomain(domain), AccumuloConstants.PAGEDESC, next, pageNum) {
+      new Pager(scanner, "d:" + DataUtil.reverseDomain(domain), ColumnConstants.RANK, next, pageNum) {
 
         @Override
         public void foundPageEntry(Map.Entry<Key, Value> entry) {
@@ -100,18 +100,18 @@ public class InboundResource {
     Scanner scanner = null;
     try {
       scanner = conn.createScanner(dataConfig.accumuloIndexTable, Authorizations.EMPTY);
-      scanner.setRange(Range.exact("p:" + DataUtil.toUri(url), AccumuloConstants.STATS));
+      scanner.setRange(Range.exact("p:" + DataUtil.toUri(url), ColumnConstants.PAGE));
       Iterator<Map.Entry<Key, Value>> iterator = scanner.iterator();
       while (iterator.hasNext()) {
         Map.Entry<Key, Value> entry = iterator.next();
         switch(entry.getKey().getColumnQualifier().toString()) {
-          case AccumuloConstants.INLINKCOUNT:
+          case ColumnConstants.INLINKCOUNT:
             page.setNumInbound(getIntValue(entry));
             break;
-          case AccumuloConstants.OUTLINKCOUNT:
+          case ColumnConstants.OUTLINKCOUNT:
             page.setNumOutbound(getIntValue(entry));
             break;
-          case AccumuloConstants.PAGESCORE:
+          case ColumnConstants.PAGESCORE:
             page.setScore(getIntValue(entry));
             break;
           default:
@@ -131,12 +131,12 @@ public class InboundResource {
     Scanner scanner = null;
     try {
       scanner = conn.createScanner(dataConfig.accumuloIndexTable, Authorizations.EMPTY);
-      scanner.setRange(Range.exact("d:" + DataUtil.reverseDomain(domain), AccumuloConstants.STATS));
+      scanner.setRange(Range.exact("d:" + DataUtil.reverseDomain(domain), ColumnConstants.DOMAIN));
       Iterator<Map.Entry<Key, Value>> iterator = scanner.iterator();
       while (iterator.hasNext()) {
         Map.Entry<Key, Value> entry = iterator.next();
         switch(entry.getKey().getColumnQualifier().toString()) {
-          case AccumuloConstants.PAGECOUNT:
+          case ColumnConstants.PAGECOUNT:
             stats.setTotal(getLongValue(entry));
             break;
           default:
@@ -166,9 +166,9 @@ public class InboundResource {
     Links links = new Links(pageUrl, linkType, pageNum);
     try {
       Scanner scanner = conn.createScanner(dataConfig.accumuloIndexTable, Authorizations.EMPTY);
-      String cf = AccumuloConstants.INLINKS;
+      String cf = ColumnConstants.INLINKS;
       if (linkType.equals("out")) {
-        cf = AccumuloConstants.OUTLINKS;
+        cf = ColumnConstants.OUTLINKS;
         links.setTotal(stats.getNumOutbound());
       } else {
         links.setTotal(stats.getNumInbound());

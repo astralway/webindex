@@ -21,26 +21,26 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.util.Iterator;
 
+import io.fluo.commoncrawl.core.Page;
 import org.archive.io.ArchiveReader;
 import org.archive.io.ArchiveRecord;
 import org.archive.io.warc.WARCReaderFactory;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class PageTest {
+public class ArchiveUtilTest {
 
   @Test
   public void testBasic() throws IOException, ParseException {
 
     ArchiveReader archiveReader = WARCReaderFactory.get(new File("src/test/resources/wat.warc"));
-    Page page = Page.from(archiveReader.get());
+    Page page = ArchiveUtil.buildPage(archiveReader.get());
+    Assert.assertNotNull(page);
+    Assert.assertFalse(page.isEmpty());
 
-    Assert.assertEquals("application/json", page.getMimeType());
-    Assert.assertEquals("http://1079ishot.com/presale-password-trey-songz-young-jeezy-pre-christmas-bash/screen-shot-2011-10-27-at-11-12-06-am/", page.getLink().getUrl());
-    Assert.assertEquals("com.1079ishot/presale-password-trey-songz-young-jeezy-pre-christmas-bash/screen-shot-2011-10-27-at-11-12-06-am/", page.getLink().getUri());
+    Assert.assertEquals("http://1079ishot.com/presale-password-trey-songz-young-jeezy-pre-christmas-bash/screen-shot-2011-10-27-at-11-12-06-am/", page.getPageUrl());
+    Assert.assertEquals("com.1079ishot/presale-password-trey-songz-young-jeezy-pre-christmas-bash/screen-shot-2011-10-27-at-11-12-06-am/", page.getPageUri());
 
-    Assert.assertEquals(10, page.getNumLinks());
-    Assert.assertEquals(1, page.getLinks().size());
     Assert.assertEquals(0, page.getExternalLinks().size());
 
     ArchiveReader ar2 = WARCReaderFactory.get(new File("src/test/resources/wat-18.warc"));
@@ -49,14 +49,15 @@ public class PageTest {
     int invalid = 0;
     Iterator<ArchiveRecord> records = ar2.iterator();
     while (records.hasNext()) {
-      ArchiveRecord r = records.next();
-      if (Page.isValid(r)) {
+      try {
+        ArchiveRecord r = records.next();
+        ArchiveUtil.buildPage(r);
         valid++;
-      } else {
+      } catch (ParseException e) {
         invalid++;
       }
     }
-    Assert.assertEquals(17, valid);
-    Assert.assertEquals(1, invalid);
+    Assert.assertEquals(18, valid);
+    Assert.assertEquals(0, invalid);
   }
 }
