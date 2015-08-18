@@ -27,11 +27,12 @@ public class InlinksObserver extends AbstractObserver {
 
     String pageUri = row.toString().substring(2);
 
-    log.info("Running InLinksObserver for page {}", pageUri);
+    log.debug("Running InLinksObserver for page {}", pageUri);
 
     ScannerConfiguration scanConf = new ScannerConfiguration();
     scanConf.setSpan(Span.exact(row, new Column(FluoConstants.INLINKS_UPDATE)));
 
+    long change = 0;
     RowIterator rowIter = ttx.get(scanConf);
     if (rowIter.hasNext()) {
       Map.Entry<Bytes, ColumnIterator> rowEntry = rowIter.next();
@@ -43,22 +44,40 @@ public class InlinksObserver extends AbstractObserver {
         if (update.startsWith("del")) {
           ttx.mutate().row(row).fam(ColumnConstants.INLINKS).qual(linkUri).delete();
           ttx.mutate().row(row).col(colEntry.getKey()).delete();
-          log.info("Deleted inlink {} for page {}", linkUri, pageUri);
+          change--;
+          log.debug("Deleted inlink {} for page {}", linkUri, pageUri);
         } else if (update.startsWith("add")) {
           ttx.mutate().row(row).fam(ColumnConstants.INLINKS).qual(linkUri).set(update.substring(4));
           ttx.mutate().row(row).col(colEntry.getKey()).delete();
-          log.info("Added inlink {} for page {}", linkUri, pageUri);
+          change++;
+          log.debug("Added inlink {} for page {}", linkUri, pageUri);
         } else {
           log.error("Unknown update format: {}", update);
         }
       }
     }
 
-    /* Bytes anchorText = ttx.get(row, col);
-    Long inlinkCount = ttx.get().row(linkRow).col(FluoConstants.INLINKCOUNT_COL).toLong(0);
+    Long incount = ttx.get().row(row).col(FluoConstants.PAGE_INCOUNT_COL).toLong(0) + change;
+    if (incount <= 0) {
+      if (incount < 0) {
+        log.error("Incount for {} is negative: {}", row, incount);
+      }
+      ttx.mutate().row(row).col(FluoConstants.PAGE_INCOUNT_COL).delete();
+    } else {
+      ttx.mutate().row(row).col(FluoConstants.PAGE_INCOUNT_COL).set(incount);
+    }
 
-    ttx.mutate().row(linkRow).fam(ColumnConstants.INLINKS).qual(pageUri).set(anchorText);
-    ttx.mutate().row(linkRow).col(FluoConstants.INLINKCOUNT_COL).set(inlinkCount+1); */
+    Long score = ttx.get().row(row).col(FluoConstants.PAGE_SCORE_COL).toLong(0) + change;
+    if (score <= 0) {
+      if (score < 0) {
+        log.error("Score for {} is negative: {}", row, incount);
+      }
+      ttx.mutate().row(row).col(FluoConstants.PAGE_SCORE_COL).delete();
+    } else {
+      ttx.mutate().row(row).col(FluoConstants.PAGE_SCORE_COL).set(score);
+    }
+
+    // TODO - export changes
   }
 
   @Override

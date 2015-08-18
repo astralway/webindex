@@ -210,16 +210,16 @@ public class Init {
             String pageDomain = LinkUtil.getReverseTopPrivate(page.getPageUrl());
             if (links.size() > 0) {
               retval.add(String.format("p:%s\t%s:%s", pageUri, ColumnConstants.PAGE, ColumnConstants.CRAWLS));
-              retval.add(String.format("p:%s\t%s:%s", pageUri, ColumnConstants.PAGE, ColumnConstants.PAGESCORE));
+              retval.add(String.format("p:%s\t%s:%s", pageUri, ColumnConstants.PAGE, ColumnConstants.SCORE));
               retval.add(String.format("d:%s\t%s:%s", pageDomain, ColumnConstants.PAGES, pageUri));
             }
             for (Link link : links) {
               String linkUri = link.getUri();
               String linkDomain = LinkUtil.getReverseTopPrivate(link.getUrl());
-              retval.add(String.format("p:%s\t%s:%s", pageUri, ColumnConstants.PAGE, ColumnConstants.OUTLINKCOUNT));
+              retval.add(String.format("p:%s\t%s:%s", pageUri, ColumnConstants.PAGE, ColumnConstants.OUTCOUNT));
               retval.add(String.format("p:%s\t%s:%s\t%s", pageUri, ColumnConstants.OUTLINKS, linkUri, link.getAnchorText()));
-              retval.add(String.format("p:%s\t%s:%s", linkUri, ColumnConstants.PAGE, ColumnConstants.INLINKCOUNT));
-              retval.add(String.format("p:%s\t%s:%s", linkUri, ColumnConstants.PAGE, ColumnConstants.PAGESCORE));
+              retval.add(String.format("p:%s\t%s:%s", linkUri, ColumnConstants.PAGE, ColumnConstants.INCOUNT));
+              retval.add(String.format("p:%s\t%s:%s", linkUri, ColumnConstants.PAGE, ColumnConstants.SCORE));
               retval.add(String.format("p:%s\t%s:%s\t%s", linkUri, ColumnConstants.INLINKS, pageUri, link.getAnchorText()));
               retval.add(String.format("d:%s\t%s:%s", linkDomain, ColumnConstants.PAGES, linkUri));
             }

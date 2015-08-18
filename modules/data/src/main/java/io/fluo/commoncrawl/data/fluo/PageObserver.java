@@ -44,6 +44,9 @@ public class PageObserver extends AbstractObserver {
     if (!curJson.isEmpty()) {
       Page curPage = gson.fromJson(curJson, Page.class);
       curLinks = curPage.getExternalLinks();
+    } else {
+      Long score = ttx.get().row(row).col(FluoConstants.PAGE_SCORE_COL).toLong(0);
+      ttx.mutate().row(row).col(FluoConstants.PAGE_SCORE_COL).set(score+1);
     }
 
     Set<Page.Link> nextLinks = nextPage.getExternalLinks();

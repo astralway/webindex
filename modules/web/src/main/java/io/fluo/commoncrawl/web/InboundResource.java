@@ -105,13 +105,13 @@ public class InboundResource {
       while (iterator.hasNext()) {
         Map.Entry<Key, Value> entry = iterator.next();
         switch(entry.getKey().getColumnQualifier().toString()) {
-          case ColumnConstants.INLINKCOUNT:
+          case ColumnConstants.INCOUNT:
             page.setNumInbound(getIntValue(entry));
             break;
-          case ColumnConstants.OUTLINKCOUNT:
+          case ColumnConstants.OUTCOUNT:
             page.setNumOutbound(getIntValue(entry));
             break;
-          case ColumnConstants.PAGESCORE:
+          case ColumnConstants.SCORE:
             page.setScore(getIntValue(entry));
             break;
           default:

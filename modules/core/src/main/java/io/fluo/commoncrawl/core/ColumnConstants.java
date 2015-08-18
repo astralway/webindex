@@ -15,9 +15,9 @@ public class ColumnConstants {
 
   // Column Qualifiers
   // for page
-  public static final String INLINKCOUNT = "inlinkcount";
-  public static final String OUTLINKCOUNT = "outlinkcount";
-  public static final String PAGESCORE = "pagescore";
+  public static final String INCOUNT = "incount";
+  public static final String OUTCOUNT = "outcount";
+  public static final String SCORE = "score";
   public static final String NEW = "new";
   public static final String CUR = "cur";
   // for domains
