@@ -16,13 +16,15 @@ public abstract class Pager {
   private String cf;
   private String nextCq;
   private int pageNum;
+  private int pageSize;
 
-  public Pager(Scanner scanner, String row, String cf, String nextCq, int pageNum) {
+  public Pager(Scanner scanner, String row, String cf, String nextCq, int pageNum, int pageSize) {
     this.scanner = scanner;
     this.row = row;
     this.cf = cf;
     this.nextCq = nextCq;
     this.pageNum = pageNum;
+    this.pageSize = pageSize;
   }
 
   public void getPage() {
@@ -35,15 +37,15 @@ public abstract class Pager {
     Iterator<Map.Entry<Key, Value>> iterator = scanner.iterator();
     if (nextCq.isEmpty() && (pageNum > 0)) {
       long skip = 0;
-      while (skip < (pageNum*25)) {
+      while (skip < (pageNum*pageSize)) {
         Map.Entry<Key, Value> entry = iterator.next();
         skip++;
       }
     }
     long num = 0;
-    while (iterator.hasNext() && (num < 26)) {
+    while (iterator.hasNext() && (num < (pageSize+1))) {
       Map.Entry<Key, Value> entry = iterator.next();
-      if (num == 25) {
+      if (num == pageSize) {
         foundNextEntry(entry);
       } else {
         foundPageEntry(entry);

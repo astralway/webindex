@@ -11,10 +11,12 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import com.google.gson.Gson;
 import io.fluo.api.config.FluoConfiguration;
 import io.fluo.commoncrawl.core.ColumnConstants;
 import io.fluo.commoncrawl.core.DataConfig;
 import io.fluo.commoncrawl.core.DataUtil;
+import io.fluo.commoncrawl.core.Page;
 import io.fluo.commoncrawl.web.models.DomainStats;
 import io.fluo.commoncrawl.web.models.PageStats;
 import io.fluo.commoncrawl.web.models.WebLink;
@@ -40,10 +42,12 @@ import org.slf4j.LoggerFactory;
 public class InboundResource {
 
   private static final Logger log = LoggerFactory.getLogger(InboundResource.class);
+  private static final int PAGE_SIZE = 25;
 
   private FluoConfiguration fluoConfig;
   private DataConfig dataConfig;
   private Connector conn;
+  private Gson gson = new Gson();
 
   public InboundResource(FluoConfiguration fluoConfig, Connector conn, DataConfig dataConfig) {
     this.fluoConfig = fluoConfig;
@@ -68,7 +72,7 @@ public class InboundResource {
     pages.setTotal(stats.getTotal());
     try {
       Scanner scanner = conn.createScanner(dataConfig.accumuloIndexTable, Authorizations.EMPTY);
-      new Pager(scanner, "d:" + DataUtil.reverseDomain(domain), ColumnConstants.RANK, next, pageNum) {
+      new Pager(scanner, "d:" + DataUtil.reverseDomain(domain), ColumnConstants.RANK, next, pageNum, PAGE_SIZE) {
 
         @Override
         public void foundPageEntry(Map.Entry<Key, Value> entry) {
@@ -96,7 +100,7 @@ public class InboundResource {
   }
 
   private PageStats getPageStats(String url) {
-    PageStats page = new PageStats(url);
+    PageStats pageStats = new PageStats(url);
     Scanner scanner = null;
     try {
       scanner = conn.createScanner(dataConfig.accumuloIndexTable, Authorizations.EMPTY);
@@ -106,14 +110,14 @@ public class InboundResource {
         Map.Entry<Key, Value> entry = iterator.next();
         switch(entry.getKey().getColumnQualifier().toString()) {
           case ColumnConstants.INCOUNT:
-            page.setNumInbound(getIntValue(entry));
-            break;
-          case ColumnConstants.OUTCOUNT:
-            page.setNumOutbound(getIntValue(entry));
+            pageStats.setNumInbound(getIntValue(entry));
             break;
           case ColumnConstants.SCORE:
-            page.setScore(getIntValue(entry));
+            pageStats.setScore(getIntValue(entry));
             break;
+          case ColumnConstants.CUR:
+            Page p = gson.fromJson(entry.getValue().toString(), Page.class);
+            pageStats.setNumOutbound(p.getExternalLinks().size());
           default:
             log.error("Unknown page stat {}", entry.getKey().getColumnQualifier());
         }
@@ -123,7 +127,7 @@ public class InboundResource {
     } catch (MalformedURLException e) {
       log.error("Failed to parse URL {}", url);
     }
-    return page;
+    return pageStats;
   }
 
   private DomainStats getDomainStats(String domain) {
@@ -162,31 +166,51 @@ public class InboundResource {
                           @DefaultValue("") @QueryParam("next") String next,
                           @DefaultValue("0") @QueryParam("pageNum") Integer pageNum) {
 
-    PageStats stats = getPageStats(pageUrl);
     Links links = new Links(pageUrl, linkType, pageNum);
+
     try {
       Scanner scanner = conn.createScanner(dataConfig.accumuloIndexTable, Authorizations.EMPTY);
-      String cf = ColumnConstants.INLINKS;
-      if (linkType.equals("out")) {
-        cf = ColumnConstants.OUTLINKS;
-        links.setTotal(stats.getNumOutbound());
-      } else {
+      String row = "p:" + DataUtil.toUri(pageUrl);
+
+      if (linkType.equals("in")) {
+        PageStats stats = getPageStats(pageUrl);
+        String cf = ColumnConstants.INLINKS;
         links.setTotal(stats.getNumInbound());
+        new Pager(scanner, "p:" + DataUtil.toUri(pageUrl), cf, next, pageNum, PAGE_SIZE) {
+
+          @Override
+          public void foundPageEntry(Map.Entry<Key, Value> entry) {
+            String url = DataUtil.toUrl(entry.getKey().getColumnQualifier().toString());
+            String anchorText = entry.getValue().toString();
+            links.addLink(new WebLink(url, anchorText));
+          }
+
+          @Override
+          public void foundNextEntry(Map.Entry<Key, Value> entry) {
+            links.setNext(entry.getKey().getColumnQualifier().toString());
+          }
+        }.getPage();
+      } else {
+        scanner.setRange(Range.exact(row, ColumnConstants.PAGE, ColumnConstants.CUR));
+        Iterator<Map.Entry<Key, Value>> iter = scanner.iterator();
+        if (iter.hasNext()) {
+          Page curPage = gson.fromJson(iter.next().getValue().toString(), Page.class);
+          links.setTotal(curPage.getExternalLinks().size());
+          int skip = 0;
+          int add = 0;
+          for (Page.Link l : curPage.getExternalLinks()) {
+            if (skip < (pageNum * PAGE_SIZE)) {
+              skip++;
+            } else if (add < PAGE_SIZE) {
+              links.addLink(new WebLink(l.getUrl(), l.getAnchorText()));
+              add++;
+            } else {
+              links.setNext(l.getUrl());
+              break;
+            }
+          }
+        }
       }
-      new Pager(scanner, "p:" + DataUtil.toUri(pageUrl), cf, next, pageNum) {
-
-        @Override
-        public void foundPageEntry(Map.Entry<Key, Value> entry) {
-          String url = DataUtil.toUrl(entry.getKey().getColumnQualifier().toString());
-          String anchorText = entry.getValue().toString();
-          links.addLink(new WebLink(url, anchorText));
-        }
-
-        @Override
-        public void foundNextEntry(Map.Entry<Key, Value> entry) {
-          links.setNext(entry.getKey().getColumnQualifier().toString());
-        }
-      }.getPage();
     } catch (TableNotFoundException e) {
       log.error("Table {} not found", dataConfig.accumuloIndexTable);
     } catch (MalformedURLException e) {

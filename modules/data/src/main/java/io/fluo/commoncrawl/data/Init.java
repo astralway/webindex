@@ -6,6 +6,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import com.google.gson.Gson;
 import io.fluo.api.config.FluoConfiguration;
 import io.fluo.api.data.Bytes;
 import io.fluo.api.data.Column;
@@ -58,6 +59,7 @@ public class Init {
   private static FluoConfiguration fluoConfig;
   private static FileSystem hdfs;
   private static Path failuresDir;
+  private static Gson gson = new Gson();
 
   public static void loadAccumulo(JavaPairRDD<String, Long> sortedCounts) throws Exception {
     JavaPairRDD<Key, Value> accumuloData = sortedCounts.mapToPair(
@@ -73,7 +75,8 @@ public class Init {
             String cf = keyArgs[1].split(":", 2)[0];
             String cq = keyArgs[1].split(":", 2)[1];
             byte[] val = tuple._2().toString().getBytes();
-            if (cf.equals(ColumnConstants.INLINKS) || cf.equals(ColumnConstants.OUTLINKS)) {
+            if (cf.equals(ColumnConstants.INLINKS) ||
+                (cf.equals(ColumnConstants.PAGE) && cq.startsWith(ColumnConstants.CUR))) {
               String[] tempArgs = cq.split("\t", 2);
               cq = tempArgs[0];
               if (tuple._2() > 1) {
@@ -209,15 +212,13 @@ public class Init {
             String pageUri = page.getPageUri();
             String pageDomain = LinkUtil.getReverseTopPrivate(page.getPageUrl());
             if (links.size() > 0) {
-              retval.add(String.format("p:%s\t%s:%s", pageUri, ColumnConstants.PAGE, ColumnConstants.CRAWLS));
               retval.add(String.format("p:%s\t%s:%s", pageUri, ColumnConstants.PAGE, ColumnConstants.SCORE));
+              retval.add(String.format("p:%s\t%s:%s\t%s", pageUri, ColumnConstants.PAGE, ColumnConstants.CUR, gson.toJson(page)));
               retval.add(String.format("d:%s\t%s:%s", pageDomain, ColumnConstants.PAGES, pageUri));
             }
             for (Link link : links) {
               String linkUri = link.getUri();
               String linkDomain = LinkUtil.getReverseTopPrivate(link.getUrl());
-              retval.add(String.format("p:%s\t%s:%s", pageUri, ColumnConstants.PAGE, ColumnConstants.OUTCOUNT));
-              retval.add(String.format("p:%s\t%s:%s\t%s", pageUri, ColumnConstants.OUTLINKS, linkUri, link.getAnchorText()));
               retval.add(String.format("p:%s\t%s:%s", linkUri, ColumnConstants.PAGE, ColumnConstants.INCOUNT));
               retval.add(String.format("p:%s\t%s:%s", linkUri, ColumnConstants.PAGE, ColumnConstants.SCORE));
               retval.add(String.format("p:%s\t%s:%s\t%s", linkUri, ColumnConstants.INLINKS, pageUri, link.getAnchorText()));
