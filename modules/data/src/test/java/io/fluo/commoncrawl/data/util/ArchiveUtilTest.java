@@ -45,6 +45,9 @@ public class ArchiveUtilTest {
         "com.1079ishot/presale-password-trey-songz-young-jeezy-pre-christmas-bash/screen-shot-2011-10-27-at-11-12-06-am/",
         page.getUri());
 
+    Assert.assertEquals("2015-04-18T03:35:13Z", page.getCrawlDate());
+    Assert.assertEquals("nginx/1.6.2", page.getServer());
+    Assert.assertEquals("Presale Password &#8211; Trey Songz &#038; Young Jeezy Pre-Christmas Bash Screen shot 2011-10-27 at ", page.getTitle());
     Assert.assertEquals(0, page.getOutboundLinks().size());
 
     ArchiveReader ar2 = WARCReaderFactory.get(new File("src/test/resources/wat-18.warc"));

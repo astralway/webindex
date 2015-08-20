@@ -14,13 +14,23 @@ public class Page {
   private Long numInbound;
   private Long numOutbound = new Long(0);
   private Long score;
+  private String crawlDate;
+  private String server;
+  private String title;
   private Set<Link> outboundLinks = new HashSet<>();
 
   private Page() {
   }
-
   public Page(String url) {
     this.url = url;
+  }
+
+  public String getServer() {
+    return server;
+  }
+
+  public void setServer(String server) {
+    this.server = server;
   }
 
   public String getUrl() {
@@ -71,6 +81,22 @@ public class Page {
 
   public void setScore(Long score) {
     this.score = score;
+  }
+
+  public String getCrawlDate() {
+    return crawlDate;
+  }
+
+  public void setCrawlDate(String crawlDate) {
+    this.crawlDate = crawlDate;
+  }
+
+  public String getTitle() {
+    return title;
+  }
+
+  public void setTitle(String title) {
+    this.title = title;
   }
 
   public class Link {

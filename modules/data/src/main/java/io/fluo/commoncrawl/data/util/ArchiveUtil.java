@@ -54,32 +54,49 @@ public class ArchiveUtil {
       }
       String pageDomain = LinkUtil.getTopPrivate(pageUrl);
       Page page = new Page(archiveRecord.getHeader().getUrl());
-      if (archiveRecord.getHeader().getMimetype().equals("application/json")) {
-        try {
-          JSONArray array = json.getJSONObject("Envelope").getJSONObject("Payload-Metadata")
-              .getJSONObject("HTTP-Response-Metadata").getJSONObject("HTML-Metadata")
-              .getJSONArray("Links");
-          for (int i = 0; i < array.length(); i++) {
-            JSONObject link = array.getJSONObject(i);
-            if (link.has("path") && link.get("path").equals("A@/href") && link.has("url")) {
-              String anchorText = "";
-              if (link.has("text")) {
-                anchorText = link.getString("text");
-              } else if (link.has("title")) {
-                anchorText = link.getString("title");
-              }
-              String linkUrl = link.getString("url");
-              if (LinkUtil.isValid(linkUrl)) {
-                String linkDomain = LinkUtil.getTopPrivate(linkUrl);
-                if (!pageDomain.equalsIgnoreCase(linkDomain)) {
-                  page.addOutboundLink(linkUrl, anchorText);
+      page.setCrawlDate(archiveRecord.getHeader().getDate());
+      try {
+        JSONObject responseMeta =  json.getJSONObject("Envelope").getJSONObject("Payload-Metadata")
+            .getJSONObject("HTTP-Response-Metadata");
+
+        if (archiveRecord.getHeader().getMimetype().equals("application/json")) {
+          try {
+            JSONArray links = responseMeta.getJSONObject("HTML-Metadata").getJSONArray("Links");
+            for (int i = 0; i < links.length(); i++) {
+              JSONObject link = links.getJSONObject(i);
+              if (link.has("path") && link.get("path").equals("A@/href") && link.has("url")) {
+                String anchorText = "";
+                if (link.has("text")) {
+                  anchorText = link.getString("text");
+                } else if (link.has("title")) {
+                  anchorText = link.getString("title");
+                }
+                String linkUrl = link.getString("url");
+                if (LinkUtil.isValid(linkUrl)) {
+                  String linkDomain = LinkUtil.getTopPrivate(linkUrl);
+                  if (!pageDomain.equalsIgnoreCase(linkDomain)) {
+                    page.addOutboundLink(linkUrl, anchorText);
+                  }
                 }
               }
             }
+          } catch (JSONException e) {
+            log.debug("Exception trying retrieve links", e);
           }
-        } catch (JSONException e) {
-          log.debug("Exception trying retrieve links", e);
         }
+        try {
+          page.setTitle(responseMeta.getJSONObject("HTML-Metadata").getJSONObject("Head")
+                            .getString("Title"));
+        } catch (JSONException e) {
+          log.debug("Failed to retrieve title", e);
+        }
+        try {
+          page.setServer(responseMeta.getJSONObject("Headers").getString("Server"));
+        } catch (JSONException e) {
+          log.debug("Failed to retrieve server", e);
+        }
+      } catch (JSONException e) {
+        log.debug("Exception trying retrieve responseMeta", e);
       }
       return page;
     }
