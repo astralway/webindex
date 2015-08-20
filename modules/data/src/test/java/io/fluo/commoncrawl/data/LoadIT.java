@@ -8,10 +8,10 @@ import java.util.List;
 
 import io.fluo.api.client.LoaderExecutor;
 import io.fluo.api.config.ObserverConfiguration;
-import io.fluo.commoncrawl.core.Page;
+import io.fluo.commoncrawl.core.models.Page;
 import io.fluo.commoncrawl.data.fluo.InlinksObserver;
-import io.fluo.commoncrawl.data.fluo.PageUpdate;
 import io.fluo.commoncrawl.data.fluo.PageObserver;
+import io.fluo.commoncrawl.data.fluo.PageUpdate;
 import io.fluo.commoncrawl.data.util.ArchiveUtil;
 import io.fluo.core.client.LoaderExecutorImpl;
 import io.fluo.core.impl.Environment;
@@ -51,10 +51,10 @@ public class LoadIT extends ITBaseMini {
         try {
           ArchiveRecord r = records.next();
           Page p = ArchiveUtil.buildPage(r);
-          if (p.isEmpty() || p.getExternalLinks().isEmpty()) {
+          if (p.isEmpty() || p.getOutboundLinks().isEmpty()) {
             continue;
           }
-          log.info("Loading page {} with {} links", p.getPageUrl(), p.getExternalLinks().size());
+          log.info("Loading page {} with {} links", p.getUrl(), p.getOutboundLinks().size());
           le.execute(PageUpdate.updatePage(p));
         } catch (ParseException e) {
           log.debug("Parse exception occurred", e);

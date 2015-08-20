@@ -12,10 +12,10 @@
   </div>
   <div class="col-md-6">
     <#if (links.next?length > 0)>
-      <a class="btn btn-default pull-right" href="/links?pageUrl=${links.url?url}&linkType=${links.linkType}&next=${links.next?url}&pageNum=${links.pageNum+1}">Next</a>
+      <a class="btn btn-default pull-right" href="/links?url=${links.url?url}&linkType=${links.linkType}&next=${links.next?url}&pageNum=${links.pageNum+1}">Next</a>
     </#if>
     <#if (links.pageNum - 1 >= 0)>
-      <a class="btn btn-default pull-right" href="/links?pageUrl=${links.url?url}&linkType=${links.linkType}&pageNum=${links.pageNum - 1}">Previous</a>
+      <a class="btn btn-default pull-right" href="/links?url=${links.url?url}&linkType=${links.linkType}&pageNum=${links.pageNum - 1}">Previous</a>
     </#if>
   </div>
 </div>

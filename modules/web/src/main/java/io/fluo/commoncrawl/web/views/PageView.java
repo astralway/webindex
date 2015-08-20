@@ -1,18 +1,18 @@
 package io.fluo.commoncrawl.web.views;
 
 import io.dropwizard.views.View;
-import io.fluo.commoncrawl.web.models.PageStats;
+import io.fluo.commoncrawl.core.models.Page;
 
 public class PageView extends View {
 
-  private final PageStats page;
+  private final Page page;
 
-  public PageView(PageStats page) {
+  public PageView(Page page) {
     super("page.ftl");
     this.page = page;
   }
 
-  public PageStats getPage() {
+  public Page getPage() {
     return page;
   }
 }

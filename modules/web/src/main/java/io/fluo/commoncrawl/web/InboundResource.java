@@ -4,6 +4,7 @@ import java.net.MalformedURLException;
 import java.util.Iterator;
 import java.util.Map;
 
+import javax.validation.constraints.NotNull;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -16,14 +17,12 @@ import io.fluo.api.config.FluoConfiguration;
 import io.fluo.commoncrawl.core.ColumnConstants;
 import io.fluo.commoncrawl.core.DataConfig;
 import io.fluo.commoncrawl.core.DataUtil;
-import io.fluo.commoncrawl.core.Page;
-import io.fluo.commoncrawl.web.models.DomainStats;
-import io.fluo.commoncrawl.web.models.PageStats;
-import io.fluo.commoncrawl.web.models.WebLink;
-import io.fluo.commoncrawl.web.models.Links;
-import io.fluo.commoncrawl.web.models.PageScore;
-import io.fluo.commoncrawl.web.models.Pages;
+import io.fluo.commoncrawl.core.models.DomainStats;
+import io.fluo.commoncrawl.core.models.Links;
+import io.fluo.commoncrawl.core.models.Page;
+import io.fluo.commoncrawl.core.models.Pages;
 import io.fluo.commoncrawl.web.util.Pager;
+import io.fluo.commoncrawl.web.util.WebUtil;
 import io.fluo.commoncrawl.web.views.HomeView;
 import io.fluo.commoncrawl.web.views.LinksView;
 import io.fluo.commoncrawl.web.views.PageView;
@@ -55,6 +54,14 @@ public class InboundResource {
     this.dataConfig = dataConfig;
   }
 
+  private static Integer getIntValue(Map.Entry<Key, Value> entry) {
+    return Integer.parseInt(entry.getValue().toString());
+  }
+
+  private static Long getLongValue(Map.Entry<Key, Value> entry) {
+    return Long.parseLong(entry.getValue().toString());
+  }
+
   @GET
   @Produces(MediaType.TEXT_HTML)
   public HomeView getHome() {
@@ -64,21 +71,24 @@ public class InboundResource {
   @GET
   @Path("pages")
   @Produces({MediaType.TEXT_HTML, MediaType.APPLICATION_JSON})
-  public PagesView getPages(@QueryParam("domain") String domain,
-                          @DefaultValue("") @QueryParam("next") String next,
-                          @DefaultValue("0") @QueryParam("pageNum") Integer pageNum) {
+  public PagesView getPages(@NotNull @QueryParam("domain") String domain,
+                            @DefaultValue("") @QueryParam("next") String next,
+                            @DefaultValue("0") @QueryParam("pageNum") Integer pageNum) {
     DomainStats stats = getDomainStats(domain);
     Pages pages = new Pages(domain, pageNum);
+    log.info("Setting total to {}", stats.getTotal());
     pages.setTotal(stats.getTotal());
     try {
       Scanner scanner = conn.createScanner(dataConfig.accumuloIndexTable, Authorizations.EMPTY);
-      new Pager(scanner, "d:" + DataUtil.reverseDomain(domain), ColumnConstants.RANK, next, pageNum, PAGE_SIZE) {
+      new Pager(scanner, "d:" + DataUtil.reverseDomain(domain), ColumnConstants.RANK, next, pageNum,
+                PAGE_SIZE) {
 
         @Override
         public void foundPageEntry(Map.Entry<Key, Value> entry) {
-          String url = DataUtil.toUrl(entry.getKey().getColumnQualifier().toString().split(":", 2)[1]);
+          String url =
+              DataUtil.toUrl(entry.getKey().getColumnQualifier().toString().split(":", 2)[1]);
           Long count = Long.parseLong(entry.getValue().toString());
-          pages.addPage(new PageScore(url, count));
+          pages.addPage(url, count);
         }
 
         @Override
@@ -95,29 +105,30 @@ public class InboundResource {
   @GET
   @Path("page")
   @Produces({MediaType.TEXT_HTML, MediaType.APPLICATION_JSON})
-  public PageView getPage(@QueryParam("url") String url) {
-    return new PageView(getPageStats(url));
+  public PageView getPageView(@NotNull @QueryParam("url") String url) {
+    return new PageView(getPage(url));
   }
 
-  private PageStats getPageStats(String url) {
-    PageStats pageStats = new PageStats(url);
-    Scanner scanner = null;
+  private Page getPage(String url) {
+    Page page = null;
+    Long incount = (long) 0;
+    Long score = (long) 0;
     try {
-      scanner = conn.createScanner(dataConfig.accumuloIndexTable, Authorizations.EMPTY);
+      Scanner scanner = conn.createScanner(dataConfig.accumuloIndexTable, Authorizations.EMPTY);
       scanner.setRange(Range.exact("p:" + DataUtil.toUri(url), ColumnConstants.PAGE));
       Iterator<Map.Entry<Key, Value>> iterator = scanner.iterator();
       while (iterator.hasNext()) {
         Map.Entry<Key, Value> entry = iterator.next();
-        switch(entry.getKey().getColumnQualifier().toString()) {
+        switch (entry.getKey().getColumnQualifier().toString()) {
           case ColumnConstants.INCOUNT:
-            pageStats.setNumInbound(getIntValue(entry));
+            incount = getLongValue(entry);
             break;
           case ColumnConstants.SCORE:
-            pageStats.setScore(getIntValue(entry));
+            score = getLongValue(entry);
             break;
           case ColumnConstants.CUR:
-            Page p = gson.fromJson(entry.getValue().toString(), Page.class);
-            pageStats.setNumOutbound(p.getExternalLinks().size());
+            page = gson.fromJson(entry.getValue().toString(), Page.class);
+            break;
           default:
             log.error("Unknown page stat {}", entry.getKey().getColumnQualifier());
         }
@@ -127,7 +138,13 @@ public class InboundResource {
     } catch (MalformedURLException e) {
       log.error("Failed to parse URL {}", url);
     }
-    return pageStats;
+    if (page == null) {
+      page = new Page(url);
+    }
+    page.setNumInbound(incount);
+    page.setScore(score);
+    page.setDomain(WebUtil.getDomain(page.getUrl()));
+    return page;
   }
 
   private DomainStats getDomainStats(String domain) {
@@ -139,7 +156,7 @@ public class InboundResource {
       Iterator<Map.Entry<Key, Value>> iterator = scanner.iterator();
       while (iterator.hasNext()) {
         Map.Entry<Key, Value> entry = iterator.next();
-        switch(entry.getKey().getColumnQualifier().toString()) {
+        switch (entry.getKey().getColumnQualifier().toString()) {
           case ColumnConstants.PAGECOUNT:
             stats.setTotal(getLongValue(entry));
             break;
@@ -152,37 +169,33 @@ public class InboundResource {
     }
     return stats;
   }
-  private static Integer getIntValue(Map.Entry<Key, Value> entry) {
-    return Integer.parseInt(entry.getValue().toString());
-  }
-  private static Long getLongValue(Map.Entry<Key, Value> entry) {
-    return Long.parseLong(entry.getValue().toString());
-  }
+
   @GET
   @Path("links")
   @Produces({MediaType.TEXT_HTML, MediaType.APPLICATION_JSON})
-  public LinksView getLinks(@QueryParam("pageUrl") String pageUrl,
-                          @QueryParam("linkType") String linkType,
-                          @DefaultValue("") @QueryParam("next") String next,
-                          @DefaultValue("0") @QueryParam("pageNum") Integer pageNum) {
+  public LinksView getLinks(@NotNull @QueryParam("pageUrl") String pageUrl,
+                            @NotNull @QueryParam("linkType") String linkType,
+                            @DefaultValue("") @QueryParam("next") String next,
+                            @DefaultValue("0") @QueryParam("pageNum") Integer pageNum) {
 
     Links links = new Links(pageUrl, linkType, pageNum);
+    log.info("links url {}", links.getUrl());
 
     try {
       Scanner scanner = conn.createScanner(dataConfig.accumuloIndexTable, Authorizations.EMPTY);
       String row = "p:" + DataUtil.toUri(pageUrl);
 
       if (linkType.equals("in")) {
-        PageStats stats = getPageStats(pageUrl);
+        Page page = getPage(pageUrl);
         String cf = ColumnConstants.INLINKS;
-        links.setTotal(stats.getNumInbound());
+        links.setTotal(page.getNumInbound());
         new Pager(scanner, "p:" + DataUtil.toUri(pageUrl), cf, next, pageNum, PAGE_SIZE) {
 
           @Override
           public void foundPageEntry(Map.Entry<Key, Value> entry) {
             String url = DataUtil.toUrl(entry.getKey().getColumnQualifier().toString());
             String anchorText = entry.getValue().toString();
-            links.addLink(new WebLink(url, anchorText));
+            links.addLink(url, anchorText);
           }
 
           @Override
@@ -195,14 +208,14 @@ public class InboundResource {
         Iterator<Map.Entry<Key, Value>> iter = scanner.iterator();
         if (iter.hasNext()) {
           Page curPage = gson.fromJson(iter.next().getValue().toString(), Page.class);
-          links.setTotal(curPage.getExternalLinks().size());
+          links.setTotal(curPage.getNumOutbound());
           int skip = 0;
           int add = 0;
-          for (Page.Link l : curPage.getExternalLinks()) {
+          for (Page.Link l : curPage.getOutboundLinks()) {
             if (skip < (pageNum * PAGE_SIZE)) {
               skip++;
             } else if (add < PAGE_SIZE) {
-              links.addLink(new WebLink(l.getUrl(), l.getAnchorText()));
+              links.addLink(l.getUrl(), l.getAnchorText());
               add++;
             } else {
               links.setNext(l.getUrl());

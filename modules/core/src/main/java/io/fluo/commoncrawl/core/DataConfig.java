@@ -5,6 +5,7 @@ import java.io.FileReader;
 import com.esotericsoftware.yamlbeans.YamlReader;
 
 public class DataConfig {
+
   public String accumuloIndexTable;
   public String fluoPropsPath;
   public String watDataDir;

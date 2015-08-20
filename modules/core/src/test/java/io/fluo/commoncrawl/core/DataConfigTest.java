@@ -7,7 +7,7 @@ public class DataConfigTest {
 
   @Test
   public void testBasic() throws Exception {
-    DataConfig config =  DataConfig.load("../../conf/data.yml.example");
+    DataConfig config = DataConfig.load("../../conf/data.yml.example");
     Assert.assertEquals("ccrawl_index", config.accumuloIndexTable);
     Assert.assertEquals("/path/to/fluo.properties", config.fluoPropsPath);
     Assert.assertEquals("/cc/data/wat", config.watDataDir);

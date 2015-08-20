@@ -18,11 +18,8 @@ package io.fluo.commoncrawl.data.util;
 
 import java.io.IOException;
 import java.text.ParseException;
-import java.util.HashSet;
-import java.util.Set;
 
-import com.google.common.base.Preconditions;
-import io.fluo.commoncrawl.core.Page;
+import io.fluo.commoncrawl.core.models.Page;
 import org.apache.commons.io.IOUtils;
 import org.archive.io.ArchiveRecord;
 import org.json.JSONArray;
@@ -62,7 +59,7 @@ public class ArchiveUtil {
           JSONArray array = json.getJSONObject("Envelope").getJSONObject("Payload-Metadata")
               .getJSONObject("HTTP-Response-Metadata").getJSONObject("HTML-Metadata")
               .getJSONArray("Links");
-          for (int i=0; i < array.length(); i++) {
+          for (int i = 0; i < array.length(); i++) {
             JSONObject link = array.getJSONObject(i);
             if (link.has("path") && link.get("path").equals("A@/href") && link.has("url")) {
               String anchorText = "";
@@ -75,7 +72,7 @@ public class ArchiveUtil {
               if (LinkUtil.isValid(linkUrl)) {
                 String linkDomain = LinkUtil.getTopPrivate(linkUrl);
                 if (!pageDomain.equalsIgnoreCase(linkDomain)) {
-                  page.addExternalLink(linkUrl, anchorText);
+                  page.addOutboundLink(linkUrl, anchorText);
                 }
               }
             }

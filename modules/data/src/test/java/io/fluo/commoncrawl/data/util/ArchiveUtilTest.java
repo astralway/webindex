@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.util.Iterator;
 
-import io.fluo.commoncrawl.core.Page;
+import io.fluo.commoncrawl.core.models.Page;
 import org.archive.io.ArchiveReader;
 import org.archive.io.ArchiveRecord;
 import org.archive.io.warc.WARCReaderFactory;
@@ -38,10 +38,14 @@ public class ArchiveUtilTest {
     Assert.assertNotNull(page);
     Assert.assertFalse(page.isEmpty());
 
-    Assert.assertEquals("http://1079ishot.com/presale-password-trey-songz-young-jeezy-pre-christmas-bash/screen-shot-2011-10-27-at-11-12-06-am/", page.getPageUrl());
-    Assert.assertEquals("com.1079ishot/presale-password-trey-songz-young-jeezy-pre-christmas-bash/screen-shot-2011-10-27-at-11-12-06-am/", page.getPageUri());
+    Assert.assertEquals(
+        "http://1079ishot.com/presale-password-trey-songz-young-jeezy-pre-christmas-bash/screen-shot-2011-10-27-at-11-12-06-am/",
+        page.getUrl());
+    Assert.assertEquals(
+        "com.1079ishot/presale-password-trey-songz-young-jeezy-pre-christmas-bash/screen-shot-2011-10-27-at-11-12-06-am/",
+        page.getUri());
 
-    Assert.assertEquals(0, page.getExternalLinks().size());
+    Assert.assertEquals(0, page.getOutboundLinks().size());
 
     ArchiveReader ar2 = WARCReaderFactory.get(new File("src/test/resources/wat-18.warc"));
 

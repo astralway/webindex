@@ -1,9 +1,7 @@
-package io.fluo.commoncrawl.web.models;
+package io.fluo.commoncrawl.core.models;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class Links {
 
@@ -11,9 +9,8 @@ public class Links {
   private String linkType;
   private String next = "";
   private Integer pageNum;
-  private Integer total;
+  private Long total;
   private List<WebLink> links = new ArrayList<>();
-
   public Links() {
     // Jackson deserialization
   }
@@ -24,21 +21,18 @@ public class Links {
     this.pageNum = pageNum;
   }
 
-  @JsonProperty
-  public Integer getTotal() {
+  public Long getTotal() {
     return total;
   }
 
-  public void setTotal(Integer total) {
+  public void setTotal(Long total) {
     this.total = total;
   }
 
-  @JsonProperty
   public String getUrl() {
     return url;
   }
 
-  @JsonProperty
   public List<WebLink> getLinks() {
     return links;
   }
@@ -47,22 +41,42 @@ public class Links {
     links.add(link);
   }
 
-  @JsonProperty
+  public void addLink(String url, String anchorText) {
+    links.add(new WebLink(url, anchorText));
+  }
+
   public String getLinkType() {
     return linkType;
   }
 
-  @JsonProperty
   public Integer getPageNum() {
     return pageNum;
   }
 
-  @JsonProperty
   public String getNext() {
     return next;
   }
 
   public void setNext(String next) {
     this.next = next;
+  }
+
+  public class WebLink {
+
+    private String url;
+    private String anchorText;
+
+    public WebLink(String url, String anchorText) {
+      this.url = url;
+      this.anchorText = anchorText;
+    }
+
+    public String getUrl() {
+      return url;
+    }
+
+    public String getAnchorText() {
+      return anchorText;
+    }
   }
 }

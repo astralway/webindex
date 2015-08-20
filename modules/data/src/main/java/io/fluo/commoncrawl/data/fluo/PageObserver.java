@@ -10,7 +10,7 @@ import io.fluo.api.data.Bytes;
 import io.fluo.api.data.Column;
 import io.fluo.api.observer.AbstractObserver;
 import io.fluo.api.types.TypedTransactionBase;
-import io.fluo.commoncrawl.core.Page;
+import io.fluo.commoncrawl.core.models.Page;
 import io.fluo.commoncrawl.data.util.FluoConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,13 +43,13 @@ public class PageObserver extends AbstractObserver {
     Set<Page.Link> curLinks = Collections.emptySet();
     if (!curJson.isEmpty()) {
       Page curPage = gson.fromJson(curJson, Page.class);
-      curLinks = curPage.getExternalLinks();
+      curLinks = curPage.getOutboundLinks();
     } else {
       Long score = ttx.get().row(row).col(FluoConstants.PAGE_SCORE_COL).toLong(0);
-      ttx.mutate().row(row).col(FluoConstants.PAGE_SCORE_COL).set(score+1);
+      ttx.mutate().row(row).col(FluoConstants.PAGE_SCORE_COL).set(score + 1);
     }
 
-    Set<Page.Link> nextLinks = nextPage.getExternalLinks();
+    Set<Page.Link> nextLinks = nextPage.getOutboundLinks();
     String pageUri = row.toString().substring(2);
 
     Sets.SetView<Page.Link> addLinks = Sets.difference(nextLinks, curLinks);

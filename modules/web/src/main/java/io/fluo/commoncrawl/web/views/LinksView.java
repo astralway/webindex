@@ -1,7 +1,7 @@
 package io.fluo.commoncrawl.web.views;
 
 import io.dropwizard.views.View;
-import io.fluo.commoncrawl.web.models.Links;
+import io.fluo.commoncrawl.core.models.Links;
 
 public class LinksView extends View {
 

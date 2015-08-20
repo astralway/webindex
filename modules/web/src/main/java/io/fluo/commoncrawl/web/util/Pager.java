@@ -37,13 +37,13 @@ public abstract class Pager {
     Iterator<Map.Entry<Key, Value>> iterator = scanner.iterator();
     if (nextCq.isEmpty() && (pageNum > 0)) {
       long skip = 0;
-      while (skip < (pageNum*pageSize)) {
+      while (skip < (pageNum * pageSize)) {
         Map.Entry<Key, Value> entry = iterator.next();
         skip++;
       }
     }
     long num = 0;
-    while (iterator.hasNext() && (num < (pageSize+1))) {
+    while (iterator.hasNext() && (num < (pageSize + 1))) {
       Map.Entry<Key, Value> entry = iterator.next();
       if (num == pageSize) {
         foundNextEntry(entry);

@@ -1,22 +1,15 @@
-package io.fluo.commoncrawl.web.models;
+package io.fluo.commoncrawl.core.models;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import org.hibernate.validator.constraints.Length;
-
 public class Pages {
 
-  @Length(max = 100)
   private String domain;
-
   private String next = "";
-
   private Integer pageNum;
   private Long total;
   private List<PageScore> pages = new ArrayList<>();
-
   public Pages() {
     // Jackson deserialization
   }
@@ -26,7 +19,6 @@ public class Pages {
     this.pageNum = pageNum;
   }
 
-  @JsonProperty
   public Long getTotal() {
     return total;
   }
@@ -35,17 +27,14 @@ public class Pages {
     this.total = total;
   }
 
-  @JsonProperty
   public String getDomain() {
     return domain;
   }
 
-  @JsonProperty
   public List<PageScore> getPages() {
     return pages;
   }
 
-  @JsonProperty
   public String getNext() {
     return next;
   }
@@ -54,12 +43,34 @@ public class Pages {
     this.next = next;
   }
 
-  @JsonProperty
   public Integer getPageNum() {
     return pageNum;
   }
 
   public void addPage(PageScore pc) {
     pages.add(pc);
+  }
+
+  public void addPage(String url, Long score) {
+    pages.add(new PageScore(url, score));
+  }
+
+  public class PageScore {
+
+    private String url;
+    private Long score;
+
+    public PageScore(String url, Long score) {
+      this.url = url;
+      this.score = score;
+    }
+
+    public String getUrl() {
+      return url;
+    }
+
+    public Long getScore() {
+      return score;
+    }
   }
 }

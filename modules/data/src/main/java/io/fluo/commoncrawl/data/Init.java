@@ -12,8 +12,8 @@ import io.fluo.api.data.Bytes;
 import io.fluo.api.data.Column;
 import io.fluo.commoncrawl.core.ColumnConstants;
 import io.fluo.commoncrawl.core.DataConfig;
-import io.fluo.commoncrawl.core.Page;
-import io.fluo.commoncrawl.core.Page.Link;
+import io.fluo.commoncrawl.core.models.Page;
+import io.fluo.commoncrawl.core.models.Page.Link;
 import io.fluo.commoncrawl.data.util.ArchiveUtil;
 import io.fluo.commoncrawl.data.util.LinkUtil;
 import io.fluo.commoncrawl.data.util.WARCFileInputFormat;
@@ -85,7 +85,7 @@ public class Init {
               val = tempArgs[1].getBytes();
             }
             return new Tuple2<>(new Key(new Text(row), new Text(cf), new Text(cq)), new Value(val));
-            }
+          }
         });
     Job accJob = Job.getInstance(ctx.hadoopConfiguration());
 
@@ -98,7 +98,8 @@ public class Init {
     accumuloData.saveAsNewAPIHadoopFile(accumuloTempDir.toString(), Key.class, Value.class,
                                         AccumuloFileOutputFormat.class, accJob.getConfiguration());
     conn.tableOperations().importDirectory(dataConfig.accumuloIndexTable,
-                                           accumuloTempDir.toString(), failuresDir.toString(), false);
+                                           accumuloTempDir.toString(), failuresDir.toString(),
+                                           false);
   }
 
   public static void loadHDFS(JavaPairRDD<String, Long> sortedCounts) throws Exception {
@@ -205,23 +206,28 @@ public class Init {
               return new ArrayList<>();
             }
             numPages.add(1);
-            Set<Link> links = page.getExternalLinks();
+            Set<Link> links = page.getOutboundLinks();
             numExternalLinks.add(links.size());
 
             List<String> retval = new ArrayList<>();
-            String pageUri = page.getPageUri();
-            String pageDomain = LinkUtil.getReverseTopPrivate(page.getPageUrl());
+            String pageUri = page.getUri();
+            String pageDomain = LinkUtil.getReverseTopPrivate(page.getUrl());
             if (links.size() > 0) {
-              retval.add(String.format("p:%s\t%s:%s", pageUri, ColumnConstants.PAGE, ColumnConstants.SCORE));
-              retval.add(String.format("p:%s\t%s:%s\t%s", pageUri, ColumnConstants.PAGE, ColumnConstants.CUR, gson.toJson(page)));
+              retval.add(String.format("p:%s\t%s:%s", pageUri, ColumnConstants.PAGE,
+                                       ColumnConstants.SCORE));
+              retval.add(String.format("p:%s\t%s:%s\t%s", pageUri, ColumnConstants.PAGE,
+                                       ColumnConstants.CUR, gson.toJson(page)));
               retval.add(String.format("d:%s\t%s:%s", pageDomain, ColumnConstants.PAGES, pageUri));
             }
             for (Link link : links) {
               String linkUri = link.getUri();
               String linkDomain = LinkUtil.getReverseTopPrivate(link.getUrl());
-              retval.add(String.format("p:%s\t%s:%s", linkUri, ColumnConstants.PAGE, ColumnConstants.INCOUNT));
-              retval.add(String.format("p:%s\t%s:%s", linkUri, ColumnConstants.PAGE, ColumnConstants.SCORE));
-              retval.add(String.format("p:%s\t%s:%s\t%s", linkUri, ColumnConstants.INLINKS, pageUri, link.getAnchorText()));
+              retval.add(String.format("p:%s\t%s:%s", linkUri, ColumnConstants.PAGE,
+                                       ColumnConstants.INCOUNT));
+              retval.add(String.format("p:%s\t%s:%s", linkUri, ColumnConstants.PAGE,
+                                       ColumnConstants.SCORE));
+              retval.add(String.format("p:%s\t%s:%s\t%s", linkUri, ColumnConstants.INLINKS, pageUri,
+                                       link.getAnchorText()));
               retval.add(String.format("d:%s\t%s:%s", linkDomain, ColumnConstants.PAGES, linkUri));
             }
             return retval;
@@ -239,7 +245,7 @@ public class Init {
     // Load intermediate results into Fluo
     //loadFluo(sortedLinkCounts);
 
-    JavaPairRDD < String, Long > topCounts = sortedLinkCounts.flatMapToPair(
+    JavaPairRDD<String, Long> topCounts = sortedLinkCounts.flatMapToPair(
         new PairFlatMapFunction<Tuple2<String, Long>, String, Long>() {
           @Override
           public Iterable<Tuple2<String, Long>> call(Tuple2<String, Long> t)
@@ -254,7 +260,7 @@ public class Init {
               String numLinksEnc = Hex.encodeHexString(lexicoder.encode(numLinks));
               retval.add(new Tuple2<>(String.format("%s\t%s:%s:%s", domain, ColumnConstants.RANK,
                                                     numLinksEnc, link), numLinks));
-              retval.add(new Tuple2<>(String.format("%s\t%s:%s", domain, ColumnConstants.PAGE,
+              retval.add(new Tuple2<>(String.format("%s\t%s:%s", domain, ColumnConstants.DOMAIN,
                                                     ColumnConstants.PAGECOUNT), one));
             } else {
               retval.add(t);

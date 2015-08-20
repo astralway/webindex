@@ -1,6 +1,7 @@
 package io.fluo.commoncrawl.core;
 
 import com.google.gson.Gson;
+import io.fluo.commoncrawl.core.models.Page;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -10,12 +11,12 @@ public class PageTest {
   public void testBasic() {
 
     Page page = new Page("http://example.com");
-    Assert.assertEquals(0, page.getExternalLinks().size());
-    page.addExternalLink("http://test1.com", "test1");
-    page.addExternalLink("http://test2.com", "test2");
-    Assert.assertEquals(2, page.getExternalLinks().size());
-    page.addExternalLink("http://test2.com", "test1234");
-    Assert.assertEquals(2, page.getExternalLinks().size());
+    Assert.assertEquals(new Long(0), page.getNumOutbound());
+    page.addOutboundLink("http://test1.com", "test1");
+    page.addOutboundLink("http://test2.com", "test2");
+    Assert.assertEquals(new Long(2), page.getNumOutbound());
+    page.addOutboundLink("http://test2.com", "test1234");
+    Assert.assertEquals(new Long(2), page.getNumOutbound());
 
     Gson gson = new Gson();
     String json = gson.toJson(page);
@@ -23,7 +24,7 @@ public class PageTest {
     Assert.assertFalse(json.isEmpty());
 
     Page after = gson.fromJson(json, Page.class);
-    Assert.assertEquals(page.getPageUrl(), after.getPageUrl());
-    Assert.assertEquals(page.getExternalLinks().size(), after.getExternalLinks().size());
+    Assert.assertEquals(page.getUrl(), after.getUrl());
+    Assert.assertEquals(page.getOutboundLinks().size(), after.getOutboundLinks().size());
   }
 }

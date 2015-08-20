@@ -14,11 +14,11 @@ public class DataUtil {
     String[] domainArgs = domain.split("\\.");
     ArrayUtils.reverse(domainArgs);
     StringBuilder sb = new StringBuilder();
-    for (int i=0; i < domainArgs.length-1; i++) {
+    for (int i = 0; i < domainArgs.length - 1; i++) {
       sb.append(domainArgs[i]);
       sb.append(".");
     }
-    sb.append(domainArgs[domainArgs.length-1]);
+    sb.append(domainArgs[domainArgs.length - 1]);
     return sb.toString();
   }
 

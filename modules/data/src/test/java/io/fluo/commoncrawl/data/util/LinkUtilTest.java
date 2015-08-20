@@ -16,7 +16,6 @@
 
 package io.fluo.commoncrawl.data.util;
 
-import io.fluo.commoncrawl.core.DataUtil;
 import org.junit.Assert;
 import org.junit.Test;
 

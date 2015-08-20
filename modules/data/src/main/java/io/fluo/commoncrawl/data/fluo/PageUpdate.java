@@ -8,7 +8,7 @@ import io.fluo.api.client.Loader;
 import io.fluo.api.client.TransactionBase;
 import io.fluo.api.types.TypedTransactionBase;
 import io.fluo.commoncrawl.core.DataUtil;
-import io.fluo.commoncrawl.core.Page;
+import io.fluo.commoncrawl.core.models.Page;
 import io.fluo.commoncrawl.data.util.FluoConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,17 +16,11 @@ import org.slf4j.LoggerFactory;
 public class PageUpdate implements Loader {
 
   private static final Logger log = LoggerFactory.getLogger(PageUpdate.class);
-
-  private enum Action {
-    UPDATE,
-    DELETE,
-  };
-
   private Action action;
   private Page page;
   private String delUri;
-
-  private PageUpdate() {}
+  private PageUpdate() {
+  }
 
   public static PageUpdate updatePage(Page page) {
     Preconditions.checkArgument(!page.isEmpty(), "Page cannot be empty");
@@ -57,10 +51,15 @@ public class PageUpdate implements Loader {
       case UPDATE:
         Gson gson = new Gson();
         String newJson = gson.toJson(page);
-        ttx.mutate().row("p:" + page.getPageUri()).col(FluoConstants.PAGE_NEW_COL).set(newJson);
+        ttx.mutate().row("p:" + page.getUri()).col(FluoConstants.PAGE_NEW_COL).set(newJson);
         break;
       default:
         log.error("PageUpdate called with no action");
     }
+  }
+
+  private enum Action {
+    UPDATE,
+    DELETE,
   }
 }

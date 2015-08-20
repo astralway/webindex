@@ -1,4 +1,4 @@
-package io.fluo.commoncrawl.web.models;
+package io.fluo.commoncrawl.core.models;
 
 public class DomainStats {
 
