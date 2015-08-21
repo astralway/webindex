@@ -1,6 +1,6 @@
 <#include "common/header.ftl">
 <div class="row">
-  <div class="col-md-6 col-md-offset-3" style="margin-top: 130px">
+  <div class="col-md-6 col-md-offset-3" style="margin-top: 150px">
   <h2>CommonCrawl Link Search</h2>
   <p>Enter a domain below to view links to/from pages in that domain</p>
   <form action="pages" method="get">
@@ -11,6 +11,11 @@
        </span>
     </div>
   </form>
+  </div>
+</div>
+<div class="row">
+  <div class="col-md-6 col-md-offset-3" style="margin-top: 20px">
+    <p><b>View top pages by:</b> &nbsp; <a href="/top?resultType=score">Score</a> &nbsp; <a href="/top?resultType=incount">Inbound Links</a></p>
   </div>
 </div>
 <#include "common/footer.ftl">

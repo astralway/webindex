@@ -7,32 +7,74 @@ Sample Data
     a.com/page1 links to c.com, b.com
     b.com links to c.com/page1, c.com
     d.com links to c.com
-
+    
+  
 Resulting Fluo Table
 
     row               cf        cq              value
     --------------------------------------------------
-    d:com.a           rank      1:com.a/page1   1
-    d:com.b           rank      2:com.b         2
-    d:com.c           rank      3:com.c         3
-                                1:com.c/page1   1
-    d:com.d           rank      1:com.d         1
+    d:com.a           domain    pagecount       1
+    d:com.b           domain    pagecount       1
+    d:com.c           domain    pagecount       2
+    d:com.d           domain    pagecount       1
     p:com.a/page1     page      cur             {"outlinkcount": 2, "outlinks":[c.com, b.com]}
-                      stats     pagescore       1
+                      page      score           1
     p:com.b           inlinks   com.a/pag1      anchorText
                       page      cur             {"outlinkcount": 2, "outlinks":[c.com/page1, c.com]}
-                      stats     pagescore       2
-                      stats     inlinkscount    1
+                      page      incount         1
+                      page      score           2
     p:com.c           inlinks   com.a/page1     anchorText
                                 com.b           anchorText
                                 com.d           anchorText
-                      stats     inlinkscount    3
-                      stats     pagescore       3
+                      page      incount         3
+                                score           3
     p:com.c/page1     inlinks   com.b           anchorText
-                      stats     pagescore       1
-                      stats     inlinkscount    1
+                      page      incount         1
+                                score           1
     p:com.d           page      cur             {"outlinkcount": 1, "outlinks":[c.com]}
-                      stats     pagescore       1
+                      page      score           1
+
+
+Resulting Accumulo Table
+
+    row               cf        cq              value
+    --------------------------------------------------
+    d:com.a           domain    pagecount       1
+                      rank      1:com.a/page1   1
+    d:com.b           domain    pagecount       1
+                      rank      2:com.b         2
+    d:com.c           domain    pagecount       2
+                      rank      3:com.c         3
+                                1:com.c/page1   1
+    d:com.d           domain    pagecount       1
+                      rank      1:com.d         1
+    p:com.a/page1     page      cur             {"outlinkcount": 2, "outlinks":[c.com, b.com]}
+                      page      score           1
+    p:com.b           inlinks   com.a/pag1      anchorText
+                      page      cur             {"outlinkcount": 2, "outlinks":[c.com/page1, c.com]}
+                      page      incount         1
+                      page      score           2
+    p:com.c           inlinks   com.a/page1     anchorText
+                                com.b           anchorText
+                                com.d           anchorText
+                      page      incount         3
+                                score           3
+    p:com.c/page1     inlinks   com.b           anchorText
+                      page      incount         1
+                                score           1
+    p:com.d           page      cur             {"outlinkcount": 1, "outlinks":[c.com]}
+                      page      score           1
+    t:incount         rank      3:com.c         3
+                                2:com.b         1
+                                1:com.c/page1   1
+    t:pagecount       rank      2:com.c         2
+                                1:com.a         1
+                                1.com.b         1
+    t:score           rank      3:com.c         3
+                                2:com.b         2
+                                1:com.c/page1   1
+                                1:com.a/page1   1
+                                1:com.d
 
 Below are available operations:
 

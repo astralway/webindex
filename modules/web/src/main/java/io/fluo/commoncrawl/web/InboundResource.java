@@ -21,12 +21,14 @@ import io.fluo.commoncrawl.core.models.DomainStats;
 import io.fluo.commoncrawl.core.models.Links;
 import io.fluo.commoncrawl.core.models.Page;
 import io.fluo.commoncrawl.core.models.Pages;
+import io.fluo.commoncrawl.core.models.TopResults;
 import io.fluo.commoncrawl.web.util.Pager;
 import io.fluo.commoncrawl.web.util.WebUtil;
 import io.fluo.commoncrawl.web.views.HomeView;
 import io.fluo.commoncrawl.web.views.LinksView;
 import io.fluo.commoncrawl.web.views.PageView;
 import io.fluo.commoncrawl.web.views.PagesView;
+import io.fluo.commoncrawl.web.views.TopView;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -230,5 +232,43 @@ public class InboundResource {
       log.error("Failed to parse URL {}", pageUrl);
     }
     return new LinksView(links);
+  }
+
+  @GET
+  @Path("top")
+  @Produces({MediaType.TEXT_HTML, MediaType.APPLICATION_JSON})
+  public TopView getTop(@NotNull @QueryParam("resultType") String resultType,
+                          @DefaultValue("") @QueryParam("next") String next,
+                          @DefaultValue("0") @QueryParam("pageNum") Integer pageNum) {
+
+    TopResults results = new TopResults();
+    if (resultType.equals(ColumnConstants.INCOUNT) ||
+        resultType.equals(ColumnConstants.SCORE)) {
+      results.setResultType(resultType);
+      results.setPageNum(pageNum);
+      try {
+        Scanner scanner = conn.createScanner(dataConfig.accumuloIndexTable, Authorizations.EMPTY);
+        new Pager(scanner, "t:" + resultType, ColumnConstants.RANK, next, pageNum, PAGE_SIZE) {
+
+          @Override
+          public void foundPageEntry(Map.Entry<Key, Value> entry) {
+            String url =
+                DataUtil.toUrl(entry.getKey().getColumnQualifier().toString().split(":", 2)[1]);
+            Long num = Long.parseLong(entry.getValue().toString());
+            results.addResult(url, num);
+            log.info("Adding {} {}", url, num);
+          }
+
+          @Override
+          public void foundNextEntry(Map.Entry<Key, Value> entry) {
+            results.setNext(entry.getKey().getColumnQualifier().toString());
+          }
+        }.getPage();
+      } catch (TableNotFoundException e) {
+        log.error("Table {} not found", dataConfig.accumuloIndexTable);
+      }
+    }
+
+    return new TopView(results);
   }
 }

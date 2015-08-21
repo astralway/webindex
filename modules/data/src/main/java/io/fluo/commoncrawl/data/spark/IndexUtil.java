@@ -88,6 +88,11 @@ public class IndexUtil {
     return sortedLinkCounts;
   }
 
+  public static String revEncodeLong(Long num) {
+    Lexicoder<Long> lexicoder = new ReverseLexicoder<>(new ULongLexicoder());
+    return Hex.encodeHexString(lexicoder.encode(num));
+  }
+
   public static JavaPairRDD<String, Long> createSortedTopCounts(JavaPairRDD<String, Long> sortedLinkCounts) {
     final Long one = new Long(1);
     JavaPairRDD<String, Long> topCounts = sortedLinkCounts.flatMapToPair(
@@ -101,12 +106,19 @@ public class IndexUtil {
               String domain = args[0];
               String link = args[1].substring(ColumnConstants.PAGES.length() + 1);
               Long numLinks = t._2();
-              Lexicoder<Long> lexicoder = new ReverseLexicoder<>(new ULongLexicoder());
-              String numLinksEnc = Hex.encodeHexString(lexicoder.encode(numLinks));
               retval.add(new Tuple2<>(String.format("%s\t%s:%s:%s", domain, ColumnConstants.RANK,
-                                                    numLinksEnc, link), numLinks));
+                                                    revEncodeLong(numLinks), link), numLinks));
               retval.add(new Tuple2<>(String.format("%s\t%s:%s", domain, ColumnConstants.DOMAIN,
                                                     ColumnConstants.PAGECOUNT), one));
+            } else if (args[1].startsWith(ColumnConstants.PAGE)) {
+              String[] colArgs = args[1].split(":");
+              if (colArgs[1].equals(ColumnConstants.INCOUNT) || colArgs[1].equals(ColumnConstants.SCORE)) {
+                String page = args[0].substring(2);
+                Long num = t._2();
+                retval.add(new Tuple2<>(String.format("t:%s\t%s:%s:%s", colArgs[1], ColumnConstants.RANK,
+                                                      revEncodeLong(num), page), num));
+              }
+              retval.add(t);
             } else {
               retval.add(t);
             }
