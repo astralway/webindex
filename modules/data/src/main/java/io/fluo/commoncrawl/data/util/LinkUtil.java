@@ -30,19 +30,10 @@ public class LinkUtil {
 
   private static final Logger log = LoggerFactory.getLogger(LinkUtil.class);
 
-  /*
-  private URL url;
-  private String anchorText;
-
-  private LinkUtil(URL url, String anchorText) {
-    this.url = url;
-    this.anchorText = anchorText;
-    validate();
-  }*/
-
   public static URL createURL(String url) throws ParseException {
+    String cleanUrl = DataUtil.cleanUrl(url);
     try {
-      URL u = new URL(url);
+      URL u = new URL(cleanUrl);
       if (!u.getProtocol().equalsIgnoreCase("http") && !u.getProtocol().equalsIgnoreCase("https")) {
         throw new ParseException("Bad protocol: " + u.toString(), 0);
       }
@@ -57,11 +48,13 @@ public class LinkUtil {
           throw new ParseException("Bad domain: " + u.getHost(), 0);
         }
       }
-      String initialUrl = url.trim();
-      String uri = DataUtil.toUri(url);
+      String initialUrl = cleanUrl;
+      String uri = DataUtil.toUri(cleanUrl);
       String reformUrl = DataUtil.toUrl(uri);
-      if (!reformUrl.equals(initialUrl) && !initialUrl.contains(":443")) {
-        log.info("Url {} creates url {} when reformed from uri {}", url, reformUrl, uri);
+      if (!reformUrl.equals(initialUrl)) {
+        String msg = String.format("Url %s creates url %s when reformed from uri %s", cleanUrl, reformUrl, uri);
+        log.info(msg);
+        throw new ParseException(msg, 0);
       }
       return u;
     } catch (MalformedURLException e) {

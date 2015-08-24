@@ -13,6 +13,7 @@ public class PageTest {
     Page page = new Page("http://example.com");
     Assert.assertEquals(new Long(0), page.getNumOutbound());
     page.addOutboundLink("http://test1.com", "test1");
+    Assert.assertEquals(new Long(1), page.getNumOutbound());
     page.addOutboundLink("http://test2.com", "test2");
     Assert.assertEquals(new Long(2), page.getNumOutbound());
     page.addOutboundLink("http://test2.com", "test1234");

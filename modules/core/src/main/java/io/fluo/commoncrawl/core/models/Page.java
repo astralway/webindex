@@ -105,7 +105,7 @@ public class Page {
     private String anchorText;
 
     public Link(String url, String anchorText) {
-      this.url = url;
+      this.url = DataUtil.cleanUrl(url);
       this.anchorText = anchorText;
     }
 

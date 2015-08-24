@@ -106,12 +106,26 @@ public class Init {
             String[] keyArgs = tuple._1().split("\t", 2);
             if (keyArgs.length != 2) {
               System.out.println("Data lacks tab: " + tuple._1());
-            } else {
-              FluoKeyValueGenerator fkvg = new FluoKeyValueGenerator();
-              fkvg.setRow(keyArgs[0]).setColumn(new Column(keyArgs[1])).setValue(Bytes.of("1"));
-              for (FluoKeyValue kv : fkvg.getKeyValues()) {
-                output.add(new Tuple2<>(kv.getKey(), kv.getValue()));
-              }
+              return output;
+            }
+            String row = keyArgs[0];
+            String cf = keyArgs[1].split(":", 2)[0];
+            String cq = keyArgs[1].split(":", 2)[1];
+            byte[] val = tuple._2().toString().getBytes();
+
+            if (cq.equals(ColumnConstants.RANK)) {
+              return output;
+            }
+            if (cf.equals(ColumnConstants.INLINKS) ||
+                (cf.equals(ColumnConstants.PAGE) && cq.startsWith(ColumnConstants.CUR))) {
+              String[] tempArgs = cq.split("\t", 2);
+              cq = tempArgs[0];
+              val = tempArgs[1].getBytes();
+            }
+            FluoKeyValueGenerator fkvg = new FluoKeyValueGenerator();
+            fkvg.setRow(row).setColumn(new Column(cf, cq)).setValue(val);
+            for (FluoKeyValue kv : fkvg.getKeyValues()) {
+              output.add(new Tuple2<>(kv.getKey(), kv.getValue()));
             }
             return output;
           }
@@ -172,7 +186,7 @@ public class Init {
     JavaPairRDD<String, Long> sortedLinkCounts = IndexUtil.createLinkCounts(stats, archives);
 
     // Load intermediate results into Fluo
-    //loadFluo(sortedLinkCounts);
+    loadFluo(sortedLinkCounts);
 
     JavaPairRDD<String, Long> sortedTopCounts = IndexUtil.createSortedTopCounts(sortedLinkCounts);
 
