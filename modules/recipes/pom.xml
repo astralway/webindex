@@ -39,5 +39,21 @@
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-core</artifactId>
     </dependency>
+    <!-- Test Dependencies -->
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+     <groupId>io.fluo</groupId>
+     <artifactId>fluo-mini</artifactId>
+     <scope>test</scope>
+    </dependency>
+    <dependency>
+     <groupId>io.fluo</groupId>
+     <artifactId>fluo-core</artifactId>
+     <scope>test</scope>
+    </dependency>
   </dependencies>
 </project>

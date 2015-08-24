@@ -6,7 +6,7 @@ import io.fluo.api.client.TransactionBase;
 import io.fluo.api.data.Bytes;
 import io.fluo.api.data.Column;
 import io.fluo.api.observer.AbstractObserver;
-import io.fluo.commoncrawl.recipes.Encoder;
+import io.fluo.commoncrawl.recipes.serialization.SimpleSerializer;
 
 public abstract class Exporter<K, V> extends AbstractObserver {
 
@@ -16,9 +16,13 @@ public abstract class Exporter<K, V> extends AbstractObserver {
     this.queueId = queueId;
   }
 
-  protected abstract Encoder<K> getKeyEncoder();
+  protected String getQueueId(){
+    return queueId;
+  }
+  
+  protected abstract SimpleSerializer<K> getKeySerializer();
 
-  protected abstract Encoder<V> getValueEncoder();
+  protected abstract SimpleSerializer<V> getValueSerializer();
 
   @Override
   public ObservedColumn getObservedColumn() {
@@ -37,7 +41,7 @@ public abstract class Exporter<K, V> extends AbstractObserver {
 
     while (exportIterator.hasNext()) {
       ExportEntry ee = exportIterator.next();
-      processExport(getKeyEncoder().decode(ee.key), ee.seq, getValueEncoder().decode(ee.value));
+      processExport(getKeySerializer().deserialize(ee.key), ee.seq, getValueSerializer().deserialize(ee.value));
       exportIterator.remove();
     }
 
