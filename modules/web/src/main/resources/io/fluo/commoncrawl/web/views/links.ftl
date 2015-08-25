@@ -3,7 +3,7 @@
 <div class="row">
   <div class="col-md-12">
     <h3>${links.linkType?cap_first}bound links</h3>
-    <p>URL: ${links.url?html}</p>
+    <p>URL: <a href="/page?url=${links.url?url}">${links.url?html}</a></p>
   </div>
 </div>
 <div class="row">

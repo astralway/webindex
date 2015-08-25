@@ -80,11 +80,11 @@ public class InboundResource {
     Pages pages = new Pages(domain, pageNum);
     log.info("Setting total to {}", stats.getTotal());
     pages.setTotal(stats.getTotal());
+    String row = "d:" + DataUtil.reverseDomain(domain);
+    String cf = ColumnConstants.RANK;
     try {
       Scanner scanner = conn.createScanner(dataConfig.accumuloIndexTable, Authorizations.EMPTY);
-      new Pager(scanner, "d:" + DataUtil.reverseDomain(domain), ColumnConstants.RANK, next, pageNum,
-                PAGE_SIZE) {
-
+      Pager pager = new Pager(scanner, Range.exact(row, cf), PAGE_SIZE) {
         @Override
         public void foundPageEntry(Map.Entry<Key, Value> entry) {
           String url =
@@ -97,7 +97,12 @@ public class InboundResource {
         public void foundNextEntry(Map.Entry<Key, Value> entry) {
           pages.setNext(entry.getKey().getColumnQualifier().toString());
         }
-      }.getPage();
+      };
+      if (next.isEmpty()) {
+        pager.getPage(pageNum);
+      } else {
+        pager.getPage(new Key(row, cf, next));
+      }
     } catch (TableNotFoundException e) {
       log.error("Table {} not found", dataConfig.accumuloIndexTable);
     }
@@ -175,23 +180,22 @@ public class InboundResource {
   @GET
   @Path("links")
   @Produces({MediaType.TEXT_HTML, MediaType.APPLICATION_JSON})
-  public LinksView getLinks(@NotNull @QueryParam("pageUrl") String pageUrl,
+  public LinksView getLinks(@NotNull @QueryParam("url") String url,
                             @NotNull @QueryParam("linkType") String linkType,
                             @DefaultValue("") @QueryParam("next") String next,
                             @DefaultValue("0") @QueryParam("pageNum") Integer pageNum) {
 
-    Links links = new Links(pageUrl, linkType, pageNum);
+    Links links = new Links(url, linkType, pageNum);
     log.info("links url {}", links.getUrl());
 
     try {
       Scanner scanner = conn.createScanner(dataConfig.accumuloIndexTable, Authorizations.EMPTY);
-      String row = "p:" + DataUtil.toUri(pageUrl);
-
+      String row = "p:" + DataUtil.toUri(url);
       if (linkType.equals("in")) {
-        Page page = getPage(pageUrl);
+        Page page = getPage(url);
         String cf = ColumnConstants.INLINKS;
         links.setTotal(page.getNumInbound());
-        new Pager(scanner, "p:" + DataUtil.toUri(pageUrl), cf, next, pageNum, PAGE_SIZE) {
+        Pager pager = new Pager(scanner, Range.exact(row, cf), PAGE_SIZE) {
 
           @Override
           public void foundPageEntry(Map.Entry<Key, Value> entry) {
@@ -204,7 +208,12 @@ public class InboundResource {
           public void foundNextEntry(Map.Entry<Key, Value> entry) {
             links.setNext(entry.getKey().getColumnQualifier().toString());
           }
-        }.getPage();
+        };
+        if (next.isEmpty()) {
+          pager.getPage(pageNum);
+        } else {
+          pager.getPage(new Key(row, cf, next));
+        }
       } else {
         scanner.setRange(Range.exact(row, ColumnConstants.PAGE, ColumnConstants.CUR));
         Iterator<Map.Entry<Key, Value>> iter = scanner.iterator();
@@ -229,7 +238,7 @@ public class InboundResource {
     } catch (TableNotFoundException e) {
       log.error("Table {} not found", dataConfig.accumuloIndexTable);
     } catch (MalformedURLException e) {
-      log.error("Failed to parse URL {}", pageUrl);
+      log.error("Failed to parse URL {}", url);
     }
     return new LinksView(links);
   }
@@ -238,8 +247,8 @@ public class InboundResource {
   @Path("top")
   @Produces({MediaType.TEXT_HTML, MediaType.APPLICATION_JSON})
   public TopView getTop(@NotNull @QueryParam("resultType") String resultType,
-                          @DefaultValue("") @QueryParam("next") String next,
-                          @DefaultValue("0") @QueryParam("pageNum") Integer pageNum) {
+                        @DefaultValue("") @QueryParam("next") String next,
+                        @DefaultValue("0") @QueryParam("pageNum") Integer pageNum) {
 
     TopResults results = new TopResults();
     if (resultType.equals(ColumnConstants.INCOUNT) ||
@@ -248,7 +257,9 @@ public class InboundResource {
       results.setPageNum(pageNum);
       try {
         Scanner scanner = conn.createScanner(dataConfig.accumuloIndexTable, Authorizations.EMPTY);
-        new Pager(scanner, "t:" + resultType, ColumnConstants.RANK, next, pageNum, PAGE_SIZE) {
+        String row = "t:" + resultType;
+        String cf = ColumnConstants.RANK;
+        Pager pager = new Pager(scanner, Range.exact(row, cf), PAGE_SIZE) {
 
           @Override
           public void foundPageEntry(Map.Entry<Key, Value> entry) {
@@ -263,7 +274,12 @@ public class InboundResource {
           public void foundNextEntry(Map.Entry<Key, Value> entry) {
             results.setNext(entry.getKey().getColumnQualifier().toString());
           }
-        }.getPage();
+        };
+        if (next.isEmpty()) {
+          pager.getPage(pageNum);
+        } else {
+          pager.getPage(new Key(row, cf, next));
+        }
       } catch (TableNotFoundException e) {
         log.error("Table {} not found", dataConfig.accumuloIndexTable);
       }
