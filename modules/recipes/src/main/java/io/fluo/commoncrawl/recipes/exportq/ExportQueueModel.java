@@ -18,9 +18,7 @@ import io.fluo.api.types.TypedTransactionBase;
 class ExportQueueModel {
 
   private TypedTransactionBase ttx;
-
-  private String prefix = "freq"; //TODO make configurable
-
+  
   ExportQueueModel(TransactionBase tx) {
     this.ttx = new TypeLayer(new StringEncoder()).wrap(tx);
   }
@@ -28,22 +26,25 @@ class ExportQueueModel {
   private String getBucketRow(String qid, int bucket) {
     //TODO encode in a more robust way... this method doe snot work when queue id has a :
     //TODO refactor so that do not keep translating qid and bucket to row
-    return String.format("%s:%s:%x", prefix, qid, bucket);
+    return String.format("%s:%x", qid, bucket);
   }
 
-  public long getSequenceNumber(String qid, int bucket) {
-    return ttx.get().row(getBucketRow(qid, bucket)).fam("meta").qual("seq").toLong(0);
+  public long getSequenceNumber(String qid, int bucket, int counter) {
+    return ttx.get().row(getBucketRow(qid, bucket)).fam("meta").qual("seq:"+counter).toLong(0);
   }
 
   public void add(String qid, int bucket, long seq, byte[] key, byte[] value) {
     //TODO encode seq using lexicoders... need seq nums to sort properly
     //TODO constant for data:
-    ttx.mutate().row(getBucketRow(qid, bucket)).fam(Bytes.concat(Bytes.of("data:"), Bytes.of(key)))
-        .qual(String.format("%16x", seq)).set(value);
+    byte[] family = new byte[5 + key.length];
+    byte[] prefix = "data:".getBytes();
+    System.arraycopy(prefix, 0, family, 0, prefix.length);
+    System.arraycopy(key, 0, family, prefix.length, key.length);
+    ttx.mutate().row(getBucketRow(qid, bucket)).fam(family).qual(String.format("%016x", seq)).set(value);
   }
 
-  public void setSequenceNumber(String qid, int bucket, long seq) {
-    ttx.mutate().row(getBucketRow(qid, bucket)).fam("meta").qual("seq").set(seq);
+  public void setSequenceNumber(String qid, int bucket, int counter, long seq) {
+    ttx.mutate().row(getBucketRow(qid, bucket)).fam("meta").qual("seq:"+counter).set(seq);
   }
 
   public void notifyExportObserver(String qid, int bucket, byte[] key) {
@@ -52,7 +53,7 @@ class ExportQueueModel {
   }
 
   public int getBucket(Bytes row, Column column) {
-    return Integer.parseUnsignedInt(row.toString().split(":")[2], 16);
+    return Integer.parseUnsignedInt(row.toString().split(":")[1], 16);
   }
 
   public Iterator<ExportEntry> getExportIterator(String qid, int bucket) {
