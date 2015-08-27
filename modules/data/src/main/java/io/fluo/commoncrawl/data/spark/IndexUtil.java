@@ -93,7 +93,8 @@ public class IndexUtil {
     return Hex.encodeHexString(lexicoder.encode(num));
   }
 
-  public static JavaPairRDD<String, Long> createSortedTopCounts(JavaPairRDD<String, Long> sortedLinkCounts) {
+  public static JavaPairRDD<String, Long> createSortedTopCounts(
+      JavaPairRDD<String, Long> sortedLinkCounts) {
     final Long one = new Long(1);
     JavaPairRDD<String, Long> topCounts = sortedLinkCounts.flatMapToPair(
         new PairFlatMapFunction<Tuple2<String, Long>, String, Long>() {
@@ -102,25 +103,26 @@ public class IndexUtil {
               throws Exception {
             List<Tuple2<String, Long>> retval = new ArrayList<>();
             String[] args = t._1().split("\t", 2);
-            if (args[0].startsWith("d:") && (args[1].startsWith(ColumnConstants.PAGES))) {
-              String domain = args[0];
+            String row = args[0];
+            String col = args[1];
+            retval.add(t);
+            if (row.startsWith("d:") && (col.startsWith(ColumnConstants.PAGES))) {
               String link = args[1].substring(ColumnConstants.PAGES.length() + 1);
               Long numLinks = t._2();
-              retval.add(new Tuple2<>(String.format("%s\t%s:%s:%s", domain, ColumnConstants.RANK,
+              retval.add(new Tuple2<>(String.format("%s\t%s:%s:%s", row, ColumnConstants.RANK,
                                                     revEncodeLong(numLinks), link), numLinks));
-              retval.add(new Tuple2<>(String.format("%s\t%s:%s", domain, ColumnConstants.DOMAIN,
+              retval.add(new Tuple2<>(String.format("%s\t%s:%s", row, ColumnConstants.DOMAIN,
                                                     ColumnConstants.PAGECOUNT), one));
-            } else if (args[1].startsWith(ColumnConstants.PAGE)) {
-              String[] colArgs = args[1].split(":");
-              if (colArgs[1].equals(ColumnConstants.INCOUNT) || colArgs[1].equals(ColumnConstants.SCORE)) {
-                String page = args[0].substring(2);
+            } else if (col.startsWith(ColumnConstants.PAGE)) {
+              String[] colArgs = col.split(":");
+              if (colArgs[1].equals(ColumnConstants.INCOUNT) || colArgs[1]
+                  .equals(ColumnConstants.SCORE)) {
+                String page = row.substring(2);
                 Long num = t._2();
-                retval.add(new Tuple2<>(String.format("t:%s\t%s:%s:%s", colArgs[1], ColumnConstants.RANK,
-                                                      revEncodeLong(num), page), num));
+                retval.add(
+                    new Tuple2<>(String.format("t:%s\t%s:%s:%s", colArgs[1], ColumnConstants.RANK,
+                                               revEncodeLong(num), page), num));
               }
-              retval.add(t);
-            } else {
-              retval.add(t);
             }
             return retval;
           }

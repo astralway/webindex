@@ -48,11 +48,11 @@ public class LinkUtil {
           throw new ParseException("Bad domain: " + u.getHost(), 0);
         }
       }
-      String initialUrl = cleanUrl;
       String uri = DataUtil.toUri(cleanUrl);
       String reformUrl = DataUtil.toUrl(uri);
-      if (!reformUrl.equals(initialUrl)) {
-        String msg = String.format("Url %s creates url %s when reformed from uri %s", cleanUrl, reformUrl, uri);
+      if (!reformUrl.equals(cleanUrl)) {
+        String msg = String.format("Url %s creates url %s when reformed from uri %s", cleanUrl,
+                                   reformUrl, uri);
         log.info(msg);
         throw new ParseException(msg, 0);
       }
