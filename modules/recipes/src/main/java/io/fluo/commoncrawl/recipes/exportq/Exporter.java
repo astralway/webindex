@@ -16,10 +16,10 @@ public abstract class Exporter<K, V> extends AbstractObserver {
     this.queueId = queueId;
   }
 
-  protected String getQueueId(){
+  protected String getQueueId() {
     return queueId;
   }
-  
+
   protected abstract SimpleSerializer<K> getKeySerializer();
 
   protected abstract SimpleSerializer<V> getValueSerializer();
@@ -41,23 +41,22 @@ public abstract class Exporter<K, V> extends AbstractObserver {
 
     while (exportIterator.hasNext()) {
       ExportEntry ee = exportIterator.next();
-      processExport(getKeySerializer().deserialize(ee.key), ee.seq, getValueSerializer().deserialize(ee.value));
+      processExport(getKeySerializer().deserialize(ee.key), ee.seq, getValueSerializer()
+          .deserialize(ee.value));
       exportIterator.remove();
     }
 
     finishedProcessingBatch();
   }
 
-  protected void startingToProcessBatch() {
-  }
+  protected void startingToProcessBatch() {}
 
   /**
    * Must be able to handle same key being exported multiple times and key being exported out of
-   * order.   The sequence number is meant to help with this.
+   * order. The sequence number is meant to help with this.
    */
   protected abstract void processExport(K key, long sequenceNumber, V value);
 
-  protected void finishedProcessingBatch() {
-  }
+  protected void finishedProcessingBatch() {}
 
 }

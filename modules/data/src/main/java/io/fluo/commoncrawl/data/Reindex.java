@@ -75,39 +75,40 @@ public class Reindex {
     Job job = Job.getInstance(env.getSparkCtx().hadoopConfiguration());
     FluoEntryInputFormat.configure(job, env.getFluoConfig());
 
-    JavaPairRDD<RowColumn, Bytes> fluoData = env.getSparkCtx().newAPIHadoopRDD(
-        job.getConfiguration(), FluoEntryInputFormat.class, RowColumn.class, Bytes.class);
+    JavaPairRDD<RowColumn, Bytes> fluoData =
+        env.getSparkCtx().newAPIHadoopRDD(job.getConfiguration(), FluoEntryInputFormat.class,
+            RowColumn.class, Bytes.class);
 
-    JavaPairRDD<RowColumn, Bytes> indexData = fluoData.flatMapToPair(
-        new PairFlatMapFunction<Tuple2<RowColumn, Bytes>, RowColumn, Bytes>() {
-          @Override
-          public Iterable<Tuple2<RowColumn, Bytes>> call(
-              Tuple2<RowColumn, Bytes> kvTuple)
-              throws Exception {
+    JavaPairRDD<RowColumn, Bytes> indexData =
+        fluoData
+            .flatMapToPair(new PairFlatMapFunction<Tuple2<RowColumn, Bytes>, RowColumn, Bytes>() {
+              @Override
+              public Iterable<Tuple2<RowColumn, Bytes>> call(Tuple2<RowColumn, Bytes> kvTuple)
+                  throws Exception {
 
-            List<Tuple2<RowColumn, Bytes>> retval = new ArrayList<>();
-            retval.add(kvTuple);
-            RowColumn rc = kvTuple._1();
-            String row = rc.getRow().toString();
-            String cf = rc.getColumn().getFamily().toString();
-            String cq = rc.getColumn().getQualifier().toString();
-            Bytes v = kvTuple._2();
-            if (row.startsWith("p:") && cf.equals(ColumnConstants.PAGE) &&
-                (cq.equals(ColumnConstants.INCOUNT) || cq.equals(ColumnConstants.SCORE))) {
-              String pageUri = row.substring(2);
-              Long num = Long.parseLong(v.toString());
-              Column rankCol = new Column(ColumnConstants.RANK,
-                                          String.format("%s:%s", IndexUtil.revEncodeLong(num),
-                                                        pageUri));
-              if (cq.equals(ColumnConstants.SCORE)) {
-                String domain = "d:" + LinkUtil.getReverseTopPrivate(DataUtil.toUrl(pageUri));
-                retval.add(new Tuple2<>(new RowColumn(domain, rankCol), v));
+                List<Tuple2<RowColumn, Bytes>> retval = new ArrayList<>();
+                retval.add(kvTuple);
+                RowColumn rc = kvTuple._1();
+                String row = rc.getRow().toString();
+                String cf = rc.getColumn().getFamily().toString();
+                String cq = rc.getColumn().getQualifier().toString();
+                Bytes v = kvTuple._2();
+                if (row.startsWith("p:") && cf.equals(ColumnConstants.PAGE)
+                    && (cq.equals(ColumnConstants.INCOUNT) || cq.equals(ColumnConstants.SCORE))) {
+                  String pageUri = row.substring(2);
+                  Long num = Long.parseLong(v.toString());
+                  Column rankCol =
+                      new Column(ColumnConstants.RANK, String.format("%s:%s",
+                          IndexUtil.revEncodeLong(num), pageUri));
+                  if (cq.equals(ColumnConstants.SCORE)) {
+                    String domain = "d:" + LinkUtil.getReverseTopPrivate(DataUtil.toUrl(pageUri));
+                    retval.add(new Tuple2<>(new RowColumn(domain, rankCol), v));
+                  }
+                  retval.add(new Tuple2<>(new RowColumn("t:" + cq, rankCol), v));
+                }
+                return retval;
               }
-              retval.add(new Tuple2<>(new RowColumn("t:" + cq, rankCol), v));
-            }
-            return retval;
-          }
-        });
+            });
 
     JavaPairRDD<RowColumn, Bytes> sortedIndexes = indexData.sortByKey(RowColumnComparator.INSTANCE);
 
@@ -115,5 +116,3 @@ public class Reindex {
 
   }
 }
-
-

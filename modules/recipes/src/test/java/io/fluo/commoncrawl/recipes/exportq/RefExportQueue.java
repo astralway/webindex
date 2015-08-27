@@ -8,10 +8,10 @@ import io.fluo.commoncrawl.recipes.serialization.StringSerializer;
 class RefExportQueue extends ExportQueue<String, RefUpdates> {
   public static final String QUEUE_ID = "req";
 
-  RefExportQueue(Configuration config){
+  RefExportQueue(Configuration config) {
     super(QUEUE_ID, config);
   }
-  
+
   @Override
   protected SimpleSerializer<String> getKeySerializer() {
     return new StringSerializer();
@@ -21,5 +21,5 @@ class RefExportQueue extends ExportQueue<String, RefUpdates> {
   protected SimpleSerializer<RefUpdates> getValueSerializer() {
     return RefUpdates.newSerializer();
   }
-  
+
 }

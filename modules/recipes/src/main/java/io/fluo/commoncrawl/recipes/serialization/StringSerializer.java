@@ -2,7 +2,7 @@ package io.fluo.commoncrawl.recipes.serialization;
 
 import com.google.common.base.Charsets;
 
-public class StringSerializer implements SimpleSerializer<String>{
+public class StringSerializer implements SimpleSerializer<String> {
 
   @Override
   public String deserialize(byte[] b) {

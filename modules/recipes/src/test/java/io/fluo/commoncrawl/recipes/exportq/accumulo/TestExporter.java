@@ -5,7 +5,7 @@ import org.apache.accumulo.core.data.Mutation;
 import io.fluo.commoncrawl.recipes.serialization.SimpleSerializer;
 import io.fluo.commoncrawl.recipes.serialization.StringSerializer;
 
-public class TestExporter extends AccumuloExporter<String,String>{
+public class TestExporter extends AccumuloExporter<String, String> {
 
   public TestExporter() {
     super(TestExportQueue.QUEUE_ID);

@@ -10,6 +10,7 @@ public class Pages {
   private Integer pageNum;
   private Long total;
   private List<PageScore> pages = new ArrayList<>();
+
   public Pages() {
     // Jackson deserialization
   }

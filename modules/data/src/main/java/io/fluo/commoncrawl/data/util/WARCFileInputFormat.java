@@ -21,8 +21,7 @@ public class WARCFileInputFormat extends FileInputFormat<Text, ArchiveReader> {
 
   @Override
   public RecordReader<Text, ArchiveReader> createRecordReader(InputSplit split,
-                                                              TaskAttemptContext context)
-      throws IOException, InterruptedException {
+      TaskAttemptContext context) throws IOException, InterruptedException {
     return new WARCFileRecordReader();
   }
 

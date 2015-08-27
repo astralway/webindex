@@ -36,8 +36,8 @@ public class Init {
 
   public static void loadAccumulo(JavaPairRDD<String, Long> sortedCounts) throws Exception {
 
-    JavaPairRDD<String, Long> filteredSortedCounts = sortedCounts.filter(
-        new Function<Tuple2<String, Long>, Boolean>() {
+    JavaPairRDD<String, Long> filteredSortedCounts =
+        sortedCounts.filter(new Function<Tuple2<String, Long>, Boolean>() {
           @Override
           public Boolean call(Tuple2<String, Long> t1) throws Exception {
             String[] keyArgs = t1._1().split("\t", 2);
@@ -47,11 +47,10 @@ public class Init {
           }
         });
 
-    JavaPairRDD<Key, Value> accumuloData = filteredSortedCounts.mapToPair(
-        new PairFunction<Tuple2<String, Long>, Key, Value>() {
+    JavaPairRDD<Key, Value> accumuloData =
+        filteredSortedCounts.mapToPair(new PairFunction<Tuple2<String, Long>, Key, Value>() {
           @Override
-          public Tuple2<Key, Value> call(Tuple2<String, Long> tuple)
-              throws Exception {
+          public Tuple2<Key, Value> call(Tuple2<String, Long> tuple) throws Exception {
             String[] keyArgs = tuple._1().split("\t", 2);
             if (keyArgs.length != 2) {
               return null;
@@ -60,8 +59,8 @@ public class Init {
             String cf = keyArgs[1].split(":", 2)[0];
             String cq = keyArgs[1].split(":", 2)[1];
             byte[] val = tuple._2().toString().getBytes();
-            if (cf.equals(ColumnConstants.INLINKS) ||
-                (cf.equals(ColumnConstants.PAGE) && cq.startsWith(ColumnConstants.CUR))) {
+            if (cf.equals(ColumnConstants.INLINKS)
+                || (cf.equals(ColumnConstants.PAGE) && cq.startsWith(ColumnConstants.CUR))) {
               String[] tempArgs = cq.split("\t", 2);
               cq = tempArgs[0];
               if (tuple._2() > 1) {
@@ -81,15 +80,14 @@ public class Init {
       env.getHdfs().delete(hadoopTempDir, true);
     }
     sortedCounts.saveAsHadoopFile(hadoopTempDir.toString(), Text.class, LongWritable.class,
-                                  TextOutputFormat.class);
+        TextOutputFormat.class);
   }
 
   public static void loadFluo(JavaPairRDD<String, Long> sortedCounts) throws Exception {
-    JavaPairRDD<Key, Value> fluoData = sortedCounts.flatMapToPair(
-        new PairFlatMapFunction<Tuple2<String, Long>, Key, Value>() {
+    JavaPairRDD<Key, Value> fluoData =
+        sortedCounts.flatMapToPair(new PairFlatMapFunction<Tuple2<String, Long>, Key, Value>() {
           @Override
-          public Iterable<Tuple2<Key, Value>> call(Tuple2<String, Long> tuple)
-              throws Exception {
+          public Iterable<Tuple2<Key, Value>> call(Tuple2<String, Long> tuple) throws Exception {
             List<Tuple2<Key, Value>> output = new LinkedList<>();
             String[] keyArgs = tuple._1().split("\t", 2);
             if (keyArgs.length != 2) {
@@ -101,12 +99,12 @@ public class Init {
             String cq = keyArgs[1].split(":", 2)[1];
             byte[] val = tuple._2().toString().getBytes();
 
-            if (cf.equals(ColumnConstants.RANK) || cq.equals(ColumnConstants.RANK) ||
-                (row.startsWith("d:") && cf.equals(ColumnConstants.PAGES))) {
+            if (cf.equals(ColumnConstants.RANK) || cq.equals(ColumnConstants.RANK)
+                || (row.startsWith("d:") && cf.equals(ColumnConstants.PAGES))) {
               return output;
             }
-            if (cf.equals(ColumnConstants.INLINKS) ||
-                (cf.equals(ColumnConstants.PAGE) && cq.startsWith(ColumnConstants.CUR))) {
+            if (cf.equals(ColumnConstants.INLINKS)
+                || (cf.equals(ColumnConstants.PAGE) && cq.startsWith(ColumnConstants.CUR))) {
               String[] tempArgs = cq.split("\t", 2);
               cq = tempArgs[0];
               val = tempArgs[1].getBytes();
@@ -144,7 +142,7 @@ public class Init {
 
     final JavaPairRDD<Text, ArchiveReader> archives =
         env.getSparkCtx().newAPIHadoopFile(dataConfig.watDataDir, WARCFileInputFormat.class,
-                                           Text.class, ArchiveReader.class, new Configuration());
+            Text.class, ArchiveReader.class, new Configuration());
 
     JavaPairRDD<String, Long> sortedLinkCounts = IndexUtil.createLinkCounts(stats, archives);
 
@@ -157,7 +155,7 @@ public class Init {
     loadAccumulo(sortedTopCounts);
 
     // For testing, Load into HDFS
-    //loadHDFS(sortedTopCounts);
+    // loadHDFS(sortedTopCounts);
 
     stats.print();
 

@@ -46,7 +46,7 @@ public class IndexEnv {
     this.dataConfig = dataConfig;
     Preconditions.checkNotNull(dataConfig.fluoPropsPath);
     Preconditions.checkArgument(new File(dataConfig.fluoPropsPath).exists(),
-                                "fluoPropsPath must be set in data.yml and exist");
+        "fluoPropsPath must be set in data.yml and exist");
     fluoConfig = new FluoConfiguration(new File(dataConfig.fluoPropsPath));
     conn = AccumuloUtil.getConnector(fluoConfig);
     sparkCtx = new JavaSparkContext(sparkConf);
@@ -57,9 +57,8 @@ public class IndexEnv {
     accumuloTempDir = new Path(dataConfig.hdfsTempDir + "/accumulo");
   }
 
-  public void initAccumuloIndexTable()
-      throws AccumuloSecurityException, AccumuloException, TableNotFoundException,
-             TableExistsException {
+  public void initAccumuloIndexTable() throws AccumuloSecurityException, AccumuloException,
+      TableNotFoundException, TableExistsException {
     if (conn.tableOperations().exists(dataConfig.accumuloIndexTable)) {
       conn.tableOperations().delete(dataConfig.accumuloIndexTable);
     }
@@ -86,15 +85,16 @@ public class IndexEnv {
 
     // must use new API here as saveAsHadoopFile throws exception
     data.saveAsNewAPIHadoopFile(fluoTempDir.toString(), Key.class, Value.class,
-                                AccumuloFileOutputFormat.class, job.getConfiguration());
+        AccumuloFileOutputFormat.class, job.getConfiguration());
     conn.tableOperations().importDirectory(fluoConfig.getAccumuloTable(), fluoTempDir.toString(),
-                                           failuresDir.toString(), false);
+        failuresDir.toString(), false);
     log.info("Imported data at {} into Fluo app {}", fluoTempDir, fluoConfig.getApplicationName());
   }
 
   public void saveRowColBytesToAccumulo(JavaPairRDD<RowColumn, Bytes> rowColBytes) throws Exception {
-    JavaPairRDD<Key, Value> kvData = rowColBytes.mapToPair(
-        t -> new Tuple2<Key, Value>(SpanUtil.toKey(t._1()), new Value(t._2().toArray())));
+    JavaPairRDD<Key, Value> kvData =
+        rowColBytes.mapToPair(t -> new Tuple2<Key, Value>(SpanUtil.toKey(t._1()), new Value(t._2()
+            .toArray())));
     saveKeyValueToAccumulo(kvData);
   }
 
@@ -107,11 +107,9 @@ public class IndexEnv {
     AccumuloFileOutputFormat.setOutputPath(accJob, accumuloTempDir);
     // must use new API here as saveAsHadoopFile throws exception
     data.saveAsNewAPIHadoopFile(accumuloTempDir.toString(), Key.class, Value.class,
-                                AccumuloFileOutputFormat.class, accJob.getConfiguration());
-    conn.tableOperations()
-        .importDirectory(dataConfig.accumuloIndexTable, accumuloTempDir.toString(),
-                         failuresDir.toString(),
-                         false);
+        AccumuloFileOutputFormat.class, accJob.getConfiguration());
+    conn.tableOperations().importDirectory(dataConfig.accumuloIndexTable,
+        accumuloTempDir.toString(), failuresDir.toString(), false);
   }
 
   public FileSystem getHdfs() {

@@ -28,10 +28,10 @@ public class IndexUtil {
   private static Gson gson = new Gson();
 
   public static JavaPairRDD<String, Long> createLinkCounts(IndexStats stats,
-                                                           JavaPairRDD<Text, ArchiveReader> archives) {
+      JavaPairRDD<Text, ArchiveReader> archives) {
 
-    JavaRDD<ArchiveRecord> records = archives.flatMap(
-        new FlatMapFunction<Tuple2<Text, ArchiveReader>, ArchiveRecord>() {
+    JavaRDD<ArchiveRecord> records =
+        archives.flatMap(new FlatMapFunction<Tuple2<Text, ArchiveReader>, ArchiveRecord>() {
           @Override
           public Iterable<ArchiveRecord> call(Tuple2<Text, ArchiveReader> tuple) throws Exception {
             return tuple._2();
@@ -40,42 +40,41 @@ public class IndexUtil {
 
     JavaRDD<Page> pages = records.map(r -> ArchiveUtil.buildPageIgnoreErrors(r));
 
-    JavaRDD<String> links = pages.flatMap(
-        new FlatMapFunction<Page, String>() {
-          @Override
-          public Iterable<String> call(Page page) throws Exception {
-            if (page.isEmpty()) {
-              stats.addEmpty(1);
-              return new ArrayList<>();
-            }
-            stats.addPage(1);
-            Set<Page.Link> links = page.getOutboundLinks();
-            stats.addExternalLinks(links.size());
+    JavaRDD<String> links = pages.flatMap(new FlatMapFunction<Page, String>() {
+      @Override
+      public Iterable<String> call(Page page) throws Exception {
+        if (page.isEmpty()) {
+          stats.addEmpty(1);
+          return new ArrayList<>();
+        }
+        stats.addPage(1);
+        Set<Page.Link> links = page.getOutboundLinks();
+        stats.addExternalLinks(links.size());
 
-            List<String> retval = new ArrayList<>();
-            String pageUri = page.getUri();
-            String pageDomain = LinkUtil.getReverseTopPrivate(page.getUrl());
-            if (links.size() > 0) {
-              retval.add(String.format("p:%s\t%s:%s", pageUri, ColumnConstants.PAGE,
-                                       ColumnConstants.SCORE));
-              retval.add(String.format("p:%s\t%s:%s\t%s", pageUri, ColumnConstants.PAGE,
-                                       ColumnConstants.CUR, gson.toJson(page)));
-              retval.add(String.format("d:%s\t%s:%s", pageDomain, ColumnConstants.PAGES, pageUri));
-            }
-            for (Page.Link link : links) {
-              String linkUri = link.getUri();
-              String linkDomain = LinkUtil.getReverseTopPrivate(link.getUrl());
-              retval.add(String.format("p:%s\t%s:%s", linkUri, ColumnConstants.PAGE,
-                                       ColumnConstants.INCOUNT));
-              retval.add(String.format("p:%s\t%s:%s", linkUri, ColumnConstants.PAGE,
-                                       ColumnConstants.SCORE));
-              retval.add(String.format("p:%s\t%s:%s\t%s", linkUri, ColumnConstants.INLINKS, pageUri,
-                                       link.getAnchorText()));
-              retval.add(String.format("d:%s\t%s:%s", linkDomain, ColumnConstants.PAGES, linkUri));
-            }
-            return retval;
-          }
-        });
+        List<String> retval = new ArrayList<>();
+        String pageUri = page.getUri();
+        String pageDomain = LinkUtil.getReverseTopPrivate(page.getUrl());
+        if (links.size() > 0) {
+          retval.add(String.format("p:%s\t%s:%s", pageUri, ColumnConstants.PAGE,
+              ColumnConstants.SCORE));
+          retval.add(String.format("p:%s\t%s:%s\t%s", pageUri, ColumnConstants.PAGE,
+              ColumnConstants.CUR, gson.toJson(page)));
+          retval.add(String.format("d:%s\t%s:%s", pageDomain, ColumnConstants.PAGES, pageUri));
+        }
+        for (Page.Link link : links) {
+          String linkUri = link.getUri();
+          String linkDomain = LinkUtil.getReverseTopPrivate(link.getUrl());
+          retval.add(String.format("p:%s\t%s:%s", linkUri, ColumnConstants.PAGE,
+              ColumnConstants.INCOUNT));
+          retval.add(String.format("p:%s\t%s:%s", linkUri, ColumnConstants.PAGE,
+              ColumnConstants.SCORE));
+          retval.add(String.format("p:%s\t%s:%s\t%s", linkUri, ColumnConstants.INLINKS, pageUri,
+              link.getAnchorText()));
+          retval.add(String.format("d:%s\t%s:%s", linkDomain, ColumnConstants.PAGES, linkUri));
+        }
+        return retval;
+      }
+    });
     links.persist(StorageLevel.DISK_ONLY());
 
     final Long one = new Long(1);
@@ -96,37 +95,36 @@ public class IndexUtil {
   public static JavaPairRDD<String, Long> createSortedTopCounts(
       JavaPairRDD<String, Long> sortedLinkCounts) {
     final Long one = new Long(1);
-    JavaPairRDD<String, Long> topCounts = sortedLinkCounts.flatMapToPair(
-        new PairFlatMapFunction<Tuple2<String, Long>, String, Long>() {
-          @Override
-          public Iterable<Tuple2<String, Long>> call(Tuple2<String, Long> t)
-              throws Exception {
-            List<Tuple2<String, Long>> retval = new ArrayList<>();
-            String[] args = t._1().split("\t", 2);
-            String row = args[0];
-            String col = args[1];
-            retval.add(t);
-            if (row.startsWith("d:") && (col.startsWith(ColumnConstants.PAGES))) {
-              String link = args[1].substring(ColumnConstants.PAGES.length() + 1);
-              Long numLinks = t._2();
-              retval.add(new Tuple2<>(String.format("%s\t%s:%s:%s", row, ColumnConstants.RANK,
-                                                    revEncodeLong(numLinks), link), numLinks));
-              retval.add(new Tuple2<>(String.format("%s\t%s:%s", row, ColumnConstants.DOMAIN,
-                                                    ColumnConstants.PAGECOUNT), one));
-            } else if (col.startsWith(ColumnConstants.PAGE)) {
-              String[] colArgs = col.split(":");
-              if (colArgs[1].equals(ColumnConstants.INCOUNT) || colArgs[1]
-                  .equals(ColumnConstants.SCORE)) {
-                String page = row.substring(2);
-                Long num = t._2();
-                retval.add(
-                    new Tuple2<>(String.format("t:%s\t%s:%s:%s", colArgs[1], ColumnConstants.RANK,
-                                               revEncodeLong(num), page), num));
+    JavaPairRDD<String, Long> topCounts =
+        sortedLinkCounts
+            .flatMapToPair(new PairFlatMapFunction<Tuple2<String, Long>, String, Long>() {
+              @Override
+              public Iterable<Tuple2<String, Long>> call(Tuple2<String, Long> t) throws Exception {
+                List<Tuple2<String, Long>> retval = new ArrayList<>();
+                String[] args = t._1().split("\t", 2);
+                String row = args[0];
+                String col = args[1];
+                retval.add(t);
+                if (row.startsWith("d:") && (col.startsWith(ColumnConstants.PAGES))) {
+                  String link = args[1].substring(ColumnConstants.PAGES.length() + 1);
+                  Long numLinks = t._2();
+                  retval.add(new Tuple2<>(String.format("%s\t%s:%s:%s", row, ColumnConstants.RANK,
+                      revEncodeLong(numLinks), link), numLinks));
+                  retval.add(new Tuple2<>(String.format("%s\t%s:%s", row, ColumnConstants.DOMAIN,
+                      ColumnConstants.PAGECOUNT), one));
+                } else if (col.startsWith(ColumnConstants.PAGE)) {
+                  String[] colArgs = col.split(":");
+                  if (colArgs[1].equals(ColumnConstants.INCOUNT)
+                      || colArgs[1].equals(ColumnConstants.SCORE)) {
+                    String page = row.substring(2);
+                    Long num = t._2();
+                    retval.add(new Tuple2<>(String.format("t:%s\t%s:%s:%s", colArgs[1],
+                        ColumnConstants.RANK, revEncodeLong(num), page), num));
+                  }
+                }
+                return retval;
               }
-            }
-            return retval;
-          }
-        });
+            });
 
     JavaPairRDD<String, Long> reducedTopCounts = topCounts.reduceByKey((i1, i2) -> i1 + i2);
 

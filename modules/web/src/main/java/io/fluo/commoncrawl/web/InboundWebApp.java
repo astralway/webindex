@@ -28,8 +28,7 @@ public class InboundWebApp extends Application<InboundConfiguration> {
   }
 
   @Override
-  public void run(InboundConfiguration config,
-                  Environment environment) {
+  public void run(InboundConfiguration config, Environment environment) {
 
     DataConfig dataConfig = config.getDataConfig();
     File fluoConfigFile = new File(dataConfig.fluoPropsPath);

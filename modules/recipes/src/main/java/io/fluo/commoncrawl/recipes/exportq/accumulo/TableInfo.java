@@ -6,8 +6,9 @@ public class TableInfo {
   String user;
   String password;
   String table;
-  
-  public TableInfo(String instanceName, String zookeepers, String user, String password, String table){
+
+  public TableInfo(String instanceName, String zookeepers, String user, String password,
+      String table) {
     this.instanceName = instanceName;
     this.zookeepers = zookeepers;
     this.user = user;

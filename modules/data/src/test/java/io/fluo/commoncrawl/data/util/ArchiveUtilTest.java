@@ -1,17 +1,15 @@
 /*
  * Copyright 2015 Fluo authors (see AUTHORS)
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *    http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License. You may obtain a copy of the License at
+ * 
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
  */
 
 package io.fluo.commoncrawl.data.util;
@@ -38,16 +36,21 @@ public class ArchiveUtilTest {
     Assert.assertNotNull(page);
     Assert.assertFalse(page.isEmpty());
 
-    Assert.assertEquals(
-        "http://1079ishot.com/presale-password-trey-songz-young-jeezy-pre-christmas-bash/screen-shot-2011-10-27-at-11-12-06-am/",
-        page.getUrl());
-    Assert.assertEquals(
-        "com.1079ishot/presale-password-trey-songz-young-jeezy-pre-christmas-bash/screen-shot-2011-10-27-at-11-12-06-am/",
-        page.getUri());
+    Assert
+        .assertEquals(
+            "http://1079ishot.com/presale-password-trey-songz-young-jeezy-pre-christmas-bash/screen-shot-2011-10-27-at-11-12-06-am/",
+            page.getUrl());
+    Assert
+        .assertEquals(
+            "com.1079ishot/presale-password-trey-songz-young-jeezy-pre-christmas-bash/screen-shot-2011-10-27-at-11-12-06-am/",
+            page.getUri());
 
     Assert.assertEquals("2015-04-18T03:35:13Z", page.getCrawlDate());
     Assert.assertEquals("nginx/1.6.2", page.getServer());
-    Assert.assertEquals("Presale Password &#8211; Trey Songz &#038; Young Jeezy Pre-Christmas Bash Screen shot 2011-10-27 at ", page.getTitle());
+    Assert
+        .assertEquals(
+            "Presale Password &#8211; Trey Songz &#038; Young Jeezy Pre-Christmas Bash Screen shot 2011-10-27 at ",
+            page.getTitle());
     Assert.assertEquals(0, page.getOutboundLinks().size());
 
     ArchiveReader ar2 = WARCReaderFactory.get(new File("src/test/resources/wat-18.warc"));

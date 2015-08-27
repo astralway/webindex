@@ -33,7 +33,7 @@ public class DataUtil {
     if ((hostArgs.length == 2) && !hostArgs[1].isEmpty()) {
       String proto = "http://";
       String port = hostArgs[1];
-      if (hostArgs[1].startsWith("s"))  {
+      if (hostArgs[1].startsWith("s")) {
         proto = "https://";
         port = port.substring(1);
       }

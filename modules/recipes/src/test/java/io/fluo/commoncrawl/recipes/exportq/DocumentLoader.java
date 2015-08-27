@@ -9,14 +9,14 @@ public class DocumentLoader extends TypedLoader {
 
   String docid;
   String refs[];
-  
-  DocumentLoader(String docid, String ... refs){
+
+  DocumentLoader(String docid, String... refs) {
     this.docid = docid;
     this.refs = refs;
   }
-  
+
   @Override
   public void load(TypedTransactionBase tx, Context context) throws Exception {
-    tx.mutate().row("d:"+docid).fam("content").qual("new").set(StringUtils.join(refs, " "));
+    tx.mutate().row("d:" + docid).fam("content").qual("new").set(StringUtils.join(refs, " "));
   }
 }

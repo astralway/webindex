@@ -42,7 +42,7 @@ public class LoadIT extends ITBaseMini {
     config.setLoaderQueueSize(0);
 
     try (Environment env = new Environment(config);
-         LoaderExecutor le = new LoaderExecutorImpl(config, env)) {
+        LoaderExecutor le = new LoaderExecutorImpl(config, env)) {
 
       ArchiveReader ar = WARCReaderFactory.get(new File("src/test/resources/wat-18.warc"));
 

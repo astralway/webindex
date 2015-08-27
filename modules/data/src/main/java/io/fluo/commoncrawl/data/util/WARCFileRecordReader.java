@@ -29,8 +29,8 @@ public class WARCFileRecordReader extends RecordReader<Text, ArchiveReader> {
   private boolean hasBeenRead = false;
 
   @Override
-  public void initialize(InputSplit inputSplit, TaskAttemptContext context)
-      throws IOException, InterruptedException {
+  public void initialize(InputSplit inputSplit, TaskAttemptContext context) throws IOException,
+      InterruptedException {
     FileSplit split = (FileSplit) inputSplit;
     Configuration conf = context.getConfiguration();
     Path path = split.getPath();

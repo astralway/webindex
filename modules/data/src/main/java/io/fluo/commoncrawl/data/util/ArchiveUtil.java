@@ -1,17 +1,15 @@
 /*
  * Copyright 2015 Fluo authors (see AUTHORS)
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *    http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License. You may obtain a copy of the License at
+ * 
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
  */
 
 package io.fluo.commoncrawl.data.util;
@@ -56,8 +54,9 @@ public class ArchiveUtil {
       Page page = new Page(archiveRecord.getHeader().getUrl());
       page.setCrawlDate(archiveRecord.getHeader().getDate());
       try {
-        JSONObject responseMeta = json.getJSONObject("Envelope").getJSONObject("Payload-Metadata")
-            .getJSONObject("HTTP-Response-Metadata");
+        JSONObject responseMeta =
+            json.getJSONObject("Envelope").getJSONObject("Payload-Metadata")
+                .getJSONObject("HTTP-Response-Metadata");
 
         if (archiveRecord.getHeader().getMimetype().equals("application/json")) {
           try {
@@ -86,7 +85,7 @@ public class ArchiveUtil {
         }
         try {
           page.setTitle(responseMeta.getJSONObject("HTML-Metadata").getJSONObject("Head")
-                            .getString("Title"));
+              .getString("Title"));
         } catch (JSONException e) {
           log.debug("Failed to retrieve title", e);
         }
@@ -107,8 +106,8 @@ public class ArchiveUtil {
     try {
       return buildPage(record);
     } catch (Exception e) {
-      log.info("Exception parsing ArchiveRecord with url {} due to {}", record.getHeader().getUrl(),
-               e.getMessage());
+      log.info("Exception parsing ArchiveRecord with url {} due to {}",
+          record.getHeader().getUrl(), e.getMessage());
       return Page.EMPTY;
     }
   }

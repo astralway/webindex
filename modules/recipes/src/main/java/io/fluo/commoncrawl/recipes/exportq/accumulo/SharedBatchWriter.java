@@ -20,14 +20,14 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Mutation;
 
-//TODO a shared batch writer like in phrasecount and fluo degree examples... 
+// TODO a shared batch writer like in phrasecount and fluo degree examples...
 public class SharedBatchWriter {
 
   private static class Mutations {
-    
+
     List<Mutation> mutations;
     CountDownLatch cdl = new CountDownLatch(1);
-    
+
     public Mutations(Collection<Mutation> mutations) {
       this.mutations = new ArrayList<Mutation>(mutations);
     }
@@ -37,15 +37,15 @@ public class SharedBatchWriter {
 
     private BatchWriter bw;
 
-    public ExportTask(String instanceName, String zookeepers, String user, String password, String table) throws TableNotFoundException, AccumuloException,
-        AccumuloSecurityException {
+    public ExportTask(String instanceName, String zookeepers, String user, String password,
+        String table) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
       ZooKeeperInstance zki = new ZooKeeperInstance(instanceName, zookeepers);
 
       // TODO need to close batch writer
       Connector conn = zki.getConnector(user, new PasswordToken(password));
-      try{
+      try {
         bw = conn.createBatchWriter(table, new BatchWriterConfig());
-      }catch (TableNotFoundException tnfe){
+      } catch (TableNotFoundException tnfe) {
         try {
           conn.tableOperations().create(table);
         } catch (TableExistsException e) {
@@ -90,21 +90,24 @@ public class SharedBatchWriter {
 
   private static LinkedBlockingQueue<Mutations> exportQueue = null;
 
-  public SharedBatchWriter(String instanceName, String zookeepers, String user, String password, String table) throws Exception,
-      AccumuloSecurityException {
+  public SharedBatchWriter(String instanceName, String zookeepers, String user, String password,
+      String table) throws Exception, AccumuloSecurityException {
 
     exportQueue = new LinkedBlockingQueue<Mutations>(10000);
-    Thread queueProcessingTask = new Thread(new ExportTask(instanceName, zookeepers, user, password, table));
+    Thread queueProcessingTask =
+        new Thread(new ExportTask(instanceName, zookeepers, user, password, table));
 
     queueProcessingTask.setDaemon(true);
     queueProcessingTask.start();
   }
 
-  private static Map<String,SharedBatchWriter> exporters = new HashMap<>();
+  private static Map<String, SharedBatchWriter> exporters = new HashMap<>();
 
-  public static synchronized SharedBatchWriter getInstance(String instanceName, String zookeepers, String user, String password, String table) throws Exception {
+  public static synchronized SharedBatchWriter getInstance(String instanceName, String zookeepers,
+      String user, String password, String table) throws Exception {
 
-    String key = instanceName + ":" + zookeepers + ":" + user + ":" + password.hashCode() + ":" + table;
+    String key =
+        instanceName + ":" + zookeepers + ":" + user + ":" + password.hashCode() + ":" + table;
 
     SharedBatchWriter ret = exporters.get(key);
 

@@ -9,15 +9,15 @@ public class DataUtilTest {
   public void testBasic() throws Exception {
 
     Assert.assertEquals("http://a.b.example.com/page?1&2",
-                        DataUtil.toUrl("com.example.b.a/page?1&2"));
+        DataUtil.toUrl("com.example.b.a/page?1&2"));
     Assert.assertEquals("https://a.b.example.com/page?1&2",
-                        DataUtil.toUrl("com.example.b.a:s/page?1&2"));
+        DataUtil.toUrl("com.example.b.a:s/page?1&2"));
     Assert.assertEquals("http://a.b.example.com:443/page?1&2",
-                        DataUtil.toUrl("com.example.b.a:443/page?1&2"));
+        DataUtil.toUrl("com.example.b.a:443/page?1&2"));
     Assert.assertEquals("https://a.b.example.com:8443/page?1&2",
-                        DataUtil.toUrl("com.example.b.a:s8443/page?1&2"));
+        DataUtil.toUrl("com.example.b.a:s8443/page?1&2"));
     Assert.assertEquals("http://a.b.example.com:8080/page?1&2",
-                        DataUtil.toUrl("com.example.b.a:8080/page?1&2"));
+        DataUtil.toUrl("com.example.b.a:8080/page?1&2"));
     Assert.assertEquals("http://b.example.com", DataUtil.toUrl("com.example.b"));
     Assert.assertEquals("http://b.example.com/", DataUtil.toUrl("com.example.b/"));
 
@@ -27,7 +27,7 @@ public class DataUtilTest {
     Assert.assertEquals("com.example:83?a&b", DataUtil.toUri("http://example.com:83?a&b"));
     Assert.assertEquals("com.example:83#a&b", DataUtil.toUri("http://example.com:83#a&b"));
     Assert.assertEquals("com.example.b.a/page?1&2",
-                        DataUtil.toUri("http://a.b.example.com/page?1&2"));
+        DataUtil.toUri("http://a.b.example.com/page?1&2"));
     Assert.assertEquals("1.2.3.4:s/page?1&2", DataUtil.toUri("https://1.2.3.4/page?1&2"));
     Assert.assertEquals("1.2.3.4/page?1&2", DataUtil.toUri("http://1.2.3.4/page?1&2"));
     Assert

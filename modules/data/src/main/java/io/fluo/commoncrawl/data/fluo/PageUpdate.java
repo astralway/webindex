@@ -20,8 +20,7 @@ public class PageUpdate implements Loader {
   private Page page;
   private String delUri;
 
-  private PageUpdate() {
-  }
+  private PageUpdate() {}
 
   public static PageUpdate updatePage(Page page) {
     Preconditions.checkArgument(!page.isEmpty(), "Page cannot be empty");
@@ -60,7 +59,6 @@ public class PageUpdate implements Loader {
   }
 
   private enum Action {
-    UPDATE,
-    DELETE,
+    UPDATE, DELETE,
   }
 }

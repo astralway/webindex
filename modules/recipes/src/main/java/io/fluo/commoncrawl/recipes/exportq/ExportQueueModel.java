@@ -18,37 +18,38 @@ import io.fluo.api.types.TypedTransactionBase;
 class ExportQueueModel {
 
   private TypedTransactionBase ttx;
-  
+
   ExportQueueModel(TransactionBase tx) {
     this.ttx = new TypeLayer(new StringEncoder()).wrap(tx);
   }
 
   private String getBucketRow(String qid, int bucket) {
-    //TODO encode in a more robust way... this method doe snot work when queue id has a :
-    //TODO refactor so that do not keep translating qid and bucket to row
+    // TODO encode in a more robust way... this method doe snot work when queue id has a :
+    // TODO refactor so that do not keep translating qid and bucket to row
     return String.format("%s:%x", qid, bucket);
   }
 
   public long getSequenceNumber(String qid, int bucket, int counter) {
-    return ttx.get().row(getBucketRow(qid, bucket)).fam("meta").qual("seq:"+counter).toLong(0);
+    return ttx.get().row(getBucketRow(qid, bucket)).fam("meta").qual("seq:" + counter).toLong(0);
   }
 
   public void add(String qid, int bucket, long seq, byte[] key, byte[] value) {
-    //TODO encode seq using lexicoders... need seq nums to sort properly
-    //TODO constant for data:
+    // TODO encode seq using lexicoders... need seq nums to sort properly
+    // TODO constant for data:
     byte[] family = new byte[5 + key.length];
     byte[] prefix = "data:".getBytes();
     System.arraycopy(prefix, 0, family, 0, prefix.length);
     System.arraycopy(key, 0, family, prefix.length, key.length);
-    ttx.mutate().row(getBucketRow(qid, bucket)).fam(family).qual(String.format("%016x", seq)).set(value);
+    ttx.mutate().row(getBucketRow(qid, bucket)).fam(family).qual(String.format("%016x", seq))
+        .set(value);
   }
 
   public void setSequenceNumber(String qid, int bucket, int counter, long seq) {
-    ttx.mutate().row(getBucketRow(qid, bucket)).fam("meta").qual("seq:"+counter).set(seq);
+    ttx.mutate().row(getBucketRow(qid, bucket)).fam("meta").qual("seq:" + counter).set(seq);
   }
 
   public void notifyExportObserver(String qid, int bucket, byte[] key) {
-    //TODO constants
+    // TODO constants
     ttx.mutate().row(getBucketRow(qid, bucket)).fam("fluoRecipes").qual("eq:" + qid).weaklyNotify();
   }
 
@@ -96,7 +97,7 @@ class ExportQueueModel {
       Bytes fam = cv.getKey().getFamily();
       ee.key = fam.subSequence("data:".length(), fam.length()).toArray();
       ee.seq = Long.parseLong(cv.getKey().getQualifier().toString(), 16);
-      //TODO maybe leave as Bytes?
+      // TODO maybe leave as Bytes?
       ee.value = cv.getValue().toArray();
 
       lastCol = cv.getKey();

@@ -6,10 +6,10 @@ import io.fluo.commoncrawl.recipes.exportq.ExportQueue;
 import io.fluo.commoncrawl.recipes.serialization.SimpleSerializer;
 import io.fluo.commoncrawl.recipes.serialization.StringSerializer;
 
-public class TestExportQueue extends ExportQueue<String,String>{
+public class TestExportQueue extends ExportQueue<String, String> {
 
   public static final String QUEUE_ID = "aeqt";
-  
+
   protected TestExportQueue(Configuration appConfig) {
     super(QUEUE_ID, appConfig);
   }

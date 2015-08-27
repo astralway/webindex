@@ -11,6 +11,7 @@ public class Links {
   private Integer pageNum;
   private Long total;
   private List<WebLink> links = new ArrayList<>();
+
   public Links() {
     // Jackson deserialization
   }

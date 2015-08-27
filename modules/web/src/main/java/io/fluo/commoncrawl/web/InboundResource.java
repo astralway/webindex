@@ -74,8 +74,8 @@ public class InboundResource {
   @Path("pages")
   @Produces({MediaType.TEXT_HTML, MediaType.APPLICATION_JSON})
   public PagesView getPages(@NotNull @QueryParam("domain") String domain,
-                            @DefaultValue("") @QueryParam("next") String next,
-                            @DefaultValue("0") @QueryParam("pageNum") Integer pageNum) {
+      @DefaultValue("") @QueryParam("next") String next,
+      @DefaultValue("0") @QueryParam("pageNum") Integer pageNum) {
     DomainStats stats = getDomainStats(domain);
     Pages pages = new Pages(domain, pageNum);
     log.info("Setting total to {}", stats.getTotal());
@@ -181,9 +181,9 @@ public class InboundResource {
   @Path("links")
   @Produces({MediaType.TEXT_HTML, MediaType.APPLICATION_JSON})
   public LinksView getLinks(@NotNull @QueryParam("url") String url,
-                            @NotNull @QueryParam("linkType") String linkType,
-                            @DefaultValue("") @QueryParam("next") String next,
-                            @DefaultValue("0") @QueryParam("pageNum") Integer pageNum) {
+      @NotNull @QueryParam("linkType") String linkType,
+      @DefaultValue("") @QueryParam("next") String next,
+      @DefaultValue("0") @QueryParam("pageNum") Integer pageNum) {
 
     Links links = new Links(url, linkType, pageNum);
     log.info("links url {}", links.getUrl());
@@ -247,12 +247,11 @@ public class InboundResource {
   @Path("top")
   @Produces({MediaType.TEXT_HTML, MediaType.APPLICATION_JSON})
   public TopView getTop(@NotNull @QueryParam("resultType") String resultType,
-                        @DefaultValue("") @QueryParam("next") String next,
-                        @DefaultValue("0") @QueryParam("pageNum") Integer pageNum) {
+      @DefaultValue("") @QueryParam("next") String next,
+      @DefaultValue("0") @QueryParam("pageNum") Integer pageNum) {
 
     TopResults results = new TopResults();
-    if (resultType.equals(ColumnConstants.INCOUNT) ||
-        resultType.equals(ColumnConstants.SCORE)) {
+    if (resultType.equals(ColumnConstants.INCOUNT) || resultType.equals(ColumnConstants.SCORE)) {
       results.setResultType(resultType);
       results.setPageNum(pageNum);
       try {

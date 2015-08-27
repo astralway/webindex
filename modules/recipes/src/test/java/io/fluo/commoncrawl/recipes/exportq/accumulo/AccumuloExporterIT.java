@@ -40,11 +40,12 @@ public class AccumuloExporterIT {
   private static final PasswordToken password = new PasswordToken("secret");
   private static AtomicInteger tableCounter = new AtomicInteger(1);
   private String et;
-  
+
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
     folder.create();
-    MiniAccumuloConfig cfg = new MiniAccumuloConfig(folder.newFolder("miniAccumulo"), new String(password.getPassword()));
+    MiniAccumuloConfig cfg =
+        new MiniAccumuloConfig(folder.newFolder("miniAccumulo"), new String(password.getPassword()));
     cluster = new MiniAccumuloCluster(cfg);
     cluster.start();
   }
@@ -63,91 +64,96 @@ public class AccumuloExporterIT {
     props.setAccumuloInstance(cluster.getInstanceName());
     props.setAccumuloUser("root");
     props.setAccumuloPassword("secret");
-    props.setInstanceZookeepers(cluster.getZooKeepers()+"/fluo");
+    props.setInstanceZookeepers(cluster.getZooKeepers() + "/fluo");
     props.setAccumuloZookeepers(cluster.getZooKeepers());
     props.setAccumuloTable("data" + tableCounter.getAndIncrement());
     props.setWorkerThreads(5);
     props.setObservers(Arrays.asList(new ObserverConfiguration(TestExporter.class.getName())));
-    
-    ExportQueue.setConfiguration(props.getAppConfiguration(), TestExportQueue.QUEUE_ID, new ExportQueueOptions(5, 5));
-    
-    //create and configure export table
+
+    ExportQueue.setConfiguration(props.getAppConfiguration(), TestExportQueue.QUEUE_ID,
+        new ExportQueueOptions(5, 5));
+
+    // create and configure export table
     et = "export" + tableCounter.getAndIncrement();
     cluster.getConnector("root", "secret").tableOperations().create(et);
-    AccumuloExporter.setExportTableInfo(props.getAppConfiguration(), TestExportQueue.QUEUE_ID, new TableInfo(cluster.getInstanceName(), cluster.getZooKeepers(), "root", "secret", et));
-    
-    FluoFactory.newAdmin(props).initialize(new InitOpts().setClearTable(true).setClearZookeeper(true));
+    AccumuloExporter.setExportTableInfo(props.getAppConfiguration(), TestExportQueue.QUEUE_ID,
+        new TableInfo(cluster.getInstanceName(), cluster.getZooKeepers(), "root", "secret", et));
+
+    FluoFactory.newAdmin(props).initialize(
+        new InitOpts().setClearTable(true).setClearZookeeper(true));
 
     miniFluo = FluoFactory.newMiniFluo(props);
   }
 
   @Test
   public void testAccumuloExport() throws Exception {
-    
+
     TestExportQueue teq = new TestExportQueue(props.getAppConfiguration());
-    
-    try(FluoClient fc = FluoFactory.newClient(miniFluo.getClientConfiguration())) {
-      
+
+    try (FluoClient fc = FluoFactory.newClient(miniFluo.getClientConfiguration())) {
+
       Map<String, String> expected = new HashMap<>();
-      
-      try(Transaction tx = fc.newTransaction()){
-        export(teq,tx, expected, "0001", "abc");
-        export(teq,tx, expected, "0002", "def");
-        export(teq,tx, expected, "0003", "ghi");
+
+      try (Transaction tx = fc.newTransaction()) {
+        export(teq, tx, expected, "0001", "abc");
+        export(teq, tx, expected, "0002", "def");
+        export(teq, tx, expected, "0003", "ghi");
         tx.commit();
       }
-      
-      miniFluo.waitForObservers();     
+
+      miniFluo.waitForObservers();
       Assert.assertEquals(expected, getExports());
 
-      try(Transaction tx = fc.newTransaction()){
-        export(teq,tx, expected, "0001", "xyz");
+      try (Transaction tx = fc.newTransaction()) {
+        export(teq, tx, expected, "0001", "xyz");
         tx.commit();
       }
-      
-      miniFluo.waitForObservers();     
+
+      miniFluo.waitForObservers();
       Assert.assertEquals(expected, getExports());
-      
-      try(Transaction tx = fc.newTransaction()){
-        export(teq,tx, expected, "0001", "zzz");
+
+      try (Transaction tx = fc.newTransaction()) {
+        export(teq, tx, expected, "0001", "zzz");
         tx.commit();
       }
-      
-      try(Transaction tx = fc.newTransaction()){
-        export(teq,tx, expected, "0001", "mmm");
+
+      try (Transaction tx = fc.newTransaction()) {
+        export(teq, tx, expected, "0001", "mmm");
         tx.commit();
       }
-      
-      miniFluo.waitForObservers();     
+
+      miniFluo.waitForObservers();
       Assert.assertEquals(expected, getExports());
-      
+
       Random rand = new Random(42);
-      for(int i = 0; i < 1000; i++) {
+      for (int i = 0; i < 1000; i++) {
         String k = String.format("%04d", rand.nextInt(100));
         String v = String.format("%04d", rand.nextInt(10000));
-        
-        try(Transaction tx = fc.newTransaction()){
-          export(teq,tx, expected, k, v);
+
+        try (Transaction tx = fc.newTransaction()) {
+          export(teq, tx, expected, k, v);
           tx.commit();
-        } 
+        }
       }
-      
-      miniFluo.waitForObservers();     
+
+      miniFluo.waitForObservers();
       Assert.assertEquals(expected, getExports());
     }
   }
-  
-  
-  private void export(TestExportQueue teq, Transaction tx, Map<String,String> expected, String k, String v) {
+
+
+  private void export(TestExportQueue teq, Transaction tx, Map<String, String> expected, String k,
+      String v) {
     teq.add(tx, k, v);
-    expected.put(k,v);
+    expected.put(k, v);
   }
 
-  private Map<String,String> getExports() throws Exception {
-    Scanner scanner = cluster.getConnector("root", "secret").createScanner(et, Authorizations.EMPTY);
+  private Map<String, String> getExports() throws Exception {
+    Scanner scanner =
+        cluster.getConnector("root", "secret").createScanner(et, Authorizations.EMPTY);
     Map<String, String> ret = new HashMap<>();
 
-    for (Entry<Key,Value> entry : scanner) {
+    for (Entry<Key, Value> entry : scanner) {
       String k = entry.getKey().getRowData().toString();
       Assert.assertFalse(ret.containsKey(k));
       ret.put(k, entry.getValue().toString());
@@ -158,7 +164,7 @@ public class AccumuloExporterIT {
 
   @After
   public void tearDownFluo() throws Exception {
-    if(miniFluo != null)
+    if (miniFluo != null)
       miniFluo.close();
   }
 }

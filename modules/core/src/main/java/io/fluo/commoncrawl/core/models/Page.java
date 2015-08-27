@@ -19,8 +19,8 @@ public class Page {
   private String title;
   private Set<Link> outboundLinks = new HashSet<>();
 
-  private Page() {
-  }
+  private Page() {}
+
   public Page(String url) {
     this.url = url;
   }
