@@ -19,6 +19,7 @@ public class PageUpdate implements Loader {
   private Action action;
   private Page page;
   private String delUri;
+
   private PageUpdate() {
   }
 

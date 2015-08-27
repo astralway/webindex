@@ -56,7 +56,7 @@ public class ArchiveUtil {
       Page page = new Page(archiveRecord.getHeader().getUrl());
       page.setCrawlDate(archiveRecord.getHeader().getDate());
       try {
-        JSONObject responseMeta =  json.getJSONObject("Envelope").getJSONObject("Payload-Metadata")
+        JSONObject responseMeta = json.getJSONObject("Envelope").getJSONObject("Payload-Metadata")
             .getJSONObject("HTTP-Response-Metadata");
 
         if (archiveRecord.getHeader().getMimetype().equals("application/json")) {

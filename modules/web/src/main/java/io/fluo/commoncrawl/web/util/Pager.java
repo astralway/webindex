@@ -13,21 +13,6 @@ public abstract class Pager {
   private Scanner scanner;
   private int pageSize;
   private Range pageRange;
-  /*
-  private String row;
-  private String cf;
-  private String nextCq;
-  private int pageNum;*/
-
-  /*
-  public Pager(Scanner scanner, String row, String cf, String nextCq, int pageNum, int pageSize) {
-    this.scanner = scanner;
-    this.row = row;
-    this.cf = cf;
-    this.nextCq = nextCq;
-    this.pageNum = pageNum;
-    this.pageSize = pageSize;
-  }*/
 
   public Pager(Scanner scanner, Range pageRange, int pageSize) {
     this.scanner = scanner;
