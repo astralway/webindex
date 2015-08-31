@@ -14,7 +14,7 @@ import javax.ws.rs.core.MediaType;
 
 import com.google.gson.Gson;
 import io.fluo.api.config.FluoConfiguration;
-import io.fluo.commoncrawl.core.ColumnConstants;
+import io.fluo.commoncrawl.core.Constants;
 import io.fluo.commoncrawl.core.DataConfig;
 import io.fluo.commoncrawl.core.DataUtil;
 import io.fluo.commoncrawl.core.models.DomainStats;
@@ -81,7 +81,7 @@ public class InboundResource {
     log.info("Setting total to {}", stats.getTotal());
     pages.setTotal(stats.getTotal());
     String row = "d:" + DataUtil.reverseDomain(domain);
-    String cf = ColumnConstants.RANK;
+    String cf = Constants.RANK;
     try {
       Scanner scanner = conn.createScanner(dataConfig.accumuloIndexTable, Authorizations.EMPTY);
       Pager pager = new Pager(scanner, Range.exact(row, cf), PAGE_SIZE) {
@@ -122,18 +122,18 @@ public class InboundResource {
     Long score = (long) 0;
     try {
       Scanner scanner = conn.createScanner(dataConfig.accumuloIndexTable, Authorizations.EMPTY);
-      scanner.setRange(Range.exact("p:" + DataUtil.toUri(url), ColumnConstants.PAGE));
+      scanner.setRange(Range.exact("p:" + DataUtil.toUri(url), Constants.PAGE));
       Iterator<Map.Entry<Key, Value>> iterator = scanner.iterator();
       while (iterator.hasNext()) {
         Map.Entry<Key, Value> entry = iterator.next();
         switch (entry.getKey().getColumnQualifier().toString()) {
-          case ColumnConstants.INCOUNT:
+          case Constants.INCOUNT:
             incount = getLongValue(entry);
             break;
-          case ColumnConstants.SCORE:
+          case Constants.SCORE:
             score = getLongValue(entry);
             break;
-          case ColumnConstants.CUR:
+          case Constants.CUR:
             page = gson.fromJson(entry.getValue().toString(), Page.class);
             break;
           default:
@@ -159,12 +159,12 @@ public class InboundResource {
     Scanner scanner = null;
     try {
       scanner = conn.createScanner(dataConfig.accumuloIndexTable, Authorizations.EMPTY);
-      scanner.setRange(Range.exact("d:" + DataUtil.reverseDomain(domain), ColumnConstants.DOMAIN));
+      scanner.setRange(Range.exact("d:" + DataUtil.reverseDomain(domain), Constants.DOMAIN));
       Iterator<Map.Entry<Key, Value>> iterator = scanner.iterator();
       while (iterator.hasNext()) {
         Map.Entry<Key, Value> entry = iterator.next();
         switch (entry.getKey().getColumnQualifier().toString()) {
-          case ColumnConstants.PAGECOUNT:
+          case Constants.PAGECOUNT:
             stats.setTotal(getLongValue(entry));
             break;
           default:
@@ -193,7 +193,7 @@ public class InboundResource {
       String row = "p:" + DataUtil.toUri(url);
       if (linkType.equals("in")) {
         Page page = getPage(url);
-        String cf = ColumnConstants.INLINKS;
+        String cf = Constants.INLINKS;
         links.setTotal(page.getNumInbound());
         Pager pager = new Pager(scanner, Range.exact(row, cf), PAGE_SIZE) {
 
@@ -215,7 +215,7 @@ public class InboundResource {
           pager.getPage(new Key(row, cf, next));
         }
       } else {
-        scanner.setRange(Range.exact(row, ColumnConstants.PAGE, ColumnConstants.CUR));
+        scanner.setRange(Range.exact(row, Constants.PAGE, Constants.CUR));
         Iterator<Map.Entry<Key, Value>> iter = scanner.iterator();
         if (iter.hasNext()) {
           Page curPage = gson.fromJson(iter.next().getValue().toString(), Page.class);
@@ -251,13 +251,13 @@ public class InboundResource {
       @DefaultValue("0") @QueryParam("pageNum") Integer pageNum) {
 
     TopResults results = new TopResults();
-    if (resultType.equals(ColumnConstants.INCOUNT) || resultType.equals(ColumnConstants.SCORE)) {
+    if (resultType.equals(Constants.INCOUNT) || resultType.equals(Constants.SCORE)) {
       results.setResultType(resultType);
       results.setPageNum(pageNum);
       try {
         Scanner scanner = conn.createScanner(dataConfig.accumuloIndexTable, Authorizations.EMPTY);
         String row = "t:" + resultType;
-        String cf = ColumnConstants.RANK;
+        String cf = Constants.RANK;
         Pager pager = new Pager(scanner, Range.exact(row, cf), PAGE_SIZE) {
 
           @Override
@@ -266,7 +266,6 @@ public class InboundResource {
                 DataUtil.toUrl(entry.getKey().getColumnQualifier().toString().split(":", 2)[1]);
             Long num = Long.parseLong(entry.getValue().toString());
             results.addResult(url, num);
-            log.info("Adding {} {}", url, num);
           }
 
           @Override

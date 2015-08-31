@@ -1,6 +1,6 @@
 package io.fluo.commoncrawl.core;
 
-public class ColumnConstants {
+public class Constants {
 
   // Column Families
   // for page

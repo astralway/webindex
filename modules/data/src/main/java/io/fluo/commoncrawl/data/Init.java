@@ -4,7 +4,8 @@ import java.util.LinkedList;
 import java.util.List;
 
 import io.fluo.api.data.Column;
-import io.fluo.commoncrawl.core.ColumnConstants;
+import io.fluo.api.data.RowColumn;
+import io.fluo.commoncrawl.core.Constants;
 import io.fluo.commoncrawl.core.DataConfig;
 import io.fluo.commoncrawl.data.spark.IndexEnv;
 import io.fluo.commoncrawl.data.spark.IndexStats;
@@ -21,7 +22,6 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.TextOutputFormat;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
-import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.PairFlatMapFunction;
 import org.apache.spark.api.java.function.PairFunction;
 import org.archive.io.ArchiveReader;
@@ -34,39 +34,27 @@ public class Init {
   private static final Logger log = LoggerFactory.getLogger(Init.class);
   private static IndexEnv env;
 
-  public static void loadAccumulo(JavaPairRDD<String, Long> sortedCounts) throws Exception {
+  public static void loadAccumulo(JavaPairRDD<RowColumn, Long> sortedCounts) throws Exception {
 
-    JavaPairRDD<String, Long> filteredSortedCounts =
-        sortedCounts.filter(new Function<Tuple2<String, Long>, Boolean>() {
-          @Override
-          public Boolean call(Tuple2<String, Long> t1) throws Exception {
-            String[] keyArgs = t1._1().split("\t", 2);
-            String row = keyArgs[0];
-            String cf = keyArgs[1].split(":", 2)[0];
-            return !(row.startsWith("d:") && cf.equals(ColumnConstants.PAGES));
-          }
-        });
+    JavaPairRDD<RowColumn, Long> filteredSortedCounts =
+        sortedCounts.filter(t -> !(t._1().getRow().toString().startsWith("d:") && t._1()
+            .getColumn().getFamily().toString().equals(Constants.PAGES)));
 
     JavaPairRDD<Key, Value> accumuloData =
-        filteredSortedCounts.mapToPair(new PairFunction<Tuple2<String, Long>, Key, Value>() {
+        filteredSortedCounts.mapToPair(new PairFunction<Tuple2<RowColumn, Long>, Key, Value>() {
           @Override
-          public Tuple2<Key, Value> call(Tuple2<String, Long> tuple) throws Exception {
-            String[] keyArgs = tuple._1().split("\t", 2);
-            if (keyArgs.length != 2) {
-              return null;
-            }
-            String row = keyArgs[0];
-            String cf = keyArgs[1].split(":", 2)[0];
-            String cq = keyArgs[1].split(":", 2)[1];
+          public Tuple2<Key, Value> call(Tuple2<RowColumn, Long> tuple) throws Exception {
+            RowColumn rc = tuple._1();
+            String row = rc.getRow().toString();
+            String cf = rc.getColumn().getFamily().toString();
+            String cq = rc.getColumn().getQualifier().toString();
             byte[] val = tuple._2().toString().getBytes();
-            if (cf.equals(ColumnConstants.INLINKS)
-                || (cf.equals(ColumnConstants.PAGE) && cq.startsWith(ColumnConstants.CUR))) {
-              String[] tempArgs = cq.split("\t", 2);
-              cq = tempArgs[0];
+            if (cf.equals(Constants.INLINKS)
+                || (cf.equals(Constants.PAGE) && cq.startsWith(Constants.CUR))) {
               if (tuple._2() > 1) {
                 log.info("Found key {} with count of {}", tuple._1(), tuple._2().toString());
               }
-              val = tempArgs[1].getBytes();
+              val = rc.getColumn().getVisibility().toArray();
             }
             return new Tuple2<>(new Key(new Text(row), new Text(cf), new Text(cq)), new Value(val));
           }
@@ -74,40 +62,38 @@ public class Init {
     env.saveKeyValueToAccumulo(accumuloData);
   }
 
-  public static void loadHDFS(JavaPairRDD<String, Long> sortedCounts) throws Exception {
+  public static void loadHDFS(JavaPairRDD<RowColumn, Long> sortedCounts) throws Exception {
+
+    JavaPairRDD<String, Long> stringCounts =
+        sortedCounts.mapToPair(t -> new Tuple2<String, Long>(t._1().toString(), t._2()));
+
     Path hadoopTempDir = env.getHadoopTempDir();
     if (env.getHdfs().exists(hadoopTempDir)) {
       env.getHdfs().delete(hadoopTempDir, true);
     }
-    sortedCounts.saveAsHadoopFile(hadoopTempDir.toString(), Text.class, LongWritable.class,
+    stringCounts.saveAsHadoopFile(hadoopTempDir.toString(), Text.class, LongWritable.class,
         TextOutputFormat.class);
   }
 
-  public static void loadFluo(JavaPairRDD<String, Long> sortedCounts) throws Exception {
+  public static void loadFluo(JavaPairRDD<RowColumn, Long> sortedCounts) throws Exception {
     JavaPairRDD<Key, Value> fluoData =
-        sortedCounts.flatMapToPair(new PairFlatMapFunction<Tuple2<String, Long>, Key, Value>() {
+        sortedCounts.flatMapToPair(new PairFlatMapFunction<Tuple2<RowColumn, Long>, Key, Value>() {
           @Override
-          public Iterable<Tuple2<Key, Value>> call(Tuple2<String, Long> tuple) throws Exception {
+          public Iterable<Tuple2<Key, Value>> call(Tuple2<RowColumn, Long> tuple) throws Exception {
             List<Tuple2<Key, Value>> output = new LinkedList<>();
-            String[] keyArgs = tuple._1().split("\t", 2);
-            if (keyArgs.length != 2) {
-              System.out.println("Data lacks tab: " + tuple._1());
-              return output;
-            }
-            String row = keyArgs[0];
-            String cf = keyArgs[1].split(":", 2)[0];
-            String cq = keyArgs[1].split(":", 2)[1];
+            RowColumn rc = tuple._1();
+            String row = rc.getRow().toString();
+            String cf = rc.getColumn().getFamily().toString();
+            String cq = rc.getColumn().getQualifier().toString();
             byte[] val = tuple._2().toString().getBytes();
 
-            if (cf.equals(ColumnConstants.RANK) || cq.equals(ColumnConstants.RANK)
-                || (row.startsWith("d:") && cf.equals(ColumnConstants.PAGES))) {
+            if (cf.equals(Constants.RANK) || cq.equals(Constants.RANK)
+                || (row.startsWith("d:") && cf.equals(Constants.PAGES))) {
               return output;
             }
-            if (cf.equals(ColumnConstants.INLINKS)
-                || (cf.equals(ColumnConstants.PAGE) && cq.startsWith(ColumnConstants.CUR))) {
-              String[] tempArgs = cq.split("\t", 2);
-              cq = tempArgs[0];
-              val = tempArgs[1].getBytes();
+            if (cf.equals(Constants.INLINKS)
+                || (cf.equals(Constants.PAGE) && cq.startsWith(Constants.CUR))) {
+              val = rc.getColumn().getVisibility().toArray();
             }
             FluoKeyValueGenerator fkvg = new FluoKeyValueGenerator();
             fkvg.setRow(row).setColumn(new Column(cf, cq)).setValue(val);
@@ -144,9 +130,10 @@ public class Init {
         env.getSparkCtx().newAPIHadoopFile(dataConfig.watDataDir, WARCFileInputFormat.class,
             Text.class, ArchiveReader.class, new Configuration());
 
-    JavaPairRDD<String, Long> sortedLinkCounts = IndexUtil.createLinkCounts(stats, archives);
+    JavaPairRDD<RowColumn, Long> sortedLinkCounts = IndexUtil.createLinkCounts(stats, archives);
 
-    JavaPairRDD<String, Long> sortedTopCounts = IndexUtil.createSortedTopCounts(sortedLinkCounts);
+    JavaPairRDD<RowColumn, Long> sortedTopCounts =
+        IndexUtil.createSortedTopCounts(sortedLinkCounts);
 
     // Load intermediate results into Fluo
     loadFluo(sortedTopCounts);

@@ -8,16 +8,13 @@ import java.util.List;
 import io.fluo.api.data.Bytes;
 import io.fluo.api.data.Column;
 import io.fluo.api.data.RowColumn;
-import io.fluo.commoncrawl.core.ColumnConstants;
+import io.fluo.commoncrawl.core.Constants;
 import io.fluo.commoncrawl.core.DataConfig;
 import io.fluo.commoncrawl.core.DataUtil;
 import io.fluo.commoncrawl.data.spark.IndexEnv;
 import io.fluo.commoncrawl.data.spark.IndexUtil;
 import io.fluo.commoncrawl.data.util.LinkUtil;
-import io.fluo.core.util.SpanUtil;
 import io.fluo.mapreduce.FluoEntryInputFormat;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
@@ -93,14 +90,14 @@ public class Reindex {
                 String cf = rc.getColumn().getFamily().toString();
                 String cq = rc.getColumn().getQualifier().toString();
                 Bytes v = kvTuple._2();
-                if (row.startsWith("p:") && cf.equals(ColumnConstants.PAGE)
-                    && (cq.equals(ColumnConstants.INCOUNT) || cq.equals(ColumnConstants.SCORE))) {
+                if (row.startsWith("p:") && cf.equals(Constants.PAGE)
+                    && (cq.equals(Constants.INCOUNT) || cq.equals(Constants.SCORE))) {
                   String pageUri = row.substring(2);
                   Long num = Long.parseLong(v.toString());
                   Column rankCol =
-                      new Column(ColumnConstants.RANK, String.format("%s:%s",
+                      new Column(Constants.RANK, String.format("%s:%s",
                           IndexUtil.revEncodeLong(num), pageUri));
-                  if (cq.equals(ColumnConstants.SCORE)) {
+                  if (cq.equals(Constants.SCORE)) {
                     String domain = "d:" + LinkUtil.getReverseTopPrivate(DataUtil.toUrl(pageUri));
                     retval.add(new Tuple2<>(new RowColumn(domain, rankCol), v));
                   }

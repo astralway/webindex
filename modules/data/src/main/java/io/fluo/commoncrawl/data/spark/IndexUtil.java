@@ -5,9 +5,12 @@ import java.util.List;
 import java.util.Set;
 
 import com.google.gson.Gson;
-import io.fluo.commoncrawl.core.ColumnConstants;
+import io.fluo.api.data.Column;
+import io.fluo.api.data.RowColumn;
+import io.fluo.commoncrawl.core.Constants;
 import io.fluo.commoncrawl.core.models.Page;
 import io.fluo.commoncrawl.data.util.ArchiveUtil;
+import io.fluo.commoncrawl.data.util.FluoConstants;
 import io.fluo.commoncrawl.data.util.LinkUtil;
 import org.apache.accumulo.core.client.lexicoder.Lexicoder;
 import org.apache.accumulo.core.client.lexicoder.ReverseLexicoder;
@@ -27,7 +30,7 @@ public class IndexUtil {
 
   private static Gson gson = new Gson();
 
-  public static JavaPairRDD<String, Long> createLinkCounts(IndexStats stats,
+  public static JavaPairRDD<RowColumn, Long> createLinkCounts(IndexStats stats,
       JavaPairRDD<Text, ArchiveReader> archives) {
 
     JavaRDD<ArchiveRecord> records =
@@ -40,9 +43,9 @@ public class IndexUtil {
 
     JavaRDD<Page> pages = records.map(r -> ArchiveUtil.buildPageIgnoreErrors(r));
 
-    JavaRDD<String> links = pages.flatMap(new FlatMapFunction<Page, String>() {
+    JavaRDD<RowColumn> links = pages.flatMap(new FlatMapFunction<Page, RowColumn>() {
       @Override
-      public Iterable<String> call(Page page) throws Exception {
+      public Iterable<RowColumn> call(Page page) throws Exception {
         if (page.isEmpty()) {
           stats.addEmpty(1);
           return new ArrayList<>();
@@ -51,26 +54,23 @@ public class IndexUtil {
         Set<Page.Link> links = page.getOutboundLinks();
         stats.addExternalLinks(links.size());
 
-        List<String> retval = new ArrayList<>();
+        List<RowColumn> retval = new ArrayList<>();
         String pageUri = page.getUri();
         String pageDomain = LinkUtil.getReverseTopPrivate(page.getUrl());
         if (links.size() > 0) {
-          retval.add(String.format("p:%s\t%s:%s", pageUri, ColumnConstants.PAGE,
-              ColumnConstants.SCORE));
-          retval.add(String.format("p:%s\t%s:%s\t%s", pageUri, ColumnConstants.PAGE,
-              ColumnConstants.CUR, gson.toJson(page)));
-          retval.add(String.format("d:%s\t%s:%s", pageDomain, ColumnConstants.PAGES, pageUri));
+          retval.add(new RowColumn("p:" + pageUri, FluoConstants.PAGE_SCORE_COL));
+          retval.add(new RowColumn("p:" + pageUri, new Column(Constants.PAGE, Constants.CUR, gson
+              .toJson(page))));
+          retval.add(new RowColumn("d:" + pageDomain, new Column(Constants.PAGES, pageUri)));
         }
         for (Page.Link link : links) {
           String linkUri = link.getUri();
           String linkDomain = LinkUtil.getReverseTopPrivate(link.getUrl());
-          retval.add(String.format("p:%s\t%s:%s", linkUri, ColumnConstants.PAGE,
-              ColumnConstants.INCOUNT));
-          retval.add(String.format("p:%s\t%s:%s", linkUri, ColumnConstants.PAGE,
-              ColumnConstants.SCORE));
-          retval.add(String.format("p:%s\t%s:%s\t%s", linkUri, ColumnConstants.INLINKS, pageUri,
-              link.getAnchorText()));
-          retval.add(String.format("d:%s\t%s:%s", linkDomain, ColumnConstants.PAGES, linkUri));
+          retval.add(new RowColumn("p:" + linkUri, FluoConstants.PAGE_INCOUNT_COL));
+          retval.add(new RowColumn("p:" + linkUri, FluoConstants.PAGE_SCORE_COL));
+          retval.add(new RowColumn("p:" + linkUri, new Column(Constants.INLINKS, pageUri, link
+              .getAnchorText())));
+          retval.add(new RowColumn("d:" + linkDomain, new Column(Constants.PAGES, linkUri)));
         }
         return retval;
       }
@@ -78,11 +78,11 @@ public class IndexUtil {
     links.persist(StorageLevel.DISK_ONLY());
 
     final Long one = new Long(1);
-    JavaPairRDD<String, Long> ones = links.mapToPair(s -> new Tuple2<>(s, one));
+    JavaPairRDD<RowColumn, Long> ones = links.mapToPair(s -> new Tuple2<>(s, one));
 
-    JavaPairRDD<String, Long> linkCounts = ones.reduceByKey((i1, i2) -> i1 + i2);
+    JavaPairRDD<RowColumn, Long> linkCounts = ones.reduceByKey((i1, i2) -> i1 + i2);
 
-    JavaPairRDD<String, Long> sortedLinkCounts = linkCounts.sortByKey();
+    JavaPairRDD<RowColumn, Long> sortedLinkCounts = linkCounts.sortByKey();
 
     return sortedLinkCounts;
   }
@@ -92,43 +92,41 @@ public class IndexUtil {
     return Hex.encodeHexString(lexicoder.encode(num));
   }
 
-  public static JavaPairRDD<String, Long> createSortedTopCounts(
-      JavaPairRDD<String, Long> sortedLinkCounts) {
+  public static JavaPairRDD<RowColumn, Long> createSortedTopCounts(
+      JavaPairRDD<RowColumn, Long> sortedLinkCounts) {
     final Long one = new Long(1);
-    JavaPairRDD<String, Long> topCounts =
+    JavaPairRDD<RowColumn, Long> topCounts =
         sortedLinkCounts
-            .flatMapToPair(new PairFlatMapFunction<Tuple2<String, Long>, String, Long>() {
+            .flatMapToPair(new PairFlatMapFunction<Tuple2<RowColumn, Long>, RowColumn, Long>() {
               @Override
-              public Iterable<Tuple2<String, Long>> call(Tuple2<String, Long> t) throws Exception {
-                List<Tuple2<String, Long>> retval = new ArrayList<>();
-                String[] args = t._1().split("\t", 2);
-                String row = args[0];
-                String col = args[1];
+              public Iterable<Tuple2<RowColumn, Long>> call(Tuple2<RowColumn, Long> t)
+                  throws Exception {
+                List<Tuple2<RowColumn, Long>> retval = new ArrayList<>();
                 retval.add(t);
-                if (row.startsWith("d:") && (col.startsWith(ColumnConstants.PAGES))) {
-                  String link = args[1].substring(ColumnConstants.PAGES.length() + 1);
-                  Long numLinks = t._2();
-                  retval.add(new Tuple2<>(String.format("%s\t%s:%s:%s", row, ColumnConstants.RANK,
-                      revEncodeLong(numLinks), link), numLinks));
-                  retval.add(new Tuple2<>(String.format("%s\t%s:%s", row, ColumnConstants.DOMAIN,
-                      ColumnConstants.PAGECOUNT), one));
-                } else if (col.startsWith(ColumnConstants.PAGE)) {
-                  String[] colArgs = col.split(":");
-                  if (colArgs[1].equals(ColumnConstants.INCOUNT)
-                      || colArgs[1].equals(ColumnConstants.SCORE)) {
-                    String page = row.substring(2);
-                    Long num = t._2();
-                    retval.add(new Tuple2<>(String.format("t:%s\t%s:%s:%s", colArgs[1],
-                        ColumnConstants.RANK, revEncodeLong(num), page), num));
-                  }
+
+                RowColumn rc = t._1();
+                String row = rc.getRow().toString();
+                String cf = rc.getColumn().getFamily().toString();
+                String cq = rc.getColumn().getQualifier().toString();
+                Long val = t._2();
+
+                if (row.startsWith("d:") && (cf.equals(Constants.PAGES))) {
+                  retval.add(new Tuple2<>(new RowColumn(row, new Column(Constants.RANK, String
+                      .format("%s:%s", revEncodeLong(val), cq))), val));
+                  retval.add(new Tuple2<>(new RowColumn(row, new Column(Constants.DOMAIN,
+                      Constants.PAGECOUNT)), one));
+                } else if ((row.startsWith("p:") && cf.equals(Constants.PAGE))
+                    && (cq.equals(Constants.INCOUNT) || cq.equals(Constants.SCORE))) {
+                  retval.add(new Tuple2<>(new RowColumn("t:" + cq, new Column(Constants.RANK,
+                      String.format("%s:%s", revEncodeLong(val), row.substring(2)))), val));
                 }
                 return retval;
               }
             });
 
-    JavaPairRDD<String, Long> reducedTopCounts = topCounts.reduceByKey((i1, i2) -> i1 + i2);
+    JavaPairRDD<RowColumn, Long> reducedTopCounts = topCounts.reduceByKey((i1, i2) -> i1 + i2);
 
-    JavaPairRDD<String, Long> sortedTopCounts = reducedTopCounts.sortByKey();
+    JavaPairRDD<RowColumn, Long> sortedTopCounts = reducedTopCounts.sortByKey();
 
     return sortedTopCounts;
   }

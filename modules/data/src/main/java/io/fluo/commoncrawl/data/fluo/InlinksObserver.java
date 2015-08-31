@@ -11,7 +11,7 @@ import io.fluo.api.iterator.ColumnIterator;
 import io.fluo.api.iterator.RowIterator;
 import io.fluo.api.observer.AbstractObserver;
 import io.fluo.api.types.TypedTransactionBase;
-import io.fluo.commoncrawl.core.ColumnConstants;
+import io.fluo.commoncrawl.core.Constants;
 import io.fluo.commoncrawl.data.util.FluoConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,12 +42,12 @@ public class InlinksObserver extends AbstractObserver {
         String linkUri = colEntry.getKey().getQualifier().toString();
         String update = colEntry.getValue().toString();
         if (update.startsWith("del")) {
-          ttx.mutate().row(row).fam(ColumnConstants.INLINKS).qual(linkUri).delete();
+          ttx.mutate().row(row).fam(Constants.INLINKS).qual(linkUri).delete();
           ttx.mutate().row(row).col(colEntry.getKey()).delete();
           change--;
           log.debug("Deleted inlink {} for page {}", linkUri, pageUri);
         } else if (update.startsWith("add")) {
-          ttx.mutate().row(row).fam(ColumnConstants.INLINKS).qual(linkUri).set(update.substring(4));
+          ttx.mutate().row(row).fam(Constants.INLINKS).qual(linkUri).set(update.substring(4));
           ttx.mutate().row(row).col(colEntry.getKey()).delete();
           change++;
           log.debug("Added inlink {} for page {}", linkUri, pageUri);
