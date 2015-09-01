@@ -2,6 +2,8 @@ package io.fluo.commoncrawl.recipes.exportq;
 
 import java.util.Iterator;
 
+import org.apache.commons.configuration.Configuration;
+
 import io.fluo.api.client.TransactionBase;
 import io.fluo.api.data.Bytes;
 import io.fluo.api.data.Column;
@@ -11,18 +13,27 @@ import io.fluo.commoncrawl.recipes.serialization.SimpleSerializer;
 public abstract class Exporter<K, V> extends AbstractObserver {
 
   private String queueId;
+  private SimpleSerializer<K> keySerializer;
+  private SimpleSerializer<V> valueSerializer;
 
-  protected Exporter(String queueId) {
+  protected Exporter(String queueId, SimpleSerializer<K> keySerializer,
+      SimpleSerializer<V> valueSerializer) {
     this.queueId = queueId;
+    this.keySerializer = keySerializer;
+    this.valueSerializer = valueSerializer;
   }
 
   protected String getQueueId() {
     return queueId;
   }
 
-  protected abstract SimpleSerializer<K> getKeySerializer();
+  SimpleSerializer<K> getKeySerializer() {
+    return keySerializer;
+  }
 
-  protected abstract SimpleSerializer<V> getValueSerializer();
+  SimpleSerializer<V> getValueSerializer() {
+    return valueSerializer;
+  }
 
   @Override
   public ObservedColumn getObservedColumn() {
@@ -41,8 +52,8 @@ public abstract class Exporter<K, V> extends AbstractObserver {
 
     while (exportIterator.hasNext()) {
       ExportEntry ee = exportIterator.next();
-      processExport(getKeySerializer().deserialize(ee.key), ee.seq, getValueSerializer()
-          .deserialize(ee.value));
+      processExport(keySerializer.deserialize(ee.key), ee.seq,
+          valueSerializer.deserialize(ee.value));
       exportIterator.remove();
     }
 
@@ -59,4 +70,18 @@ public abstract class Exporter<K, V> extends AbstractObserver {
 
   protected void finishedProcessingBatch() {}
 
+  /**
+   * Can call in the init method of an observer
+   * 
+   * @param appConfig
+   * @return
+   */
+  public ExportQueue<K, V> getExportQueue(Configuration appConfig) {
+    return new ExportQueue<K, V>(appConfig, this);
+  }
+
+  public void setConfiguration(Configuration appConfig, ExportQueueOptions opts) {
+    appConfig.setProperty("recipes.exportQueue." + getQueueId() + ".buckets", opts.numBuckets + "");
+    appConfig.setProperty("recipes.exportQueue." + getQueueId() + ".counters", opts.numCounters + "");
+  }
 }

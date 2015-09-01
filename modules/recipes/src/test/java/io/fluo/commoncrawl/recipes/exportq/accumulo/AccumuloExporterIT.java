@@ -70,13 +70,12 @@ public class AccumuloExporterIT {
     props.setWorkerThreads(5);
     props.setObservers(Arrays.asList(new ObserverConfiguration(TestExporter.class.getName())));
 
-    ExportQueue.setConfiguration(props.getAppConfiguration(), TestExportQueue.QUEUE_ID,
-        new ExportQueueOptions(5, 5));
+    new TestExporter().setConfiguration(props.getAppConfiguration(), new ExportQueueOptions(5, 5));
 
     // create and configure export table
     et = "export" + tableCounter.getAndIncrement();
     cluster.getConnector("root", "secret").tableOperations().create(et);
-    AccumuloExporter.setExportTableInfo(props.getAppConfiguration(), TestExportQueue.QUEUE_ID,
+    AccumuloExporter.setExportTableInfo(props.getAppConfiguration(), TestExporter.QUEUE_ID,
         new TableInfo(cluster.getInstanceName(), cluster.getZooKeepers(), "root", "secret", et));
 
     FluoFactory.newAdmin(props).initialize(
@@ -88,7 +87,8 @@ public class AccumuloExporterIT {
   @Test
   public void testAccumuloExport() throws Exception {
 
-    TestExportQueue teq = new TestExportQueue(props.getAppConfiguration());
+    ExportQueue<String, String> teq =
+        new TestExporter().getExportQueue(props.getAppConfiguration());
 
     try (FluoClient fc = FluoFactory.newClient(miniFluo.getClientConfiguration())) {
 
@@ -142,8 +142,8 @@ public class AccumuloExporterIT {
   }
 
 
-  private void export(TestExportQueue teq, Transaction tx, Map<String, String> expected, String k,
-      String v) {
+  private void export(ExportQueue<String, String> teq, Transaction tx,
+      Map<String, String> expected, String k, String v) {
     teq.add(tx, k, v);
     expected.put(k, v);
   }
