@@ -3,21 +3,21 @@
 BIN_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 CC_HOME=$( cd "$( dirname "$BIN_DIR" )" && pwd )
 LOCAL_DATA=$CC_HOME/data/
+DATA_CONFIG=$CC_HOME/conf/data.yml
+if [ ! -f $DATA_CONFIG ]; then
+  echo "You must create $DATA_CONFIG"
+  exit 1
+fi
 
 function get_prop {
-  DATA_CONFIG=$CC_HOME/conf/data.yml
-  if [ ! -f $DATA_CONFIG ]; then
-    echo "You must create $DATA_CONFIG"
-    exit 1
-  fi
   echo "`grep $1 $DATA_CONFIG | cut -d ' ' -f 2`"
 }
 
 function print_usage {
-  echo -e "Usage: load.sh <fileType> <numFiles>\n"
+  echo -e "Usage: download.sh <fileType> <numFiles>\n"
   echo "where:"
   echo "  <fileType>    Common crawl file type (ie. warc, wet, wat)"
-  echo "  <numFiles>    Number of files to load"
+  echo "  <numFiles>    Number of files to download and load into HDFS"
   exit 1
 }
 

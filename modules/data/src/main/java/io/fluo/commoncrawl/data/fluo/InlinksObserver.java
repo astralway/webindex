@@ -13,17 +13,27 @@ import io.fluo.api.observer.AbstractObserver;
 import io.fluo.api.types.TypedTransactionBase;
 import io.fluo.commoncrawl.core.Constants;
 import io.fluo.commoncrawl.data.util.FluoConstants;
+import io.fluo.recipes.export.ExportQueue;
+import io.fluo.recipes.transaction.RecordingTransactionBase;
+import io.fluo.recipes.transaction.TxLog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class InlinksObserver extends AbstractObserver {
 
   private static final Logger log = LoggerFactory.getLogger(InlinksObserver.class);
+  private ExportQueue<String, TxLog> exportQueue;
+
+  @Override
+  public void init(Context context) throws Exception {
+    exportQueue = new IndexExporter().getExportQueue(context.getAppConfiguration());
+  }
 
   @Override
   public void process(TransactionBase tx, Bytes row, Column col) throws Exception {
 
-    TypedTransactionBase ttx = FluoConstants.TYPEL.wrap(tx);
+    RecordingTransactionBase rtx = RecordingTransactionBase.wrap(tx);
+    TypedTransactionBase ttx = FluoConstants.TYPEL.wrap(rtx);
 
     String pageUri = row.toString().substring(2);
 
@@ -77,7 +87,10 @@ public class InlinksObserver extends AbstractObserver {
       ttx.mutate().row(row).col(FluoConstants.PAGE_SCORE_COL).set(score);
     }
 
-    // TODO - export changes
+    TxLog txLog = rtx.getTxLog();
+    if (txLog.getLogEntries().size() > 0) {
+      exportQueue.add(tx, row.toString(), txLog);
+    }
   }
 
   @Override

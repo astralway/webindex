@@ -6,13 +6,19 @@ import com.esotericsoftware.yamlbeans.YamlReader;
 
 public class DataConfig {
 
+  public String fluoHome;
+  public String fluoApp;
   public String accumuloIndexTable;
-  public String fluoPropsPath;
   public String watDataDir;
   public String wetDataDir;
   public String warcDataDir;
   public String hdfsTempDir;
   public String hadoopConfDir;
+
+
+  public String getFluoPropsPath() {
+    return fluoHome + "/apps/" + fluoApp + "/conf/fluo.properties";
+  }
 
   public static DataConfig load(String configPath) {
     try {

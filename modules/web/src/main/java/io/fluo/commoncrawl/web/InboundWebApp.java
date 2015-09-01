@@ -31,7 +31,7 @@ public class InboundWebApp extends Application<InboundConfiguration> {
   public void run(InboundConfiguration config, Environment environment) {
 
     DataConfig dataConfig = config.getDataConfig();
-    File fluoConfigFile = new File(dataConfig.fluoPropsPath);
+    File fluoConfigFile = new File(dataConfig.getFluoPropsPath());
     FluoConfiguration fluoConfig = new FluoConfiguration(fluoConfigFile);
 
     Connector conn = AccumuloUtil.getConnector(fluoConfig);

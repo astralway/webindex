@@ -64,17 +64,17 @@ Resulting Accumulo Table
                                 score           1
     p:com.d           page      cur             {"outlinkcount": 1, "outlinks":[c.com]}
                       page      score           1
-    t:incount         rank      3:com.c         3
-                                2:com.b         1
-                                1:com.c/page1   1
-    t:pagecount       rank      2:com.c         2
-                                1:com.a         1
-                                1.com.b         1
-    t:score           rank      3:com.c         3
-                                2:com.b         2
-                                1:com.c/page1   1
-                                1:com.a/page1   1
-                                1:com.d
+    ti:3:com.c        incount   rank            3
+    ti:2:com.b                                  2
+    ti:1:com.c/page1                            1
+    tp:2:com.c        pagecount rank            2
+    tp:1:com.a                                  1
+    tp:1.com.b                                  1
+    ts:3:com.c        score     rank            3
+    ts:2:com.b                                  2
+    ts:1:com.c/page1                            1
+    ts:1:com.a/page1                            1
+    ts:1:com.d                                  1
 
 Below are available operations:
 

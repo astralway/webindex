@@ -2,11 +2,12 @@ package io.fluo.commoncrawl.data;
 
 import java.io.File;
 import java.text.ParseException;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
+import io.fluo.api.client.FluoAdmin;
 import io.fluo.api.client.FluoClient;
 import io.fluo.api.client.FluoFactory;
 import io.fluo.api.client.LoaderExecutor;
@@ -21,16 +22,30 @@ import io.fluo.api.iterator.RowIterator;
 import io.fluo.api.mini.MiniFluo;
 import io.fluo.commoncrawl.core.models.Page;
 import io.fluo.commoncrawl.data.fluo.InlinksObserver;
+import io.fluo.commoncrawl.data.fluo.IndexExporter;
 import io.fluo.commoncrawl.data.fluo.PageObserver;
 import io.fluo.commoncrawl.data.fluo.PageUpdate;
 import io.fluo.commoncrawl.data.util.ArchiveUtil;
-import org.apache.commons.io.FileUtils;
+import io.fluo.recipes.export.ExportQueueOptions;
+import io.fluo.recipes.accumulo.export.AccumuloExporter;
+import io.fluo.recipes.accumulo.export.TableInfo;
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.minicluster.MiniAccumuloCluster;
+import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.archive.io.ArchiveReader;
 import org.archive.io.ArchiveRecord;
 import org.archive.io.warc.WARCReaderFactory;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,26 +53,62 @@ public class LoadIT {
 
   private static final Logger log = LoggerFactory.getLogger(LoadIT.class);
 
-  private MiniFluo miniFluo;
+  public static TemporaryFolder folder = new TemporaryFolder();
+  public static MiniAccumuloCluster cluster;
+  private static MiniFluo miniFluo;
+  private static FluoConfiguration config;
+  private static final PasswordToken password = new PasswordToken("secret");
+  private static AtomicInteger tableCounter = new AtomicInteger(1);
+  private String exportTable;
+
+  @BeforeClass
+  public static void setUpBeforeClass() throws Exception {
+    folder.create();
+    MiniAccumuloConfig cfg =
+        new MiniAccumuloConfig(folder.newFolder("miniAccumulo"), new String(password.getPassword()));
+    cluster = new MiniAccumuloCluster(cfg);
+    cluster.start();
+  }
+
+  @AfterClass
+  public static void tearDownAfterClass() throws Exception {
+    cluster.stop();
+    folder.delete();
+  }
 
   @Before
   public void setUpFluo() throws Exception {
-    FileUtils.deleteQuietly(new File("target/mini"));
+    config = new FluoConfiguration();
+    config.setMiniStartAccumulo(false);
+    config.setApplicationName("lit");
+    config.setAccumuloInstance(cluster.getInstanceName());
+    config.setAccumuloUser("root");
+    config.setAccumuloPassword("secret");
+    config.setInstanceZookeepers(cluster.getZooKeepers() + "/fluo");
+    config.setAccumuloZookeepers(cluster.getZooKeepers());
+    config.setAccumuloTable("data" + tableCounter.getAndIncrement());
+    config.setWorkerThreads(5);
 
-    FluoConfiguration props = new FluoConfiguration();
-    props.setApplicationName("ccrawl");
-    props.setWorkerThreads(5);
-    props.setMiniDataDir("target/mini");
-    props.setLoaderThreads(0);
-    props.setLoaderQueueSize(0);
+    config.setObservers(Arrays.asList(new ObserverConfiguration(PageObserver.class.getName()),
+        new ObserverConfiguration(InlinksObserver.class.getName()), new ObserverConfiguration(
+            IndexExporter.class.getName())));
 
-    List<ObserverConfiguration> config = new ArrayList<>();
-    config.add(new ObserverConfiguration(PageObserver.class.getName()));
-    config.add(new ObserverConfiguration(InlinksObserver.class.getName()));
-    props.setObservers(config);
+    new IndexExporter()
+        .setConfiguration(config.getAppConfiguration(), new ExportQueueOptions(5, 5));
 
-    miniFluo = FluoFactory.newMiniFluo(props);
+    // create and configure export table
+    exportTable = "export" + tableCounter.getAndIncrement();
+    cluster.getConnector("root", "secret").tableOperations().create(exportTable);
+    AccumuloExporter.setExportTableInfo(config.getAppConfiguration(), IndexExporter.QUEUE_ID,
+        new TableInfo(cluster.getInstanceName(), cluster.getZooKeepers(), "root", "secret",
+            exportTable));
+
+    FluoFactory.newAdmin(config).initialize(
+        new FluoAdmin.InitOpts().setClearTable(true).setClearZookeeper(true));
+
+    miniFluo = FluoFactory.newMiniFluo(config);
   }
+
 
   @After
   public void tearDownFluo() throws Exception {
@@ -92,6 +143,7 @@ public class LoadIT {
       ar.close();
       miniFluo.waitForObservers();
       dump(client);
+      dumpExportTable();
 
       String url = "http://1000games.me/games/gametion/";
       log.info("Deleting page {}", url);
@@ -101,6 +153,7 @@ public class LoadIT {
 
       miniFluo.waitForObservers();
       dump(client);
+      dumpExportTable();
     }
   }
 
@@ -120,5 +173,19 @@ public class LoadIT {
       }
       System.out.println("=== snapshot end ===");
     }
+  }
+
+  private void dumpExportTable() throws Exception {
+    Connector conn = cluster.getConnector("root", "secret");
+    Scanner scanner = conn.createScanner(exportTable, Authorizations.EMPTY);
+    Iterator<Map.Entry<Key, Value>> iterator = scanner.iterator();
+
+    System.out.println("== export table start ==");
+    while (iterator.hasNext()) {
+      Map.Entry<Key, Value> entry = iterator.next();
+      System.out.println(entry.getKey() + " " + entry.getValue());
+    }
+    System.out.println("== export table end ==");
+
   }
 }

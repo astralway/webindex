@@ -44,10 +44,10 @@ public class IndexEnv {
 
   public IndexEnv(DataConfig dataConfig, SparkConf sparkConf) throws IOException {
     this.dataConfig = dataConfig;
-    Preconditions.checkNotNull(dataConfig.fluoPropsPath);
-    Preconditions.checkArgument(new File(dataConfig.fluoPropsPath).exists(),
+    Preconditions.checkNotNull(dataConfig.getFluoPropsPath());
+    Preconditions.checkArgument(new File(dataConfig.getFluoPropsPath()).exists(),
         "fluoPropsPath must be set in data.yml and exist");
-    fluoConfig = new FluoConfiguration(new File(dataConfig.fluoPropsPath));
+    fluoConfig = new FluoConfiguration(new File(dataConfig.getFluoPropsPath()));
     conn = AccumuloUtil.getConnector(fluoConfig);
     sparkCtx = new JavaSparkContext(sparkConf);
     hdfs = FileSystem.get(sparkCtx.hadoopConfiguration());

@@ -178,7 +178,6 @@
         <artifactId>fluo-recipes-accumulo</artifactId>
         <version>${fluo-recipes.version}</version>
       </dependency>
-
       <dependency>
         <groupId>com.google.code.gson</groupId>
         <artifactId>gson</artifactId>
