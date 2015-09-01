@@ -11,11 +11,11 @@ import io.fluo.api.types.TypedTransactionBase;
 
 public class DocumentObserver extends TypedObserver {
 
-  RefExportQueue refExportQueue;
+  ExportQueue<String, RefUpdates> refExportQueue;
 
   @Override
   public void init(Context context) throws Exception {
-    refExportQueue = new RefExportQueue(context.getAppConfiguration());
+    refExportQueue = new ExportQueueIT.RefExporter().getExportQueue(context.getAppConfiguration());
   }
 
   @Override

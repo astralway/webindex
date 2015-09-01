@@ -30,7 +30,6 @@ import io.fluo.api.data.Span;
 import io.fluo.api.iterator.ColumnIterator;
 import io.fluo.api.iterator.RowIterator;
 import io.fluo.api.mini.MiniFluo;
-import io.fluo.commoncrawl.recipes.serialization.SimpleSerializer;
 import io.fluo.commoncrawl.recipes.serialization.StringSerializer;
 
 public class ExportQueueIT {
@@ -73,18 +72,10 @@ public class ExportQueueIT {
     ArrayList<Long> seqs = new ArrayList<>();
     ArrayList<RefUpdates> updates = new ArrayList<>();
 
+    public static final String QUEUE_ID = "req";
+
     public RefExporter() {
-      super(RefExportQueue.QUEUE_ID);
-    }
-
-    @Override
-    protected SimpleSerializer<String> getKeySerializer() {
-      return new StringSerializer();
-    }
-
-    @Override
-    protected SimpleSerializer<RefUpdates> getValueSerializer() {
-      return RefUpdates.newSerializer();
+      super(QUEUE_ID, new StringSerializer(), RefUpdates.newSerializer());
     }
 
     protected void startingToProcessBatch() {
@@ -141,8 +132,7 @@ public class ExportQueueIT {
     props.setWorkerThreads(20);
     props.setMiniDataDir("target/mini");
 
-    ExportQueue.setConfiguration(props.getAppConfiguration(), RefExportQueue.QUEUE_ID,
-        new ExportQueueOptions(13, 17));
+    new RefExporter().setConfiguration(props.getAppConfiguration(), new ExportQueueOptions(13, 17));
 
     ObserverConfiguration doc = new ObserverConfiguration(DocumentObserver.class.getName());
     ObserverConfiguration rex = new ObserverConfiguration(RefExporter.class.getName());

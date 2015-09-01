@@ -1,6 +1,7 @@
 package io.fluo.commoncrawl.recipes.exportq.accumulo;
 
 import io.fluo.commoncrawl.recipes.exportq.Exporter;
+import io.fluo.commoncrawl.recipes.serialization.SimpleSerializer;
 
 import java.util.ArrayList;
 
@@ -15,8 +16,9 @@ public abstract class AccumuloExporter<K, V> extends Exporter<K, V> {
   private ArrayList<Mutation> buffer = new ArrayList<>();
   private long bufferSize = 0;
 
-  protected AccumuloExporter(String queueId) {
-    super(queueId);
+  protected AccumuloExporter(String queueId, SimpleSerializer<K> keySerializer,
+      SimpleSerializer<V> valueSerializer) {
+    super(queueId, keySerializer, valueSerializer);
   }
 
   @Override
