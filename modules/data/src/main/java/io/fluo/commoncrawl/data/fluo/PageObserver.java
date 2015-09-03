@@ -33,6 +33,7 @@ public class PageObserver extends AbstractObserver {
     Page nextPage;
     if (nextJson.equals("delete")) {
       ttx.mutate().row(row).col(FluoConstants.PAGE_CUR_COL).delete();
+      ttx.mutate().row(row).col(FluoConstants.PAGE_SCORE_COL).delete();
       nextPage = Page.EMPTY;
     } else {
       ttx.mutate().row(row).col(FluoConstants.PAGE_CUR_COL).set(nextJson);

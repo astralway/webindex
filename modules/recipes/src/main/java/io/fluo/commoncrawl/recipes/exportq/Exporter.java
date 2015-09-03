@@ -82,6 +82,7 @@ public abstract class Exporter<K, V> extends AbstractObserver {
 
   public void setConfiguration(Configuration appConfig, ExportQueueOptions opts) {
     appConfig.setProperty("recipes.exportQueue." + getQueueId() + ".buckets", opts.numBuckets + "");
-    appConfig.setProperty("recipes.exportQueue." + getQueueId() + ".counters", opts.numCounters + "");
+    appConfig.setProperty("recipes.exportQueue." + getQueueId() + ".counters", opts.numCounters
+        + "");
   }
 }
