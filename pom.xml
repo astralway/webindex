@@ -34,13 +34,13 @@
     <module>modules/core</module>
     <module>modules/data</module>
     <module>modules/web</module>
-    <module>modules/recipes</module>
   </modules>
 
   <properties>
     <accumulo.version>1.6.1</accumulo.version>
     <hadoop.version>2.7.0</hadoop.version>
     <fluo.version>1.0.0-beta-2-SNAPSHOT</fluo.version>
+    <fluo-recipes.version>1.0.0-beta-1-SNAPSHOT</fluo-recipes.version>
     <dropwizard.version>0.8.2</dropwizard.version>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
@@ -142,6 +142,17 @@
         <artifactId>cc-web</artifactId>
         <version>${project.version}</version>
       </dependency>
+      <dependency>
+        <groupId>io.fluo</groupId>
+        <artifactId>fluo-recipes-core</artifactId>
+        <version>${fluo-recipes.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.fluo</groupId>
+        <artifactId>fluo-recipes-accumulo</artifactId>
+        <version>${fluo-recipes.version}</version>
+      </dependency>
+
       <dependency>
         <groupId>com.google.code.gson</groupId>
         <artifactId>gson</artifactId>
