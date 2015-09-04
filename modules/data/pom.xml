@@ -48,6 +48,14 @@
       <artifactId>fluo-mapreduce</artifactId>
     </dependency>
     <dependency>
+      <groupId>io.fluo</groupId>
+      <artifactId>fluo-recipes-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.fluo</groupId>
+      <artifactId>fluo-recipes-accumulo</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
       <version>14.0.1</version>
