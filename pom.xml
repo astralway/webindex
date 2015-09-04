@@ -36,6 +36,32 @@
     <module>modules/web</module>
   </modules>
 
+  <distributionManagement>
+    <repository>
+      <id>sonatype-nexus-staging</id>
+      <url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
+      <layout>default</layout>
+    </repository>
+    <snapshotRepository>
+      <id>sonatype-nexus-snapshots</id>
+      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+      <layout>default</layout>
+    </snapshotRepository>
+  </distributionManagement>
+
+  <repositories>
+    <repository>
+      <id>sonatype-nexus-snapshots</id>
+      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+      <snapshots>
+        <updatePolicy>always</updatePolicy>
+      </snapshots>
+      <releases>
+        <updatePolicy>always</updatePolicy>
+      </releases>
+    </repository>
+  </repositories>
+
   <properties>
     <accumulo.version>1.6.1</accumulo.version>
     <hadoop.version>2.7.0</hadoop.version>
