@@ -21,8 +21,6 @@ First, you must create `data.yml` and `dropwizard.yml` files and edit them for y
     cp data.yml.example data.yml
     cp dropwizard.yml.example dropwizard.yml
 
-Make sure that `fluoPropsPath` in `data.yml` point the `fluo.properties` file of this application.
-
 ### Download CommonCrawl data
 
 Next, run the following command to download CommonCrawl data files.  The data files can have a `fileType`
