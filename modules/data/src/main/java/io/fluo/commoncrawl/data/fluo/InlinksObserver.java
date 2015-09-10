@@ -88,7 +88,7 @@ public class InlinksObserver extends AbstractObserver {
     }
 
     TxLog txLog = rtx.getTxLog();
-    if (txLog.getLogEntries().size() > 0) {
+    if (!txLog.getLogEntries().isEmpty()) {
       exportQueue.add(tx, row.toString(), txLog);
     }
   }

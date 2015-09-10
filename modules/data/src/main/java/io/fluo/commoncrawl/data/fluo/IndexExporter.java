@@ -1,7 +1,7 @@
 package io.fluo.commoncrawl.data.fluo;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import io.fluo.api.data.Bytes;
@@ -47,8 +47,8 @@ public class IndexExporter extends AccumuloExporter<String, TxLog> {
       }
     }
     if (modified) {
-      return Arrays.asList(m);
+      return Collections.singletonList(m);
     }
-    return new ArrayList<>();
+    return Collections.EMPTY_LIST;
   }
 }
