@@ -1,9 +1,9 @@
 #!/bin/bash
 
 BIN_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
-CC_HOME=$( cd "$( dirname "$BIN_DIR" )" && pwd )
-LOCAL_DATA=$CC_HOME/data/
-DATA_CONFIG=$CC_HOME/conf/data.yml
+WI_HOME=$( cd "$( dirname "$BIN_DIR" )" && pwd )
+LOCAL_DATA=$WI_HOME/data/
+DATA_CONFIG=$WI_HOME/conf/data.yml
 if [ ! -f $DATA_CONFIG ]; then
   echo "You must create $DATA_CONFIG"
   exit 1

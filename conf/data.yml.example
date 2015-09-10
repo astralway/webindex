@@ -1,9 +1,9 @@
 # Fluo Home
 fluoHome: /path/to/fluo/install
 # Fluo Application Name
-fluoApp: ccrawl
+fluoApp: webindex
 # Accumulo table where indexes are stored
-accumuloIndexTable: ccrawl_index
+accumuloIndexTable: webindex_search
 # WAT HDFS directory
 watDataDir: /cc/data/wat
 # WET HDFS directory

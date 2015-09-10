@@ -6,14 +6,14 @@
 
   <parent>
     <groupId>io.fluo</groupId>
-    <artifactId>cc-parent</artifactId>
+    <artifactId>webindex-parent</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
 
-  <artifactId>cc-core</artifactId>
+  <artifactId>webindex-core</artifactId>
 
-  <name>Common Crawl Core</name>
+  <name>WebIndex Core</name>
 
   <dependencies>
     <dependency>

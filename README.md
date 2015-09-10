@@ -1,4 +1,6 @@
-# Common Crawl
+# WebIndex
+
+An example Fluo applications that creates a web index using CommonCrawl data.
 
 ### Requirements
 

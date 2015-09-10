@@ -20,20 +20,20 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>io.fluo</groupId>
-  <artifactId>cc-parent</artifactId>
+  <artifactId>webindex-parent</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <packaging>pom</packaging>
 
-  <name>Common Crawl Parent</name>
+  <name>WebIndex Parent</name>
   <description>
-    Common crawl example Fluo application
+    Example Fluo application that creates web index using CommonCrawl data.
   </description>
-  <url>https://github.com/fluo-io/common-crawl</url>
+  <url>https://github.com/fluo-io/webindex</url>
 
   <modules>
     <module>modules/core</module>
     <module>modules/data</module>
-    <module>modules/web</module>
+    <module>modules/ui</module>
   </modules>
 
   <distributionManagement>
@@ -155,17 +155,17 @@
     <dependencies>
       <dependency>
         <groupId>io.fluo</groupId>
-        <artifactId>cc-core</artifactId>
+        <artifactId>webindex-core</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>io.fluo</groupId>
-        <artifactId>cc-data</artifactId>
+        <artifactId>webindex-data</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>io.fluo</groupId>
-        <artifactId>cc-web</artifactId>
+        <artifactId>webindex-ui</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
