@@ -95,6 +95,28 @@
             </dependency>
           </dependencies>
         </plugin>
+        <plugin>
+          <groupId>org.apache.rat</groupId>
+          <artifactId>apache-rat-plugin</artifactId>
+          <configuration>
+            <excludes>
+              <exclude>README.md</exclude>
+              <exclude>docs/**.md</exclude>
+              <exclude>src/test/resources/*.warc</exclude>
+              <exclude>src/main/resources/io/fluo/webindex/ui/views/*.ftl</exclude>
+              <exclude>src/main/resources/io/fluo/webindex/ui/views/common/*.ftl</exclude>
+              <exclude>data/*</exclude>
+              <exclude>dependency-reduced-pom.xml</exclude>
+            </excludes>
+          </configuration>
+          <executions>
+            <execution>
+              <goals>
+                <goal>check</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
       </plugins>
     </pluginManagement>
     <plugins>
@@ -116,6 +138,10 @@
             <descriptorRef>jar-with-dependencies</descriptorRef>
           </descriptorRefs>
         </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.rat</groupId>
+        <artifactId>apache-rat-plugin</artifactId>
       </plugin>
     </plugins>
   </build>
