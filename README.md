@@ -1,4 +1,6 @@
-# Common Crawl
+# WebIndex
+
+An example Fluo applications that creates a web index using CommonCrawl data.
 
 ### Requirements
 
@@ -18,8 +20,6 @@ First, you must create `data.yml` and `dropwizard.yml` files and edit them for y
     cd conf
     cp data.yml.example data.yml
     cp dropwizard.yml.example dropwizard.yml
-
-Make sure that `fluoPropsPath` in `data.yml` point the `fluo.properties` file of this application.
 
 ### Download CommonCrawl data
 
