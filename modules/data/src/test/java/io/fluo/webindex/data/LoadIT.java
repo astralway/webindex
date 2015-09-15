@@ -16,7 +16,6 @@ package io.fluo.webindex.data;
 
 import java.io.File;
 import java.text.ParseException;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -27,22 +26,16 @@ import io.fluo.api.client.FluoFactory;
 import io.fluo.api.client.LoaderExecutor;
 import io.fluo.api.client.Snapshot;
 import io.fluo.api.config.FluoConfiguration;
-import io.fluo.api.config.ObserverConfiguration;
 import io.fluo.api.config.ScannerConfiguration;
 import io.fluo.api.data.Bytes;
 import io.fluo.api.data.Column;
 import io.fluo.api.iterator.ColumnIterator;
 import io.fluo.api.iterator.RowIterator;
 import io.fluo.api.mini.MiniFluo;
+import io.fluo.recipes.accumulo.export.TableInfo;
 import io.fluo.webindex.core.models.Page;
-import io.fluo.webindex.data.fluo.InlinksObserver;
-import io.fluo.webindex.data.fluo.IndexExporter;
-import io.fluo.webindex.data.fluo.PageObserver;
 import io.fluo.webindex.data.fluo.PageUpdate;
 import io.fluo.webindex.data.util.ArchiveUtil;
-import io.fluo.recipes.export.ExportQueueOptions;
-import io.fluo.recipes.accumulo.export.AccumuloExporter;
-import io.fluo.recipes.accumulo.export.TableInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -103,19 +96,13 @@ public class LoadIT {
     config.setAccumuloTable("data" + tableCounter.getAndIncrement());
     config.setWorkerThreads(5);
 
-    config.setObservers(Arrays.asList(new ObserverConfiguration(PageObserver.class.getName()),
-        new ObserverConfiguration(InlinksObserver.class.getName()), new ObserverConfiguration(
-            IndexExporter.class.getName())));
-
-    new IndexExporter()
-        .setConfiguration(config.getAppConfiguration(), new ExportQueueOptions(5, 5));
-
     // create and configure export table
     exportTable = "export" + tableCounter.getAndIncrement();
     cluster.getConnector("root", "secret").tableOperations().create(exportTable);
-    AccumuloExporter.setExportTableInfo(config.getAppConfiguration(), IndexExporter.QUEUE_ID,
+
+    PrintProps.configureApplication(config,
         new TableInfo(cluster.getInstanceName(), cluster.getZooKeepers(), "root", "secret",
-            exportTable));
+            exportTable), 5);
 
     FluoFactory.newAdmin(config).initialize(
         new FluoAdmin.InitOpts().setClearTable(true).setClearZookeeper(true));
