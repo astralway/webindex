@@ -1,5 +1,7 @@
 # WebIndex
 
+[![Build Status](https://travis-ci.org/fluo-io/webindex.svg?branch=master)](https://travis-ci.org/fluo-io/webindex)
+
 An example Fluo applications that creates a web index using CommonCrawl data.
 
 ### Requirements
