@@ -83,9 +83,6 @@ mvn dependency:get -Dartifact=io.fluo:fluo-recipes-core:1.0.0-beta-1-SNAPSHOT:ja
 mvn dependency:get -Dartifact=io.fluo:fluo-recipes-accumulo:1.0.0-beta-1-SNAPSHOT:jar -Ddest=$FLUO_APP_LIB
 
 APP_PROPS=$FLUO_APP_HOME/conf/fluo.properties
-echo "io.fluo.observer.0=io.fluo.webindex.data.fluo.PageObserver" >> $APP_PROPS
-echo "io.fluo.observer.1=io.fluo.webindex.data.fluo.InlinksObserver" >> $APP_PROPS
-echo "io.fluo.observer.2=io.fluo.webindex.data.fluo.IndexExporter" >> $APP_PROPS
 java -cp $WI_DATA_DEP_JAR io.fluo.webindex.data.PrintProps $WI_HOME/conf/data.yml >> $APP_PROPS
 
 $FLUO_CMD init $FLUO_APP --force

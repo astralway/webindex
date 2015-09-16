@@ -25,11 +25,11 @@ import io.fluo.api.iterator.ColumnIterator;
 import io.fluo.api.iterator.RowIterator;
 import io.fluo.api.observer.AbstractObserver;
 import io.fluo.api.types.TypedTransactionBase;
-import io.fluo.webindex.core.Constants;
-import io.fluo.webindex.data.util.FluoConstants;
 import io.fluo.recipes.export.ExportQueue;
 import io.fluo.recipes.transaction.RecordingTransactionBase;
 import io.fluo.recipes.transaction.TxLog;
+import io.fluo.webindex.core.Constants;
+import io.fluo.webindex.data.util.FluoConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +40,7 @@ public class InlinksObserver extends AbstractObserver {
 
   @Override
   public void init(Context context) throws Exception {
-    exportQueue = new IndexExporter().getExportQueue(context.getAppConfiguration());
+    exportQueue = ExportQueue.getInstance(IndexExporter.QUEUE_ID, context.getAppConfiguration());
   }
 
   @Override

@@ -18,10 +18,9 @@ import java.util.Collections;
 import java.util.List;
 
 import io.fluo.api.data.Bytes;
-import io.fluo.webindex.core.Constants;
 import io.fluo.recipes.accumulo.export.AccumuloExporter;
-import io.fluo.recipes.serialization.KryoSimplerSerializer;
 import io.fluo.recipes.transaction.TxLog;
+import io.fluo.webindex.core.Constants;
 import org.apache.accumulo.core.data.Mutation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,10 +29,6 @@ public class IndexExporter extends AccumuloExporter<String, TxLog> {
 
   private static final Logger log = LoggerFactory.getLogger(IndexExporter.class);
   public static final String QUEUE_ID = "peq";
-
-  public IndexExporter() {
-    super(QUEUE_ID, String.class, TxLog.class, new KryoSimplerSerializer());
-  }
 
   @Override
   protected List<Mutation> convert(String key, long seq, TxLog txLog) {
@@ -62,6 +57,6 @@ public class IndexExporter extends AccumuloExporter<String, TxLog> {
     if (modified) {
       return Collections.singletonList(m);
     }
-    return Collections.EMPTY_LIST;
+    return Collections.emptyList();
   }
 }
