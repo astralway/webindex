@@ -133,7 +133,6 @@ public class WebIndexResources {
   private Page getPage(String url) {
     Page page = null;
     Long incount = (long) 0;
-    Long score = (long) 0;
     try {
       Scanner scanner = conn.createScanner(dataConfig.accumuloIndexTable, Authorizations.EMPTY);
       scanner.setRange(Range.exact("p:" + DataUtil.toUri(url), Constants.PAGE));
@@ -143,9 +142,6 @@ public class WebIndexResources {
         switch (entry.getKey().getColumnQualifier().toString()) {
           case Constants.INCOUNT:
             incount = getLongValue(entry);
-            break;
-          case Constants.SCORE:
-            score = getLongValue(entry);
             break;
           case Constants.CUR:
             page = gson.fromJson(entry.getValue().toString(), Page.class);
@@ -163,7 +159,6 @@ public class WebIndexResources {
       page = new Page(url);
     }
     page.setNumInbound(incount);
-    page.setScore(score);
     page.setDomain(WebUtil.getDomain(page.getUrl()));
     return page;
   }
@@ -265,7 +260,7 @@ public class WebIndexResources {
       @DefaultValue("0") @QueryParam("pageNum") Integer pageNum) {
 
     TopResults results = new TopResults();
-    if (resultType.equals(Constants.INCOUNT) || resultType.equals(Constants.SCORE)) {
+    if (resultType.equals(Constants.INCOUNT)) {
       results.setResultType(resultType);
       results.setPageNum(pageNum);
       try {

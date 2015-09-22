@@ -17,16 +17,17 @@ package io.fluo.webindex.data;
 import java.util.LinkedList;
 import java.util.List;
 
+import io.fluo.api.data.Bytes;
 import io.fluo.api.data.Column;
 import io.fluo.api.data.RowColumn;
-import io.fluo.webindex.core.Constants;
+import io.fluo.mapreduce.FluoKeyValue;
+import io.fluo.mapreduce.FluoKeyValueGenerator;
 import io.fluo.webindex.core.DataConfig;
+import io.fluo.webindex.core.models.Page;
 import io.fluo.webindex.data.spark.IndexEnv;
 import io.fluo.webindex.data.spark.IndexStats;
 import io.fluo.webindex.data.spark.IndexUtil;
 import io.fluo.webindex.data.util.WARCFileInputFormat;
-import io.fluo.mapreduce.FluoKeyValue;
-import io.fluo.mapreduce.FluoKeyValueGenerator;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.conf.Configuration;
@@ -36,6 +37,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.TextOutputFormat;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.PairFlatMapFunction;
 import org.apache.spark.api.java.function.PairFunction;
 import org.archive.io.ArchiveReader;
@@ -48,28 +50,16 @@ public class Init {
   private static final Logger log = LoggerFactory.getLogger(Init.class);
   private static IndexEnv env;
 
-  public static void loadAccumulo(JavaPairRDD<RowColumn, Long> sortedCounts) throws Exception {
-
-    JavaPairRDD<RowColumn, Long> filteredSortedCounts =
-        sortedCounts.filter(t -> !(t._1().getRow().toString().startsWith("d:") && t._1()
-            .getColumn().getFamily().toString().equals(Constants.PAGES)));
-
+  public static void loadAccumulo(JavaPairRDD<RowColumn, Bytes> linkIndex) throws Exception {
     JavaPairRDD<Key, Value> accumuloData =
-        filteredSortedCounts.mapToPair(new PairFunction<Tuple2<RowColumn, Long>, Key, Value>() {
+        linkIndex.mapToPair(new PairFunction<Tuple2<RowColumn, Bytes>, Key, Value>() {
           @Override
-          public Tuple2<Key, Value> call(Tuple2<RowColumn, Long> tuple) throws Exception {
+          public Tuple2<Key, Value> call(Tuple2<RowColumn, Bytes> tuple) throws Exception {
             RowColumn rc = tuple._1();
             String row = rc.getRow().toString();
             String cf = rc.getColumn().getFamily().toString();
             String cq = rc.getColumn().getQualifier().toString();
-            byte[] val = tuple._2().toString().getBytes();
-            if (cf.equals(Constants.INLINKS)
-                || (cf.equals(Constants.PAGE) && cq.startsWith(Constants.CUR))) {
-              if (tuple._2() > 1) {
-                log.info("Found key {} with count of {}", tuple._1(), tuple._2().toString());
-              }
-              val = rc.getColumn().getVisibility().toArray();
-            }
+            byte[] val = tuple._2().toArray();
             return new Tuple2<>(new Key(new Text(row), new Text(cf), new Text(cq)), new Value(val));
           }
         });
@@ -89,26 +79,17 @@ public class Init {
         TextOutputFormat.class);
   }
 
-  public static void loadFluo(JavaPairRDD<RowColumn, Long> sortedCounts) throws Exception {
+  public static void loadFluo(JavaPairRDD<RowColumn, Bytes> linkIndex) throws Exception {
     JavaPairRDD<Key, Value> fluoData =
-        sortedCounts.flatMapToPair(new PairFlatMapFunction<Tuple2<RowColumn, Long>, Key, Value>() {
+        linkIndex.flatMapToPair(new PairFlatMapFunction<Tuple2<RowColumn, Bytes>, Key, Value>() {
           @Override
-          public Iterable<Tuple2<Key, Value>> call(Tuple2<RowColumn, Long> tuple) throws Exception {
+          public Iterable<Tuple2<Key, Value>> call(Tuple2<RowColumn, Bytes> tuple) throws Exception {
             List<Tuple2<Key, Value>> output = new LinkedList<>();
             RowColumn rc = tuple._1();
             String row = rc.getRow().toString();
             String cf = rc.getColumn().getFamily().toString();
             String cq = rc.getColumn().getQualifier().toString();
-            byte[] val = tuple._2().toString().getBytes();
-
-            if (cf.equals(Constants.RANK) || cq.equals(Constants.RANK)
-                || (row.startsWith("d:") && cf.equals(Constants.PAGES))) {
-              return output;
-            }
-            if (cf.equals(Constants.INLINKS)
-                || (cf.equals(Constants.PAGE) && cq.startsWith(Constants.CUR))) {
-              val = rc.getColumn().getVisibility().toArray();
-            }
+            byte[] val = tuple._2().toArray();
             FluoKeyValueGenerator fkvg = new FluoKeyValueGenerator();
             fkvg.setRow(row).setColumn(new Column(cf, cq)).setValue(val);
             for (FluoKeyValue kv : fkvg.getKeyValues()) {
@@ -144,16 +125,16 @@ public class Init {
         env.getSparkCtx().newAPIHadoopFile(dataConfig.watDataDir, WARCFileInputFormat.class,
             Text.class, ArchiveReader.class, new Configuration());
 
-    JavaPairRDD<RowColumn, Long> sortedLinkCounts = IndexUtil.createLinkCounts(stats, archives);
+    JavaRDD<Page> pages = IndexUtil.createPages(archives);
 
-    JavaPairRDD<RowColumn, Long> sortedTopCounts =
-        IndexUtil.createSortedTopCounts(sortedLinkCounts);
+    JavaPairRDD<RowColumn, Bytes> linkIndex = IndexUtil.createLinkIndex(stats, pages);
 
     // Load intermediate results into Fluo
-    loadFluo(sortedTopCounts);
+    JavaPairRDD<RowColumn, Bytes> linkIndexNoRank = IndexUtil.filterRank(linkIndex);
+    loadFluo(linkIndexNoRank);
 
     // Load final indexes into Accumulo
-    loadAccumulo(sortedTopCounts);
+    loadAccumulo(linkIndex);
 
     // For testing, Load into HDFS
     // loadHDFS(sortedTopCounts);

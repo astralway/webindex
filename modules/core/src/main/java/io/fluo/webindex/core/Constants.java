@@ -28,7 +28,6 @@ public class Constants {
   // Column Qualifiers
   // for page
   public static final String INCOUNT = "incount";
-  public static final String SCORE = "score";
   public static final String NEW = "new";
   public static final String CUR = "cur";
   // for domains

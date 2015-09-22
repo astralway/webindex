@@ -14,6 +14,7 @@
 
 package io.fluo.webindex.data.fluo;
 
+import java.text.ParseException;
 import java.util.Collections;
 import java.util.Set;
 
@@ -27,8 +28,10 @@ import io.fluo.api.types.TypedTransactionBase;
 import io.fluo.recipes.export.ExportQueue;
 import io.fluo.recipes.transaction.RecordingTransactionBase;
 import io.fluo.recipes.transaction.TxLog;
+import io.fluo.webindex.core.DataUtil;
 import io.fluo.webindex.core.models.Page;
 import io.fluo.webindex.data.util.FluoConstants;
+import io.fluo.webindex.data.util.LinkUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,7 +39,7 @@ public class PageObserver extends AbstractObserver {
 
   private static final Logger log = LoggerFactory.getLogger(PageObserver.class);
   private static final Gson gson = new Gson();
-  private ExportQueue<String, TxLog> exportQueue;
+  private ExportQueue<Bytes, TxLog> exportQueue;
 
   @Override
   public void init(Context context) throws Exception {
@@ -46,7 +49,7 @@ public class PageObserver extends AbstractObserver {
   @Override
   public void process(TransactionBase tx, Bytes row, Column col) throws Exception {
 
-    RecordingTransactionBase rtx = RecordingTransactionBase.wrap(tx);
+    RecordingTransactionBase rtx = RecordingTransactionBase.wrap(tx, IndexExporter.getFilter());
     TypedTransactionBase ttx = FluoConstants.TYPEL.wrap(rtx);
     String nextJson = ttx.get().row(row).col(FluoConstants.PAGE_NEW_COL).toString("");
     if (nextJson.isEmpty()) {
@@ -59,16 +62,22 @@ public class PageObserver extends AbstractObserver {
     if (!curJson.isEmpty()) {
       Page curPage = gson.fromJson(curJson, Page.class);
       curLinks = curPage.getOutboundLinks();
-    } else {
-      Long score = ttx.get().row(row).col(FluoConstants.PAGE_SCORE_COL).toLong(0);
-      Long newScore = score + 1;
-      ttx.mutate().row(row).col(FluoConstants.PAGE_SCORE_COL).set(newScore);
+    }
+
+    if (curJson.isEmpty() && !nextJson.equals("delete")) {
+      Long incount = ttx.get().row(row).col(FluoConstants.PAGE_INCOUNT_COL).toLong();
+      if (incount == null) {
+        ttx.mutate().row(row).col(FluoConstants.PAGE_INCOUNT_COL).set(new Long(0));
+      }
+      updateDomainPageCount(ttx, row, 1);
     }
 
     Page nextPage;
     if (nextJson.equals("delete")) {
       ttx.mutate().row(row).col(FluoConstants.PAGE_CUR_COL).delete();
-      ttx.mutate().row(row).col(FluoConstants.PAGE_SCORE_COL).delete();
+      ttx.get().row(row).col(FluoConstants.PAGE_INCOUNT_COL).toLong(); // get for indexing
+      ttx.mutate().row(row).col(FluoConstants.PAGE_INCOUNT_COL).delete();
+      updateDomainPageCount(ttx, row, -1);
       nextPage = Page.EMPTY;
     } else {
       ttx.mutate().row(row).col(FluoConstants.PAGE_CUR_COL).set(nextJson);
@@ -97,13 +106,38 @@ public class PageObserver extends AbstractObserver {
     ttx.mutate().row(row).col(FluoConstants.PAGE_NEW_COL).delete();
 
     TxLog txLog = rtx.getTxLog();
-    if (!txLog.getLogEntries().isEmpty()) {
-      exportQueue.add(tx, row.toString(), txLog);
+    if (!txLog.isEmpty()) {
+      exportQueue.add(tx, row, txLog);
     }
   }
 
   @Override
   public ObservedColumn getObservedColumn() {
     return new ObservedColumn(FluoConstants.PAGE_NEW_COL, NotificationType.STRONG);
+  }
+
+  public static void updateDomainPageCount(TypedTransactionBase ttx, Bytes pageRow, long change) {
+    Bytes domainRow = getDomainRow(pageRow);
+    if (!domainRow.equals(Bytes.EMPTY)) {
+      Long prevCount = ttx.get().row(domainRow).col(FluoConstants.PAGECOUNT_COL).toLong(0);
+      Long curCount = prevCount + change;
+      if (curCount == 0) {
+        ttx.mutate().row(domainRow).col(FluoConstants.PAGECOUNT_COL).delete();
+        log.debug("Deleted pagecount for {}", domainRow);
+      } else {
+        ttx.mutate().row(domainRow).col(FluoConstants.PAGECOUNT_COL).set(curCount);
+        log.debug("Updated pagecount for {} from {} to {}", domainRow, prevCount, curCount);
+      }
+    }
+  }
+
+  public static Bytes getDomainRow(Bytes pageRow) {
+    String pageUri = pageRow.toString().substring(2);
+    try {
+      String pageDomain = LinkUtil.getReverseTopPrivate(DataUtil.toUrl(pageUri));
+      return Bytes.of("d:" + pageDomain);
+    } catch (ParseException e) {
+      return Bytes.EMPTY;
+    }
   }
 }
