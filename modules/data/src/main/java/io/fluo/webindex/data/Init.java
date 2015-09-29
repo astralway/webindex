@@ -127,14 +127,14 @@ public class Init {
 
     JavaRDD<Page> pages = IndexUtil.createPages(archives);
 
-    JavaPairRDD<RowColumn, Bytes> linkIndex = IndexUtil.createLinkIndex(stats, pages);
+    JavaPairRDD<RowColumn, Bytes> accumuloIndex = IndexUtil.createAccumuloIndex(stats, pages);
 
     // Load intermediate results into Fluo
-    JavaPairRDD<RowColumn, Bytes> linkIndexNoRank = IndexUtil.filterRank(linkIndex);
-    loadFluo(linkIndexNoRank);
+    JavaPairRDD<RowColumn, Bytes> fluoIndex = IndexUtil.createFluoIndex(accumuloIndex);
+    loadFluo(fluoIndex);
 
     // Load final indexes into Accumulo
-    loadAccumulo(linkIndex);
+    loadAccumulo(accumuloIndex);
 
     // For testing, Load into HDFS
     // loadHDFS(sortedTopCounts);
