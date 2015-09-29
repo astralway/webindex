@@ -4,5 +4,5 @@
 .classpath
 .project
 .settings
-target
-data
+target/
+/data/

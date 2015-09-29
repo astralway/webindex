@@ -22,13 +22,13 @@ import java.util.List;
 import io.fluo.api.data.Bytes;
 import io.fluo.api.data.Column;
 import io.fluo.api.data.RowColumn;
+import io.fluo.mapreduce.FluoEntryInputFormat;
 import io.fluo.webindex.core.Constants;
 import io.fluo.webindex.core.DataConfig;
 import io.fluo.webindex.core.DataUtil;
 import io.fluo.webindex.data.spark.IndexEnv;
 import io.fluo.webindex.data.spark.IndexUtil;
 import io.fluo.webindex.data.util.LinkUtil;
-import io.fluo.mapreduce.FluoEntryInputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
@@ -105,16 +105,14 @@ public class Reindex {
                 String cq = rc.getColumn().getQualifier().toString();
                 Bytes v = kvTuple._2();
                 if (row.startsWith("p:") && cf.equals(Constants.PAGE)
-                    && (cq.equals(Constants.INCOUNT) || cq.equals(Constants.SCORE))) {
+                    && cq.equals(Constants.INCOUNT)) {
                   String pageUri = row.substring(2);
                   Long num = Long.parseLong(v.toString());
                   Column rankCol =
                       new Column(Constants.RANK, String.format("%s:%s",
                           IndexUtil.revEncodeLong(num), pageUri));
-                  if (cq.equals(Constants.SCORE)) {
-                    String domain = "d:" + LinkUtil.getReverseTopPrivate(DataUtil.toUrl(pageUri));
-                    retval.add(new Tuple2<>(new RowColumn(domain, rankCol), v));
-                  }
+                  String domain = "d:" + LinkUtil.getReverseTopPrivate(DataUtil.toUrl(pageUri));
+                  retval.add(new Tuple2<>(new RowColumn(domain, rankCol), v));
                   retval.add(new Tuple2<>(new RowColumn("t:" + cq, rankCol), v));
                 }
                 return retval;

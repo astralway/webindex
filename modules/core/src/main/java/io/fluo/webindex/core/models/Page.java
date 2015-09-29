@@ -14,20 +14,20 @@
 
 package io.fluo.webindex.core.models;
 
+import java.io.Serializable;
 import java.net.MalformedURLException;
 import java.util.HashSet;
 import java.util.Set;
 
 import io.fluo.webindex.core.DataUtil;
 
-public class Page {
+public class Page implements Serializable {
 
   public static Page EMPTY = new Page();
   private String url = "";
   private String domain;
   private Long numInbound;
   private Long numOutbound = new Long(0);
-  private Long score;
   private String crawlDate;
   private String server;
   private String title;
@@ -59,10 +59,26 @@ public class Page {
     return outboundLinks;
   }
 
-  public void addOutboundLink(String url, String anchorText) {
-    if (outboundLinks.add(new Link(url, anchorText))) {
+  /**
+   * @return True if page did not already contain link
+   */
+  public boolean addOutboundLink(String url, String anchorText) {
+    boolean added = outboundLinks.add(new Link(url, anchorText));
+    if (added) {
       numOutbound++;
     }
+    return added;
+  }
+
+  /**
+   * @return True if link was removed
+   */
+  public boolean removeOutboundLink(String url) {
+    boolean removed = outboundLinks.remove(new Link(url));
+    if (removed) {
+      numOutbound--;
+    }
+    return removed;
   }
 
   public boolean isEmpty() {
@@ -89,14 +105,6 @@ public class Page {
     return numOutbound;
   }
 
-  public Long getScore() {
-    return score;
-  }
-
-  public void setScore(Long score) {
-    this.score = score;
-  }
-
   public String getCrawlDate() {
     return crawlDate;
   }
@@ -113,7 +121,7 @@ public class Page {
     this.title = title;
   }
 
-  public class Link {
+  public class Link implements Serializable {
 
     private String url;
     private String anchorText;
@@ -121,6 +129,10 @@ public class Page {
     public Link(String url, String anchorText) {
       this.url = DataUtil.cleanUrl(url);
       this.anchorText = anchorText;
+    }
+
+    public Link(String url) {
+      this(url, "");
     }
 
     public String getUrl() {

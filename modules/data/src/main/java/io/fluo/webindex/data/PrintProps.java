@@ -19,7 +19,7 @@ import java.util.Iterator;
 
 import io.fluo.api.config.FluoConfiguration;
 import io.fluo.api.config.ObserverConfiguration;
-import io.fluo.recipes.accumulo.export.AccumuloExporter;
+import io.fluo.api.data.Bytes;
 import io.fluo.recipes.accumulo.export.TableInfo;
 import io.fluo.recipes.export.ExportQueue;
 import io.fluo.recipes.transaction.TxLog;
@@ -41,9 +41,9 @@ public class PrintProps {
     appConfig.addObserver(new ObserverConfiguration(InlinksObserver.class.getName()));
 
     ExportQueue.configure(appConfig, new ExportQueue.Options(IndexExporter.QUEUE_ID,
-        IndexExporter.class, String.class, TxLog.class, numExportBuckets));
+        IndexExporter.class, Bytes.class, TxLog.class, numExportBuckets));
 
-    AccumuloExporter.setExportTableInfo(appConfig.getAppConfiguration(), IndexExporter.QUEUE_ID,
+    IndexExporter.setExportTableInfo(appConfig.getAppConfiguration(), IndexExporter.QUEUE_ID,
         exportTable);
   }
 

@@ -36,7 +36,7 @@ import org.slf4j.LoggerFactory;
 public class InlinksObserver extends AbstractObserver {
 
   private static final Logger log = LoggerFactory.getLogger(InlinksObserver.class);
-  private ExportQueue<String, TxLog> exportQueue;
+  private ExportQueue<Bytes, TxLog> exportQueue;
 
   @Override
   public void init(Context context) throws Exception {
@@ -46,7 +46,7 @@ public class InlinksObserver extends AbstractObserver {
   @Override
   public void process(TransactionBase tx, Bytes row, Column col) throws Exception {
 
-    RecordingTransactionBase rtx = RecordingTransactionBase.wrap(tx);
+    RecordingTransactionBase rtx = RecordingTransactionBase.wrap(tx, IndexExporter.getFilter());
     TypedTransactionBase ttx = FluoConstants.TYPEL.wrap(rtx);
 
     String pageUri = row.toString().substring(2);
@@ -81,29 +81,32 @@ public class InlinksObserver extends AbstractObserver {
       }
     }
 
-    Long incount = ttx.get().row(row).col(FluoConstants.PAGE_INCOUNT_COL).toLong(0) + change;
-    if (incount <= 0) {
-      if (incount < 0) {
-        log.error("Incount for {} is negative: {}", row, incount);
-      }
-      ttx.mutate().row(row).col(FluoConstants.PAGE_INCOUNT_COL).delete();
-    } else {
-      ttx.mutate().row(row).col(FluoConstants.PAGE_INCOUNT_COL).set(incount);
+    boolean knownPage = true;
+    Long prevCount = ttx.get().row(row).col(FluoConstants.PAGE_INCOUNT_COL).toLong();
+    if (prevCount == null) {
+      knownPage = false;
+      prevCount = new Long(0);
     }
 
-    Long score = ttx.get().row(row).col(FluoConstants.PAGE_SCORE_COL).toLong(0) + change;
-    if (score <= 0) {
-      if (score < 0) {
-        log.error("Score for {} is negative: {}", row, incount);
+    Long curCount = prevCount + change;
+    if (curCount <= 0) {
+      if (curCount < 0) {
+        log.error("Incount for {} is negative: {}", row, curCount);
       }
-      ttx.mutate().row(row).col(FluoConstants.PAGE_SCORE_COL).delete();
+      ttx.mutate().row(row).col(FluoConstants.PAGE_INCOUNT_COL).delete();
+      if (knownPage) {
+        PageObserver.updateDomainPageCount(ttx, row, -1);
+      }
     } else {
-      ttx.mutate().row(row).col(FluoConstants.PAGE_SCORE_COL).set(score);
+      ttx.mutate().row(row).col(FluoConstants.PAGE_INCOUNT_COL).set(curCount);
+      if (!knownPage) {
+        PageObserver.updateDomainPageCount(ttx, row, 1);
+      }
     }
 
     TxLog txLog = rtx.getTxLog();
-    if (!txLog.getLogEntries().isEmpty()) {
-      exportQueue.add(tx, row.toString(), txLog);
+    if (!txLog.isEmpty()) {
+      exportQueue.add(tx, row, txLog);
     }
   }
 

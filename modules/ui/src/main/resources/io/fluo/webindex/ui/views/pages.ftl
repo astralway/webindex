@@ -28,7 +28,7 @@
 <div class="row">
   <div class="col-md-12">
     <table class="table table-striped">
-    <thead><th>Score</th><th>URL</th></thead>
+    <thead><th>Inbound Links</th><th>URL</th></thead>
     <#list pages.pages as page>
       <tr>
         <td>${page.score?html}</td>
