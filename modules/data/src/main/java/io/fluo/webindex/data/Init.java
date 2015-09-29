@@ -125,19 +125,18 @@ public class Init {
         env.getSparkCtx().newAPIHadoopFile(dataConfig.watDataDir, WARCFileInputFormat.class,
             Text.class, ArchiveReader.class, new Configuration());
 
+    // Create pages RDD from archives
     JavaRDD<Page> pages = IndexUtil.createPages(archives);
 
-    JavaPairRDD<RowColumn, Bytes> linkIndex = IndexUtil.createLinkIndex(stats, pages);
+    // Create the Accumulo index from pages RDD
+    JavaPairRDD<RowColumn, Bytes> accumuloIndex = IndexUtil.createAccumuloIndex(stats, pages);
 
-    // Load intermediate results into Fluo
-    JavaPairRDD<RowColumn, Bytes> linkIndexNoRank = IndexUtil.filterRank(linkIndex);
-    loadFluo(linkIndexNoRank);
+    // Create a Fluo index by filtering a subset of data from Accumulo index
+    JavaPairRDD<RowColumn, Bytes> fluoIndex = IndexUtil.createFluoIndex(accumuloIndex);
 
-    // Load final indexes into Accumulo
-    loadAccumulo(linkIndex);
-
-    // For testing, Load into HDFS
-    // loadHDFS(sortedTopCounts);
+    // Load the indexes into Fluo and Accumulo
+    loadFluo(fluoIndex);
+    loadAccumulo(accumuloIndex);
 
     stats.print();
 

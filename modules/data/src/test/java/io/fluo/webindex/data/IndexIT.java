@@ -17,14 +17,12 @@ package io.fluo.webindex.data;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.google.common.collect.Lists;
 import io.fluo.api.client.FluoAdmin;
 import io.fluo.api.client.FluoClient;
 import io.fluo.api.client.FluoFactory;
@@ -164,18 +162,17 @@ public class IndexIT {
 
     // Create expected output using spark
     IndexStats stats = new IndexStats(sc);
-    JavaPairRDD<RowColumn, Bytes> linkIndex = IndexUtil.createLinkIndex(stats, pagesRDD);
-    List<Tuple2<RowColumn, Bytes>> linkIndexList = linkIndex.collect();
-    JavaPairRDD<RowColumn, Bytes> linkIndexNoRank = IndexUtil.filterRank(linkIndex);
+    JavaPairRDD<RowColumn, Bytes> accumuloIndex = IndexUtil.createAccumuloIndex(stats, pagesRDD);
+    JavaPairRDD<RowColumn, Bytes> fluoIndex = IndexUtil.createFluoIndex(accumuloIndex);
 
     // Compare against actual
     boolean foundDiff = false;
-    foundDiff |= diffExportTable(linkIndexList);
-    foundDiff |= diffFluoTable(client, linkIndexNoRank.collect());
+    foundDiff |= diffAccumuloTable(accumuloIndex.collect());
+    foundDiff |= diffFluoTable(client, fluoIndex.collect());
     if (foundDiff) {
-      dump(client);
-      dumpExportTable();
-      print(linkIndexList);
+      printFluoTable(client);
+      printAccumuloTable();
+      printRDD(accumuloIndex.collect());
     }
     Assert.assertFalse(foundDiff);
   }
@@ -206,16 +203,16 @@ public class IndexIT {
 
       int numPages = pages.size();
       Assert.assertNotNull(pages.remove(deleteUrl));
-      Assert.assertEquals(numPages-1, pages.size());
+      Assert.assertEquals(numPages - 1, pages.size());
       assertOutput(pages.values(), client);
 
       String updateUrl = "http://100zone.blogspot.com/2013/03/please-memp3-4shared.html";
       Page updatePage = pages.get(updateUrl);
       long numLinks = updatePage.getNumOutbound();
       Assert.assertTrue(updatePage.addOutboundLink("http://example.com", "Example"));
-      Assert.assertEquals(numLinks+1, (long)updatePage.getNumOutbound());
+      Assert.assertEquals(numLinks + 1, (long) updatePage.getNumOutbound());
       Assert.assertTrue(updatePage.removeOutboundLink("http://www.blogger.com"));
-      Assert.assertEquals(numLinks, (long)updatePage.getNumOutbound());
+      Assert.assertEquals(numLinks, (long) updatePage.getNumOutbound());
 
       try (LoaderExecutor le = client.newLoaderExecutor()) {
         le.execute(PageUpdate.updatePage(updatePage));
@@ -227,18 +224,18 @@ public class IndexIT {
     }
   }
 
-  private void print(List<Tuple2<RowColumn, Bytes>> linkIndex) {
-    System.out.println("== link index start ==");
-    linkIndex.forEach(t -> System.out.println("rc " + t._1().toString() + " val "
-        + t._2().toString()));
-    System.out.println("== link index end ==");
+  private void printRDD(List<Tuple2<RowColumn, Bytes>> rcvRDD) {
+    System.out.println("== RDD start ==");
+    rcvRDD
+        .forEach(t -> System.out.println("rc " + t._1().toString() + " val " + t._2().toString()));
+    System.out.println("== RDD end ==");
   }
 
-  private void dump(FluoClient client) throws Exception {
+  private void printFluoTable(FluoClient client) throws Exception {
     try (Snapshot s = client.newSnapshot()) {
       RowIterator iter = s.get(new ScannerConfiguration());
 
-      System.out.println("== fluo snapshot start ==");
+      System.out.println("== fluo start ==");
       while (iter.hasNext()) {
         Map.Entry<Bytes, ColumnIterator> rowEntry = iter.next();
         ColumnIterator citer = rowEntry.getValue();
@@ -248,7 +245,7 @@ public class IndexIT {
               + colEntry.getValue());
         }
       }
-      System.out.println("=== fluo snapshot end ===");
+      System.out.println("=== fluo end ===");
     }
   }
 
@@ -297,17 +294,17 @@ public class IndexIT {
     }
   }
 
-  private void dumpExportTable() throws Exception {
+  private void printAccumuloTable() throws Exception {
     Connector conn = cluster.getConnector("root", "secret");
     Scanner scanner = conn.createScanner(exportTable, Authorizations.EMPTY);
     Iterator<Map.Entry<Key, Value>> iterator = scanner.iterator();
 
-    System.out.println("== accumulo export table start ==");
+    System.out.println("== accumulo start ==");
     while (iterator.hasNext()) {
       Map.Entry<Key, Value> entry = iterator.next();
       System.out.println(entry.getKey() + " " + entry.getValue());
     }
-    System.out.println("== accumulo export table end ==");
+    System.out.println("== accumulo end ==");
   }
 
   private boolean diff(String dataType, String expected, String actual) {
@@ -318,7 +315,7 @@ public class IndexIT {
     return false;
   }
 
-  private boolean diffExportTable(List<Tuple2<RowColumn, Bytes>> linkIndex) throws Exception {
+  private boolean diffAccumuloTable(List<Tuple2<RowColumn, Bytes>> linkIndex) throws Exception {
     Connector conn = cluster.getConnector("root", "secret");
     Scanner scanner = conn.createScanner(exportTable, Authorizations.EMPTY);
     Iterator<Map.Entry<Key, Value>> exportIter = scanner.iterator();

@@ -14,7 +14,9 @@
 
 package io.fluo.webindex.data.spark;
 
+import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
@@ -23,6 +25,7 @@ import io.fluo.api.data.Bytes;
 import io.fluo.api.data.Column;
 import io.fluo.api.data.RowColumn;
 import io.fluo.webindex.core.Constants;
+import io.fluo.webindex.core.DataUtil;
 import io.fluo.webindex.core.models.Page;
 import io.fluo.webindex.data.util.ArchiveUtil;
 import io.fluo.webindex.data.util.FluoConstants;
@@ -49,54 +52,50 @@ public class IndexUtil {
     tuples.add(new Tuple2<>(new RowColumn(r, c), v));
   }
 
+  /**
+   * Creates an RDD of pages from an RDD archive
+   */
   public static JavaRDD<Page> createPages(JavaPairRDD<Text, ArchiveReader> archives) {
-
-    JavaRDD<ArchiveRecord> records =
-        archives.flatMap(new FlatMapFunction<Tuple2<Text, ArchiveReader>, ArchiveRecord>() {
-          @Override
-          public Iterable<ArchiveRecord> call(Tuple2<Text, ArchiveReader> tuple) throws Exception {
-            return tuple._2();
-          }
-        });
-
+    JavaRDD<ArchiveRecord> records = archives.flatMap(tuple -> tuple._2());
     JavaRDD<Page> pages = records.map(r -> ArchiveUtil.buildPageIgnoreErrors(r));
     return pages;
   }
 
-  public static JavaPairRDD<RowColumn, Bytes> createLinkIndex(IndexStats stats, JavaRDD<Page> pages) {
+  /**
+   * Creates an Accumulo index from an RDD of web pages
+   */
+  public static JavaPairRDD<RowColumn, Bytes> createAccumuloIndex(IndexStats stats,
+      JavaRDD<Page> pages) {
 
     JavaPairRDD<RowColumn, Long> links =
-        pages.flatMapToPair(new PairFlatMapFunction<Page, RowColumn, Long>() {
-          @Override
-          public Iterable<Tuple2<RowColumn, Long>> call(Page page) throws Exception {
-            if (page.isEmpty()) {
-              stats.addEmpty(1);
-              return new ArrayList<>();
-            }
-            stats.addPage(1);
-            Set<Page.Link> links = page.getOutboundLinks();
-            stats.addExternalLinks(links.size());
-
-            List<Tuple2<RowColumn, Long>> ret = new ArrayList<>();
-            String pageUri = page.getUri();
-            String pageDomain = LinkUtil.getReverseTopPrivate(page.getUrl());
-            final Long one = new Long(1);
-            if (links.size() > 0) {
-              addRCV(ret, "p:" + pageUri, FluoConstants.PAGE_INCOUNT_COL, new Long(0));
-              addRCV(ret, "p:" + pageUri,
-                  new Column(Constants.PAGE, Constants.CUR, gson.toJson(page)), one);
-              addRCV(ret, "d:" + pageDomain, new Column(Constants.PAGES, pageUri), new Long(0));
-            }
-            for (Page.Link link : links) {
-              String linkUri = link.getUri();
-              String linkDomain = LinkUtil.getReverseTopPrivate(link.getUrl());
-              addRCV(ret, "p:" + linkUri, FluoConstants.PAGE_INCOUNT_COL, one);
-              addRCV(ret, "p:" + linkUri,
-                  new Column(Constants.INLINKS, pageUri, link.getAnchorText()), one);
-              addRCV(ret, "d:" + linkDomain, new Column(Constants.PAGES, linkUri), one);
-            }
-            return ret;
+        pages.flatMapToPair(page -> {
+          if (page.isEmpty()) {
+            stats.addEmpty(1);
+            return new ArrayList<>();
           }
+          stats.addPage(1);
+          Set<Page.Link> links1 = page.getOutboundLinks();
+          stats.addExternalLinks(links1.size());
+
+          List<Tuple2<RowColumn, Long>> ret = new ArrayList<>();
+          String pageUri = page.getUri();
+          String pageDomain = LinkUtil.getReverseTopPrivate(page.getUrl());
+          final Long one = new Long(1);
+          if (links1.size() > 0) {
+            addRCV(ret, "p:" + pageUri, FluoConstants.PAGE_INCOUNT_COL, new Long(0));
+            addRCV(ret, "p:" + pageUri,
+                new Column(Constants.PAGE, Constants.CUR, gson.toJson(page)), one);
+            addRCV(ret, "d:" + pageDomain, new Column(Constants.PAGES, pageUri), new Long(0));
+          }
+          for (Page.Link link : links1) {
+            String linkUri = link.getUri();
+            String linkDomain = LinkUtil.getReverseTopPrivate(link.getUrl());
+            addRCV(ret, "p:" + linkUri, FluoConstants.PAGE_INCOUNT_COL, one);
+            addRCV(ret, "p:" + linkUri,
+                new Column(Constants.INLINKS, pageUri, link.getAnchorText()), one);
+            addRCV(ret, "d:" + linkDomain, new Column(Constants.PAGES, linkUri), one);
+          }
+          return ret;
         });
 
     JavaPairRDD<RowColumn, Long> linkCounts = links.reduceByKey((i1, i2) -> i1 + i2);
@@ -105,36 +104,30 @@ public class IndexUtil {
 
     final Long one = new Long(1);
     JavaPairRDD<RowColumn, Long> topCounts =
-        sortedLinkCounts
-            .flatMapToPair(new PairFlatMapFunction<Tuple2<RowColumn, Long>, RowColumn, Long>() {
-              @Override
-              public Iterable<Tuple2<RowColumn, Long>> call(Tuple2<RowColumn, Long> t)
-                  throws Exception {
-                List<Tuple2<RowColumn, Long>> ret = new ArrayList<>();
-                ret.add(t);
+        sortedLinkCounts.flatMapToPair(t -> {
+          List<Tuple2<RowColumn, Long>> ret = new ArrayList<>();
+          ret.add(t);
 
-                RowColumn rc = t._1();
-                String row = rc.getRow().toString();
-                String cf = rc.getColumn().getFamily().toString();
-                String cq = rc.getColumn().getQualifier().toString();
-                Long val = t._2();
+          RowColumn rc = t._1();
+          String row = rc.getRow().toString();
+          String cf = rc.getColumn().getFamily().toString();
+          String cq = rc.getColumn().getQualifier().toString();
+          Long val = t._2();
 
-                if (row.startsWith("d:") && (cf.equals(Constants.PAGES))) {
-                  addRCV(ret, row,
-                      new Column(Constants.RANK, String.format("%s:%s", revEncodeLong(val), cq)),
-                      val);
-                  addRCV(ret, row, new Column(Constants.DOMAIN, Constants.PAGECOUNT), one);
-                } else if ((row.startsWith("p:") && cf.equals(Constants.PAGE))
-                    && (cq.equals(Constants.INCOUNT))) {
-                  addRCV(
-                      ret,
-                      "t:" + cq,
-                      new Column(Constants.RANK, String.format("%s:%s", revEncodeLong(val),
-                          row.substring(2))), val);
-                }
-                return ret;
-              }
-            });
+          if (row.startsWith("d:") && (cf.equals(Constants.PAGES))) {
+            addRCV(ret, row,
+                new Column(Constants.RANK, String.format("%s:%s", revEncodeLong(val), cq)), val);
+            addRCV(ret, row, new Column(Constants.DOMAIN, Constants.PAGECOUNT), one);
+          } else if ((row.startsWith("p:") && cf.equals(Constants.PAGE))
+              && (cq.equals(Constants.INCOUNT))) {
+            addRCV(
+                ret,
+                "t:" + cq,
+                new Column(Constants.RANK, String.format("%s:%s", revEncodeLong(val),
+                    row.substring(2))), val);
+          }
+          return ret;
+        });
 
     JavaPairRDD<RowColumn, Long> reducedTopCounts = topCounts.reduceByKey((i1, i2) -> i1 + i2);
 
@@ -144,29 +137,62 @@ public class IndexUtil {
         sortedTopCounts.filter(t -> !(t._1().getRow().toString().startsWith("d:") && t._1()
             .getColumn().getFamily().toString().equals(Constants.PAGES)));
 
-    JavaPairRDD<RowColumn, Bytes> linkIndex =
-        filteredTopCounts.mapToPair(new PairFunction<Tuple2<RowColumn, Long>, RowColumn, Bytes>() {
-          @Override
-          public Tuple2<RowColumn, Bytes> call(Tuple2<RowColumn, Long> tuple) throws Exception {
-            RowColumn rc = tuple._1();
-            String cf = rc.getColumn().getFamily().toString();
-            String cq = rc.getColumn().getQualifier().toString();
-            byte[] val = tuple._2().toString().getBytes();
-            if (cf.equals(Constants.INLINKS)
-                || (cf.equals(Constants.PAGE) && cq.startsWith(Constants.CUR))) {
-              val = rc.getColumn().getVisibility().toArray();
-            }
-            return new Tuple2<>(new RowColumn(rc.getRow(), new Column(cf, cq)), Bytes.of(val));
+    JavaPairRDD<RowColumn, Bytes> accumuloIndex =
+        filteredTopCounts.mapToPair(tuple -> {
+          RowColumn rc = tuple._1();
+          String cf = rc.getColumn().getFamily().toString();
+          String cq = rc.getColumn().getQualifier().toString();
+          byte[] val = tuple._2().toString().getBytes();
+          if (cf.equals(Constants.INLINKS)
+              || (cf.equals(Constants.PAGE) && cq.startsWith(Constants.CUR))) {
+            val = rc.getColumn().getVisibility().toArray();
           }
+          return new Tuple2<>(new RowColumn(rc.getRow(), new Column(cf, cq)), Bytes.of(val));
         });
 
-    return linkIndex;
+    return accumuloIndex;
   }
 
-  public static JavaPairRDD<RowColumn, Bytes> filterRank(JavaPairRDD<RowColumn, Bytes> linkIndex) {
-    JavaPairRDD<RowColumn, Bytes> filteredLinkIndex =
-        linkIndex.filter(t -> !t._1().getColumn().getFamily().toString().equals(Constants.RANK));
-    return filteredLinkIndex;
+  /**
+   * Creates a Fluo index by filtering out unnecessary data from Accumulo Index
+   */
+  public static JavaPairRDD<RowColumn, Bytes> createFluoIndex(
+      JavaPairRDD<RowColumn, Bytes> accumuloIndex) {
+    JavaPairRDD<RowColumn, Bytes> fluoIndex =
+        accumuloIndex
+            .filter(t -> !t._1().getColumn().getFamily().toString().equals(Constants.RANK));
+    return fluoIndex;
+  }
+
+  /**
+   * Creates an Accumulo index by expanding a Fluo index
+   */
+  public static JavaPairRDD<RowColumn, Bytes> createAccumuloIndex(
+      JavaPairRDD<RowColumn, Bytes> fluoIndex) {
+    JavaPairRDD<RowColumn, Bytes> indexWithRank =
+        fluoIndex.flatMapToPair(kvTuple -> {
+          List<Tuple2<RowColumn, Bytes>> retval = new ArrayList<>();
+          retval.add(kvTuple);
+          RowColumn rc = kvTuple._1();
+          String row = rc.getRow().toString();
+          String cf = rc.getColumn().getFamily().toString();
+          String cq = rc.getColumn().getQualifier().toString();
+          Bytes v = kvTuple._2();
+          if (row.startsWith("p:") && cf.equals(Constants.PAGE) && cq.equals(Constants.INCOUNT)) {
+            String pageUri = row.substring(2);
+            Long num = Long.parseLong(v.toString());
+            Column rankCol =
+                new Column(Constants.RANK, String.format("%s:%s", IndexUtil.revEncodeLong(num),
+                    pageUri));
+            String domain = "d:" + LinkUtil.getReverseTopPrivate(DataUtil.toUrl(pageUri));
+            retval.add(new Tuple2<>(new RowColumn(domain, rankCol), v));
+            retval.add(new Tuple2<>(new RowColumn("t:" + cq, rankCol), v));
+          }
+          return retval;
+        });
+
+    JavaPairRDD<RowColumn, Bytes> accumuloIndex = indexWithRank.sortByKey();
+    return accumuloIndex;
   }
 
   public static String revEncodeLong(Long num) {

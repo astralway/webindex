@@ -1,0 +1,17 @@
+d:com.a|domain|pagecount|1
+d:com.b|domain|pagecount|4
+d:com.c|domain|pagecount|1
+p:com.a/1|page|cur|{"url":"http://a.com/1","numOutbound":3,"outboundLinks":[{"url":"http://b.com/3","anchorText":"b3"},{"url":"http://c.com/1","anchorText":"c1"},{"url":"http://b.com/1","anchorText":"b1"}]}
+p:com.a/1|page|incount|0
+p:com.b|page|cur|{"url":"http://b.com","numOutbound":3,"outboundLinks":[{"url":"http://b.com/2","anchorText":"b2"},{"url":"http://b.com/3","anchorText":"b3"},{"url":"http://c.com/1","anchorText":"c1"}]}
+p:com.b|page|incount|0
+p:com.b/1|inlinks|com.a/1|b1
+p:com.b/1|page|incount|1
+p:com.b/2|inlinks|com.b|b2
+p:com.b/2|page|incount|1
+p:com.b/3|inlinks|com.a/1|b3
+p:com.b/3|inlinks|com.b|b3
+p:com.b/3|page|incount|2
+p:com.c/1|inlinks|com.a/1|c1
+p:com.c/1|inlinks|com.b|c1
+p:com.c/1|page|incount|2
