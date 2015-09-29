@@ -55,16 +55,21 @@ public class IndexUtilTest {
 
   @Test
   public void testDataSet1() throws Exception {
+    // Create pages
     JavaRDD<Page> pages = sc.parallelize(getPagesSet1());
     IndexStats stats = new IndexStats(sc);
+
+    // Create an Accumulo index from pages and verify
     JavaPairRDD<RowColumn, Bytes> accumuloIndex = IndexUtil.createAccumuloIndex(stats, pages);
     verifyRDD(new File("src/test/resources/data/set1/accumulo-data.txt"), accumuloIndex);
 
+    // Use Accumulo index to create Fluo index and verify
     JavaPairRDD<RowColumn, Bytes> fluoIndex = IndexUtil.createFluoIndex(accumuloIndex);
     verifyRDD(new File("src/test/resources/data/set1/fluo-data.txt"), fluoIndex);
 
-    JavaPairRDD<RowColumn, Bytes> reindex = IndexUtil.reindexFluo(fluoIndex);
-    verifyRDD(new File("src/test/resources/data/set1/accumulo-data.txt"), reindex);
+    // Use Fluo index to create Accumulo index and verify
+    JavaPairRDD<RowColumn, Bytes> accumuloIndexRecreated = IndexUtil.createAccumuloIndex(fluoIndex);
+    verifyRDD(new File("src/test/resources/data/set1/accumulo-data.txt"), accumuloIndexRecreated);
   }
 
   public String rcvToString(RowColumn rc, Bytes v) {

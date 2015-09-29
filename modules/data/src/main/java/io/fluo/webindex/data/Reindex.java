@@ -14,28 +14,17 @@
 
 package io.fluo.webindex.data;
 
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-
 import io.fluo.api.data.Bytes;
-import io.fluo.api.data.Column;
 import io.fluo.api.data.RowColumn;
 import io.fluo.mapreduce.FluoEntryInputFormat;
-import io.fluo.webindex.core.Constants;
 import io.fluo.webindex.core.DataConfig;
-import io.fluo.webindex.core.DataUtil;
 import io.fluo.webindex.data.spark.IndexEnv;
 import io.fluo.webindex.data.spark.IndexUtil;
-import io.fluo.webindex.data.util.LinkUtil;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
-import org.apache.spark.api.java.function.PairFlatMapFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import scala.Tuple2;
 
 public class Reindex {
 
@@ -64,12 +53,12 @@ public class Reindex {
     Job job = Job.getInstance(env.getSparkCtx().hadoopConfiguration());
     FluoEntryInputFormat.configure(job, env.getFluoConfig());
 
-    JavaPairRDD<RowColumn, Bytes> fluoData =
+    JavaPairRDD<RowColumn, Bytes> fluoIndex =
         env.getSparkCtx().newAPIHadoopRDD(job.getConfiguration(), FluoEntryInputFormat.class,
             RowColumn.class, Bytes.class);
 
-    JavaPairRDD<RowColumn, Bytes> indexData = IndexUtil.reindexFluo(fluoData);
+    JavaPairRDD<RowColumn, Bytes> accumuloIndex = IndexUtil.createAccumuloIndex(fluoIndex);
 
-    env.saveRowColBytesToAccumulo(indexData);
+    env.saveRowColBytesToAccumulo(accumuloIndex);
   }
 }
