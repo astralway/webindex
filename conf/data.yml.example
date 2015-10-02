@@ -12,19 +12,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Settings that must be changed
+# --------------------------------
 # Fluo Home
 fluoHome: /path/to/fluo/install
-# Fluo Application Name
-fluoApp: webindex
+# Hadoop conf dir
+hadoopConfDir: /path/to/hadoop/conf
+# Number of CC files to copy from AWS to HDFS
+numFilesToCopy: 2
+
+# Settings that you might want to change
+# --------------------------------------
 # Accumulo table where indexes are stored
 accumuloIndexTable: webindex_search
-# WAT HDFS directory
-watDataDir: /cc/data/wat
-# WET HDFS directory
-wetDataDir: /cc/data/wet
-# WARC HDFS directory
-warcDataDir: /cc/data/warc
-# Temporary HDFS output path
+# Common Crawl data type
+ccDataType: wat
+# Server URL of where CC data is hosted
+ccServerUrl: https://aws-publicdatasets.s3.amazonaws.com
+# Path of CC data set to use on server
+ccDataSet: common-crawl/crawl-data/CC-MAIN-2015-18
+# Fluo Application Name
+fluoApp: webindex
+# HDFS temporary directory
 hdfsTempDir: /cc/temp
-# Hadoop conf dir for Spark
-hadoopConfDir: /path/to/hadoop/conf
+# HDFS Input directory
+hdfsDataDir: /cc/data/wat
+# Number of Spark executors
+sparkExecutorInstances: 2
+# Spark executor memory
+sparkExecutorMemory: 1g

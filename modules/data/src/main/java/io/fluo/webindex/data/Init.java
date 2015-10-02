@@ -122,7 +122,7 @@ public class Init {
     IndexStats stats = new IndexStats(env.getSparkCtx());
 
     final JavaPairRDD<Text, ArchiveReader> archives =
-        env.getSparkCtx().newAPIHadoopFile(dataConfig.watDataDir, WARCFileInputFormat.class,
+        env.getSparkCtx().newAPIHadoopFile(dataConfig.hdfsDataDir, WARCFileInputFormat.class,
             Text.class, ArchiveReader.class, new Configuration());
 
     // Create pages RDD from archives
