@@ -13,30 +13,28 @@ machine:
 * Accumulo
 * Fluo
 
-Consider using [fluo-dev] to run these requirments
+Consider using [fluo-dev] to run these requirements
 
 ### Configure your environment
 
-First, you must create `data.yml` and `dropwizard.yml` files and edit them for your environment:
+First, you must create the configuration files `data.yml` and `dropwizard.yml` files in the `conf/` 
+directory and edit them for your environment:
 
-    cd conf
-    cp data.yml.example data.yml
-    cp dropwizard.yml.example dropwizard.yml
+    cp conf/data.yml.example conf/data.yml
+    cp conf/dropwizard.yml.example conf/dropwizard.yml
 
-### Download CommonCrawl data
+### Copy CommonCrawl data from AWS into HDFS
 
-Next, run the following command to download CommonCrawl data files.  The data files can have a `fileType`
-of `wat`, `wet`, or `warc`.  The command downloads a file containing the URL path of thousands of files and
-`numFiles` specifies how many of those files will be downloaded from AWS and loaded into your HDFS instance.
+CommonCrawl data sets are hosted in S3.  The following command will run a Spark job that copies
+data files from AWS into HDFS.  This script is configured by `conf/data.yml` where you can specify
+the HDFS data directory, number of files to copy, and number of executors to run.
 
-     # Command structure
-    ./bin/download.sh <fileType> <numFiles>
-     # Use command below for this example
-    ./bin/download.sh wat 1
+    ./bin/copy.sh
 
 ### Initialize Fluo & Accumulo with data
 
-Next, run the following command to run Fluo and initialize it and Accumulo with data:
+After you have copied data to HDFS, run the following command to run a Spark job that will index
+your data in HDFS and initialize Accumulo and Fluo with data.
 
     ./bin/init.sh
 

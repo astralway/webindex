@@ -14,9 +14,7 @@
 
 package io.fluo.webindex.data.spark;
 
-import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
@@ -37,9 +35,7 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.hadoop.io.Text;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.function.FlatMapFunction;
-import org.apache.spark.api.java.function.PairFlatMapFunction;
-import org.apache.spark.api.java.function.PairFunction;
+import org.apache.spark.storage.StorageLevel;
 import org.archive.io.ArchiveReader;
 import org.archive.io.ArchiveRecord;
 import scala.Tuple2;
@@ -56,9 +52,9 @@ public class IndexUtil {
    * Creates an RDD of pages from an RDD archive
    */
   public static JavaRDD<Page> createPages(JavaPairRDD<Text, ArchiveReader> archives) {
-    JavaRDD<ArchiveRecord> records = archives.flatMap(tuple -> tuple._2());
-    JavaRDD<Page> pages = records.map(r -> ArchiveUtil.buildPageIgnoreErrors(r));
-    return pages;
+    int numPartitions = 10 * (int) archives.count();
+    JavaRDD<ArchiveRecord> records = archives.flatMap(Tuple2::_2);
+    return records.map(ArchiveUtil::buildPageIgnoreErrors).repartition(numPartitions);
   }
 
   /**
@@ -80,12 +76,12 @@ public class IndexUtil {
           List<Tuple2<RowColumn, Long>> ret = new ArrayList<>();
           String pageUri = page.getUri();
           String pageDomain = LinkUtil.getReverseTopPrivate(page.getUrl());
-          final Long one = new Long(1);
+          final Long one = (long) 1;
           if (links1.size() > 0) {
-            addRCV(ret, "p:" + pageUri, FluoConstants.PAGE_INCOUNT_COL, new Long(0));
+            addRCV(ret, "p:" + pageUri, FluoConstants.PAGE_INCOUNT_COL, (long) 0);
             addRCV(ret, "p:" + pageUri,
                 new Column(Constants.PAGE, Constants.CUR, gson.toJson(page)), one);
-            addRCV(ret, "d:" + pageDomain, new Column(Constants.PAGES, pageUri), new Long(0));
+            addRCV(ret, "d:" + pageDomain, new Column(Constants.PAGES, pageUri), (long) 0);
           }
           for (Page.Link link : links1) {
             String linkUri = link.getUri();
@@ -102,7 +98,7 @@ public class IndexUtil {
 
     JavaPairRDD<RowColumn, Long> sortedLinkCounts = linkCounts.sortByKey();
 
-    final Long one = new Long(1);
+    final Long one = (long) 1;
     JavaPairRDD<RowColumn, Long> topCounts =
         sortedLinkCounts.flatMapToPair(t -> {
           List<Tuple2<RowColumn, Long>> ret = new ArrayList<>();
@@ -137,20 +133,17 @@ public class IndexUtil {
         sortedTopCounts.filter(t -> !(t._1().getRow().toString().startsWith("d:") && t._1()
             .getColumn().getFamily().toString().equals(Constants.PAGES)));
 
-    JavaPairRDD<RowColumn, Bytes> accumuloIndex =
-        filteredTopCounts.mapToPair(tuple -> {
-          RowColumn rc = tuple._1();
-          String cf = rc.getColumn().getFamily().toString();
-          String cq = rc.getColumn().getQualifier().toString();
-          byte[] val = tuple._2().toString().getBytes();
-          if (cf.equals(Constants.INLINKS)
-              || (cf.equals(Constants.PAGE) && cq.startsWith(Constants.CUR))) {
-            val = rc.getColumn().getVisibility().toArray();
-          }
-          return new Tuple2<>(new RowColumn(rc.getRow(), new Column(cf, cq)), Bytes.of(val));
-        });
-
-    return accumuloIndex;
+    return filteredTopCounts.mapToPair(tuple -> {
+      RowColumn rc = tuple._1();
+      String cf = rc.getColumn().getFamily().toString();
+      String cq = rc.getColumn().getQualifier().toString();
+      byte[] val = tuple._2().toString().getBytes();
+      if (cf.equals(Constants.INLINKS)
+          || (cf.equals(Constants.PAGE) && cq.startsWith(Constants.CUR))) {
+        val = rc.getColumn().getVisibility().toArray();
+      }
+      return new Tuple2<>(new RowColumn(rc.getRow(), new Column(cf, cq)), Bytes.of(val));
+    });
   }
 
   /**
@@ -158,10 +151,8 @@ public class IndexUtil {
    */
   public static JavaPairRDD<RowColumn, Bytes> createFluoIndex(
       JavaPairRDD<RowColumn, Bytes> accumuloIndex) {
-    JavaPairRDD<RowColumn, Bytes> fluoIndex =
-        accumuloIndex
-            .filter(t -> !t._1().getColumn().getFamily().toString().equals(Constants.RANK));
-    return fluoIndex;
+    return accumuloIndex.filter(t -> !t._1().getColumn().getFamily().toString()
+        .equals(Constants.RANK));
   }
 
   /**
@@ -191,8 +182,7 @@ public class IndexUtil {
           return retval;
         });
 
-    JavaPairRDD<RowColumn, Bytes> accumuloIndex = indexWithRank.sortByKey();
-    return accumuloIndex;
+    return indexWithRank.sortByKey();
   }
 
   public static String revEncodeLong(Long num) {
