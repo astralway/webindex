@@ -27,12 +27,11 @@ public class DataConfigTest {
     Assert.assertEquals("webindex_search", config.accumuloIndexTable);
     Assert.assertEquals("/path/to/fluo/install/apps/webindex/conf/fluo.properties",
         config.getFluoPropsPath());
-    Assert.assertEquals("wat", config.ccDataType);
     Assert.assertEquals("https://aws-publicdatasets.s3.amazonaws.com", config.ccServerUrl);
-    Assert.assertEquals("common-crawl/crawl-data/CC-MAIN-2015-18", config.ccDataSet);
+    Assert.assertEquals("common-crawl/crawl-data/CC-MAIN-2015-18/wat.paths.gz", config.ccDataPaths);
     Assert.assertEquals("webindex", config.fluoApp);
     Assert.assertEquals("/cc/temp", config.hdfsTempDir);
-    Assert.assertEquals("/cc/data/wat", config.hdfsDataDir);
+    Assert.assertEquals("/cc/data/2015-18", config.hdfsDataDir);
     Assert.assertEquals(2, config.sparkExecutorInstances);
     Assert.assertEquals("1g", config.sparkExecutorMemory);
     Assert.assertEquals(2, config.numFilesToCopy);

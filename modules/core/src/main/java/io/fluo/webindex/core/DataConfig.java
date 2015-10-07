@@ -24,9 +24,8 @@ public class DataConfig {
   public String hadoopConfDir;
   public int numFilesToCopy;
   public String accumuloIndexTable;
-  public String ccDataType;
   public String ccServerUrl;
-  public String ccDataSet;
+  public String ccDataPaths;
   public String fluoApp;
   public String hdfsDataDir;
   public String hdfsTempDir;

@@ -15,25 +15,24 @@
 package io.fluo.webindex.data;
 
 import java.io.BufferedInputStream;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URL;
 
 import io.fluo.webindex.core.DataConfig;
-import io.fluo.webindex.data.spark.IndexEnv;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.JavaSparkContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Copy {
 
   private static final Logger log = LoggerFactory.getLogger(Copy.class);
-
-  private static IndexEnv env;
 
   public static String addSlash(String prefix) {
     if (!prefix.endsWith("/")) {
@@ -42,66 +41,79 @@ public class Copy {
     return prefix;
   }
 
+  public static String getFilename(String fullPath) {
+    int slashIndex = fullPath.lastIndexOf("/");
+    if (slashIndex == -1) {
+      return fullPath;
+    }
+    return fullPath.substring(slashIndex + 1);
+  }
+
+  public static FileSystem getHDFS(String hadoopConfDir) throws IOException {
+    Configuration config = new Configuration();
+    config.addResource(hadoopConfDir);
+    return FileSystem.get(config);
+  }
+
   public static void main(String[] args) throws Exception {
 
-    if (args.length != 2) {
-      log.error("Usage: Copy <dataConfigPath> <ccPathsFile>");
+    if (args.length != 1) {
+      log.error("Usage: Copy <dataConfigPath>");
       System.exit(1);
     }
     DataConfig dataConfig = DataConfig.load(args[0]);
-    String ccPathsFile = args[1];
 
-    try {
-      SparkConf sparkConf = new SparkConf().setAppName("CC-Load");
-      env = new IndexEnv(dataConfig, sparkConf);
-    } catch (Exception e) {
-      log.error("Env setup failed due to exception", e);
-      System.exit(-1);
-    }
+    SparkConf sparkConf = new SparkConf().setAppName("CC-Copy");
+    JavaSparkContext ctx = new JavaSparkContext(sparkConf);
 
     Path dataDirPath = new Path(dataConfig.hdfsDataDir);
-    if (!env.getHdfs().exists(dataDirPath)) {
-      env.getHdfs().mkdirs(dataDirPath);
+
+    FileSystem hdfs = FileSystem.get(ctx.hadoopConfiguration());
+    if (!hdfs.exists(dataDirPath)) {
+      hdfs.mkdirs(dataDirPath);
     }
 
     log.info("Copying {} files from AWS to HDFS using {} executors", dataConfig.numFilesToCopy,
         dataConfig.sparkExecutorInstances);
 
-    JavaRDD<String> allFiles = env.getSparkCtx().textFile(ccPathsFile);
-
-    JavaRDD<String> filesToLoad =
-        env.getSparkCtx().parallelize(allFiles.takeOrdered(dataConfig.numFilesToCopy));
-
-    final String urlPrefix = addSlash(dataConfig.ccServerUrl);
     final String dataDir = addSlash(dataConfig.hdfsDataDir);
+    final String urlPrefix = addSlash(dataConfig.ccServerUrl);
     final String hadoopConfDir = dataConfig.hadoopConfDir;
 
-    filesToLoad.foreach(ccPath -> {
-
-      int slashIndex = ccPath.lastIndexOf("/");
-      if (slashIndex == -1) {
-        log.error("CC Path does not contain slash: {}", ccPath);
-        return;
+    String fileSetUrl = urlPrefix + dataConfig.ccDataPaths;
+    Path fileSetPath = new Path(dataDir + "paths.gz");
+    if (!hdfs.exists(fileSetPath)) {
+      try (OutputStream out = hdfs.create(fileSetPath);
+          BufferedInputStream in = new BufferedInputStream(new URL(fileSetUrl).openStream())) {
+        IOUtils.copy(in, out);
       }
-      String fn = ccPath.substring(slashIndex + 1);
+      log.info("Copied URL {} to HDFS {}", fileSetUrl, fileSetPath);
+    }
+    JavaRDD<String> allFiles = ctx.textFile(fileSetPath.toString());
 
-      Configuration config = new Configuration();
-      config.addResource(hadoopConfDir);
-      Path dfsPath = new Path(dataDir + fn);
-      FileSystem hdfs = FileSystem.get(config);
-      if (hdfs.exists(dfsPath)) {
-        log.info("File {} already exists in HDFS", dfsPath.getName());
+    JavaRDD<String> filesToCopy =
+        ctx.parallelize(allFiles.takeOrdered(dataConfig.numFilesToCopy)).repartition(
+            dataConfig.numFilesToCopy);
+
+    filesToCopy.foreach(ccPath -> {
+      String fn = getFilename(ccPath);
+      FileSystem fs = getHDFS(hadoopConfDir);
+      Path dfsPath = new Path(dataDir + "data/" + fn);
+      if (fs.exists(dfsPath)) {
+        log.error("File {} exists in HDFS and should have been previously filtered",
+            dfsPath.getName());
         return;
       }
 
       String urlToCopy = urlPrefix + ccPath;
       log.info("Starting copy of {} to HDFS", urlToCopy);
 
-      try (OutputStream out = hdfs.create(dfsPath);
-          BufferedInputStream in = new BufferedInputStream(new URL(urlToCopy).openStream())) {
-        IOUtils.copy(in, out);
-      }
-      log.info("Created {}", dfsPath.getName());
-    });
+      // Set replication factor to 1 as we can always recover file from AWS
+        try (OutputStream out = fs.create(dfsPath, (short) 1);
+            BufferedInputStream in = new BufferedInputStream(new URL(urlToCopy).openStream())) {
+          IOUtils.copy(in, out);
+        }
+        log.info("Created {}", dfsPath.getName());
+      });
   }
 }
