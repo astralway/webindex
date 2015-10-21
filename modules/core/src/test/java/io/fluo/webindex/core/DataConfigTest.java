@@ -23,7 +23,6 @@ public class DataConfigTest {
   public void testBasic() throws Exception {
     DataConfig config = DataConfig.load("../../conf/data.yml.example");
     Assert.assertEquals("/path/to/fluo/install", config.fluoHome);
-    Assert.assertEquals("/path/to/hadoop/conf", config.hadoopConfDir);
     Assert.assertEquals("webindex_search", config.accumuloIndexTable);
     Assert.assertEquals("/path/to/fluo/install/apps/webindex/conf/fluo.properties",
         config.getFluoPropsPath());
@@ -35,5 +34,6 @@ public class DataConfigTest {
     Assert.assertEquals(2, config.sparkExecutorInstances);
     Assert.assertEquals("1g", config.sparkExecutorMemory);
     Assert.assertEquals(2, config.numFilesToCopy);
+    Assert.assertEquals(false, config.calculateAccumuloSplits);
   }
 }

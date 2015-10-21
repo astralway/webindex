@@ -15,8 +15,8 @@
 package io.fluo.webindex.data.spark;
 
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -32,13 +32,9 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import scala.Tuple2;
 
 public class IndexUtilTest {
-
-  private static final Logger log = LoggerFactory.getLogger(IndexUtilTest.class);
 
   private transient JavaSparkContext sc;
 
@@ -61,15 +57,15 @@ public class IndexUtilTest {
 
     // Create an Accumulo index from pages and verify
     JavaPairRDD<RowColumn, Bytes> accumuloIndex = IndexUtil.createAccumuloIndex(stats, pages);
-    verifyRDD(new File("src/test/resources/data/set1/accumulo-data.txt"), accumuloIndex);
+    verifyRDD("data/set1/accumulo-data.txt", accumuloIndex);
 
     // Use Accumulo index to create Fluo index and verify
     JavaPairRDD<RowColumn, Bytes> fluoIndex = IndexUtil.createFluoIndex(accumuloIndex);
-    verifyRDD(new File("src/test/resources/data/set1/fluo-data.txt"), fluoIndex);
+    verifyRDD("data/set1/fluo-data.txt", fluoIndex);
 
     // Use Fluo index to create Accumulo index and verify
     JavaPairRDD<RowColumn, Bytes> accumuloIndexRecreated = IndexUtil.createAccumuloIndex(fluoIndex);
-    verifyRDD(new File("src/test/resources/data/set1/accumulo-data.txt"), accumuloIndexRecreated);
+    verifyRDD("data/set1/accumulo-data.txt", accumuloIndexRecreated);
   }
 
   public String rcvToString(RowColumn rc, Bytes v) {
@@ -84,9 +80,11 @@ public class IndexUtilTest {
     }
   }
 
-  public void verifyRDD(File expected, JavaPairRDD<RowColumn, Bytes> actual) throws Exception {
+  public void verifyRDD(String expectedFilename, JavaPairRDD<RowColumn, Bytes> actual)
+      throws Exception {
     List<String> expectedList = new ArrayList<>();
-    try (BufferedReader br = new BufferedReader(new FileReader(expected))) {
+    InputStream is = getClass().getClassLoader().getResourceAsStream(expectedFilename);
+    try (BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
       String line;
       while ((line = br.readLine()) != null) {
         expectedList.add(line);

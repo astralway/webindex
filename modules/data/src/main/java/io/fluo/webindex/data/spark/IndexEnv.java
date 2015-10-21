@@ -14,8 +14,13 @@
 
 package io.fluo.webindex.data.spark;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 import com.google.common.base.Preconditions;
 import io.fluo.api.config.FluoConfiguration;
@@ -34,6 +39,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
@@ -71,21 +77,60 @@ public class IndexEnv {
     accumuloTempDir = new Path(dataConfig.hdfsTempDir + "/accumulo");
   }
 
-  public void initAccumuloIndexTable() throws AccumuloSecurityException, AccumuloException,
-      TableNotFoundException, TableExistsException {
-    if (conn.tableOperations().exists(dataConfig.accumuloIndexTable)) {
-      conn.tableOperations().delete(dataConfig.accumuloIndexTable);
+  public static SortedSet<Text> getDefaultSplits() {
+    SortedSet<Text> splits = new TreeSet<>();
+    InputStream is = IndexEnv.class.getClassLoader().getResourceAsStream("default-splits.txt");
+    try {
+      try (BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
+        String line;
+        while ((line = br.readLine()) != null) {
+          splits.add(new Text(line));
+        }
+      }
+    } catch (IOException e) {
+      log.error("Failed to read default-splits.txt resource", e);
+      System.exit(-1);
     }
-    conn.tableOperations().create(dataConfig.accumuloIndexTable);
+    return splits;
   }
 
-  public void makeHdfsTempDirs() throws IOException {
-    Path tempDir = new Path(dataConfig.hdfsTempDir);
-    if (!hdfs.exists(tempDir)) {
-      hdfs.mkdirs(tempDir);
+  public void initAccumuloIndexTable(SortedSet<Text> splits) {
+    final String table = dataConfig.accumuloIndexTable;
+    if (conn.tableOperations().exists(table)) {
+      try {
+        conn.tableOperations().delete(table);
+      } catch (TableNotFoundException | AccumuloSecurityException | AccumuloException e) {
+        throw new IllegalStateException("Failed to delete Accumulo table " + table, e);
+      }
     }
-    if (!hdfs.exists(failuresDir)) {
-      hdfs.mkdirs(failuresDir);
+    try {
+      conn.tableOperations().create(table);
+    } catch (AccumuloException | AccumuloSecurityException | TableExistsException e) {
+      throw new IllegalStateException("Failed to create Accumulo table " + table, e);
+    }
+
+    try {
+      conn.tableOperations().addSplits(dataConfig.accumuloIndexTable, splits);
+    } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
+      throw new IllegalStateException("Failed to add splits to Accumulo table " + table, e);
+    }
+  }
+
+  public void initAccumuloIndexTable() {
+    initAccumuloIndexTable(getDefaultSplits());
+  }
+
+  public void makeHdfsTempDirs() {
+    Path tempDir = new Path(dataConfig.hdfsTempDir);
+    try {
+      if (!hdfs.exists(tempDir)) {
+        hdfs.mkdirs(tempDir);
+      }
+      if (!hdfs.exists(failuresDir)) {
+        hdfs.mkdirs(failuresDir);
+      }
+    } catch (IOException e) {
+      throw new IllegalStateException("Failed to create HDFS temp dirs", e);
     }
   }
 

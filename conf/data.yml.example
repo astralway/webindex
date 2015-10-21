@@ -16,8 +16,6 @@
 # --------------------------------
 # Fluo Home
 fluoHome: /path/to/fluo/install
-# Hadoop conf dir
-hadoopConfDir: /path/to/hadoop/conf
 # Number of CC files to copy from AWS to HDFS
 numFilesToCopy: 2
 
@@ -39,3 +37,6 @@ hdfsDataDir: /cc/data/2015-18
 sparkExecutorInstances: 2
 # Spark executor memory
 sparkExecutorMemory: 1g
+# Init will calculate Accumulo splits from dataset if set to true
+# If false, default splits are used when creating Accumulo index table
+calculateAccumuloSplits: false

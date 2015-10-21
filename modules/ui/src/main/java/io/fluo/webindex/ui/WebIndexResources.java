@@ -255,43 +255,37 @@ public class WebIndexResources {
   @GET
   @Path("top")
   @Produces({MediaType.TEXT_HTML, MediaType.APPLICATION_JSON})
-  public TopView getTop(@NotNull @QueryParam("resultType") String resultType,
-      @DefaultValue("") @QueryParam("next") String next,
+  public TopView getTop(@DefaultValue("") @QueryParam("next") String next,
       @DefaultValue("0") @QueryParam("pageNum") Integer pageNum) {
 
     TopResults results = new TopResults();
-    if (resultType.equals(Constants.INCOUNT)) {
-      results.setResultType(resultType);
-      results.setPageNum(pageNum);
-      try {
-        Scanner scanner = conn.createScanner(dataConfig.accumuloIndexTable, Authorizations.EMPTY);
-        String row = "t:" + resultType;
-        String cf = Constants.RANK;
-        Pager pager = new Pager(scanner, Range.exact(row, cf), PAGE_SIZE) {
 
-          @Override
-          public void foundPageEntry(Map.Entry<Key, Value> entry) {
-            String url =
-                DataUtil.toUrl(entry.getKey().getColumnQualifier().toString().split(":", 2)[1]);
-            Long num = Long.parseLong(entry.getValue().toString());
-            results.addResult(url, num);
-          }
+    results.setPageNum(pageNum);
+    try {
+      Scanner scanner = conn.createScanner(dataConfig.accumuloIndexTable, Authorizations.EMPTY);
+      Pager pager = new Pager(scanner, Range.prefix("t:"), PAGE_SIZE) {
 
-          @Override
-          public void foundNextEntry(Map.Entry<Key, Value> entry) {
-            results.setNext(entry.getKey().getColumnQualifier().toString());
-          }
-        };
-        if (next.isEmpty()) {
-          pager.getPage(pageNum);
-        } else {
-          pager.getPage(new Key(row, cf, next));
+        @Override
+        public void foundPageEntry(Map.Entry<Key, Value> entry) {
+          String row = entry.getKey().getRow().toString();
+          String url = DataUtil.toUrl(row.split(":", 3)[2]);
+          Long num = Long.parseLong(entry.getValue().toString());
+          results.addResult(url, num);
         }
-      } catch (TableNotFoundException e) {
-        log.error("Table {} not found", dataConfig.accumuloIndexTable);
-      }
-    }
 
+        @Override
+        public void foundNextEntry(Map.Entry<Key, Value> entry) {
+          results.setNext(entry.getKey().getRow().toString());
+        }
+      };
+      if (next.isEmpty()) {
+        pager.getPage(pageNum);
+      } else {
+        pager.getPage(new Key(next));
+      }
+    } catch (TableNotFoundException e) {
+      log.error("Table {} not found", dataConfig.accumuloIndexTable);
+    }
     return new TopView(results);
   }
 }

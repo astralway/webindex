@@ -15,7 +15,7 @@
 </div>
 <div class="row">
   <div class="col-md-6 col-md-offset-3" style="margin-top: 20px">
-    <p><b>View top pages by <a href="/top?resultType=incount">Inbound Links</a></p>
+    <p><b>View pages with the most <a href="/top">Inbound Links</a></p>
   </div>
 </div>
 <#include "common/footer.ftl">

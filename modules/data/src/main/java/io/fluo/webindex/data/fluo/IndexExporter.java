@@ -37,7 +37,7 @@ public class IndexExporter extends AccumuloExporter<Bytes, TxLog> {
   private static final Logger log = LoggerFactory.getLogger(IndexExporter.class);
   public static final String QUEUE_ID = "webIndexQ";
 
-  public static void deleteRankIndex(Map<Bytes, Mutation> mutations, Bytes row, String pageUri,
+  public static void deleteDomainIndex(Map<Bytes, Mutation> mutations, Bytes row, String pageUri,
       long seq, Long prev) {
     if (prev != null) {
       Mutation m = mutations.computeIfAbsent(row, k -> new Mutation(k.toArray()));
@@ -47,15 +47,38 @@ public class IndexExporter extends AccumuloExporter<Bytes, TxLog> {
     }
   }
 
-  public static void updateRankIndex(Map<Bytes, Mutation> mutations, Bytes row, String pageUri,
+  public static void updateDomainIndex(Map<Bytes, Mutation> mutations, Bytes row, String pageUri,
       long seq, Long prev, Long cur) {
     if (!cur.equals(prev)) {
-      deleteRankIndex(mutations, row, pageUri, seq, prev);
+      deleteDomainIndex(mutations, row, pageUri, seq, prev);
       Mutation m = mutations.computeIfAbsent(row, k -> new Mutation(k.toArray()));
       String cf = String.format("%s:%s", IndexUtil.revEncodeLong(cur), pageUri);
       m.put(Constants.RANK.getBytes(), cf.getBytes(), seq, cur.toString().getBytes());
       log.debug("Adding rank index for row {} cf {} seq {} val {}", row.toString(), cf, seq,
           cur.toString());
+    }
+  }
+
+  public static void deleteTotalIndex(Map<Bytes, Mutation> mutations, String pageUri, long seq,
+      Long prev) {
+    if (prev != null) {
+      Bytes row = Bytes.of(String.format("t:%s:%s", IndexUtil.revEncodeLong(prev), pageUri));
+      Mutation m = mutations.computeIfAbsent(row, k -> new Mutation(k.toArray()));
+      String cf = String.format("%s:%s", IndexUtil.revEncodeLong(prev), pageUri);
+      m.putDelete(Column.EMPTY.getFamily().toArray(), Column.EMPTY.getQualifier().toArray(), seq);
+      log.debug("Deleted total index at row {} seq {}", row.toString(), seq);
+    }
+  }
+
+  public static void updateTotalIndex(Map<Bytes, Mutation> mutations, String pageUri, long seq,
+      Long prev, Long cur) {
+    if (!cur.equals(prev)) {
+      deleteTotalIndex(mutations, pageUri, seq, prev);
+      Bytes row = Bytes.of(String.format("t:%s:%s", IndexUtil.revEncodeLong(cur), pageUri));
+      Mutation m = mutations.computeIfAbsent(row, k -> new Mutation(k.toArray()));
+      m.put(Column.EMPTY.getFamily().toArray(), Column.EMPTY.getQualifier().toArray(), seq, cur
+          .toString().getBytes());
+      log.debug("Adding total index for row {} seq {} val {}", row.toString(), seq, cur.toString());
     }
   }
 
@@ -99,19 +122,18 @@ public class IndexExporter extends AccumuloExporter<Bytes, TxLog> {
         if (!domainRow.equals(Bytes.EMPTY)) {
           if (op.equals(LogEntry.Operation.SET)) {
             Long cur = Long.parseLong(val.toString());
-            updateRankIndex(mutations, domainRow, pageUri, seq, prev, cur);
+            updateDomainIndex(mutations, domainRow, pageUri, seq, prev, cur);
           } else {
-            deleteRankIndex(mutations, domainRow, pageUri, seq, prev);
+            deleteDomainIndex(mutations, domainRow, pageUri, seq, prev);
           }
         }
 
         // update total counts
-        Bytes totalRow = Bytes.of("t:" + Constants.INCOUNT);
         if (op.equals(LogEntry.Operation.SET)) {
           Long cur = Long.parseLong(val.toString());
-          updateRankIndex(mutations, totalRow, pageUri, seq, prev, cur);
+          updateTotalIndex(mutations, pageUri, seq, prev, cur);
         } else {
-          deleteRankIndex(mutations, totalRow, pageUri, seq, prev);
+          deleteTotalIndex(mutations, pageUri, seq, prev);
         }
       }
     }

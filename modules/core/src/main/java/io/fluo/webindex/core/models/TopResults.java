@@ -19,18 +19,9 @@ import java.util.List;
 
 public class TopResults {
 
-  private String resultType;
   private String next = "";
   private Integer pageNum;
   private List<Result> results = new ArrayList<>();
-
-  public String getResultType() {
-    return resultType;
-  }
-
-  public void setResultType(String resultType) {
-    this.resultType = resultType;
-  }
 
   public Integer getPageNum() {
     return pageNum;

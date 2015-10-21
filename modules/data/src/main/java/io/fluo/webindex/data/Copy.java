@@ -15,6 +15,7 @@
 package io.fluo.webindex.data;
 
 import java.io.BufferedInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URL;
@@ -61,6 +62,16 @@ public class Copy {
       log.error("Usage: Copy <dataConfigPath>");
       System.exit(1);
     }
+
+    final String hadoopConfDir = System.getenv("HADOOP_CONF_DIR");
+    if (hadoopConfDir == null) {
+      log.error("HADOOP_CONF_DIR must be set in environment!");
+      System.exit(1);
+    }
+    if (!(new File(hadoopConfDir).exists())) {
+      log.error("Directory set by HADOOP_CONF_DIR={} does not exist", hadoopConfDir);
+      System.exit(1);
+    }
     DataConfig dataConfig = DataConfig.load(args[0]);
 
     SparkConf sparkConf = new SparkConf().setAppName("CC-Copy");
@@ -78,7 +89,6 @@ public class Copy {
 
     final String dataDir = addSlash(dataConfig.hdfsDataDir);
     final String urlPrefix = addSlash(dataConfig.ccServerUrl);
-    final String hadoopConfDir = dataConfig.hadoopConfDir;
 
     String fileSetUrl = urlPrefix + dataConfig.ccDataPaths;
     Path fileSetPath = new Path(dataDir + "paths.gz");
@@ -108,12 +118,11 @@ public class Copy {
       String urlToCopy = urlPrefix + ccPath;
       log.info("Starting copy of {} to HDFS", urlToCopy);
 
-      // Set replication factor to 1 as we can always recover file from AWS
-        try (OutputStream out = fs.create(dfsPath, (short) 1);
-            BufferedInputStream in = new BufferedInputStream(new URL(urlToCopy).openStream())) {
-          IOUtils.copy(in, out);
-        }
-        log.info("Created {}", dfsPath.getName());
-      });
+      try (OutputStream out = fs.create(dfsPath);
+          BufferedInputStream in = new BufferedInputStream(new URL(urlToCopy).openStream())) {
+        IOUtils.copy(in, out);
+      }
+      log.info("Created {}", dfsPath.getName());
+    });
   }
 }

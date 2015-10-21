@@ -35,6 +35,7 @@ public class WebIndexConfig extends Configuration {
   }
 
   public DataConfig getDataConfig() {
+    System.out.println(dataConfigPath);
     return DataConfig.load(dataConfigPath);
   }
 }

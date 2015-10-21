@@ -223,6 +223,7 @@
               <exclude>docs/**.md</exclude>
               <exclude>src/test/resources/*.warc</exclude>
               <exclude>src/test/resources/data/set1/*.txt</exclude>
+              <exclude>src/main/resources/default-splits.txt</exclude>
               <exclude>src/main/resources/io/fluo/webindex/ui/views/*.ftl</exclude>
               <exclude>src/main/resources/io/fluo/webindex/ui/views/common/*.ftl</exclude>
               <exclude>data/*</exclude>

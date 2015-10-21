@@ -30,8 +30,6 @@ public class Reindex {
 
   private static final Logger log = LoggerFactory.getLogger(Reindex.class);
 
-  private static IndexEnv env;
-
   public static void main(String[] args) throws Exception {
 
     if (args.length != 1) {
@@ -40,15 +38,9 @@ public class Reindex {
     }
     DataConfig dataConfig = DataConfig.load(args[0]);
 
-    try {
-      SparkConf sparkConf = new SparkConf().setAppName("CC-Reindex");
-      env = new IndexEnv(dataConfig, sparkConf);
-      env.initAccumuloIndexTable();
-      env.makeHdfsTempDirs();
-    } catch (Exception e) {
-      log.error("Env setup failed due to exception", e);
-      System.exit(-1);
-    }
+    SparkConf sparkConf = new SparkConf().setAppName("CC-Reindex");
+    IndexEnv env = new IndexEnv(dataConfig, sparkConf);
+    env.makeHdfsTempDirs();
 
     Job job = Job.getInstance(env.getSparkCtx().hadoopConfiguration());
     FluoEntryInputFormat.configure(job, env.getFluoConfig());
@@ -58,6 +50,13 @@ public class Reindex {
             RowColumn.class, Bytes.class);
 
     JavaPairRDD<RowColumn, Bytes> accumuloIndex = IndexUtil.createAccumuloIndex(fluoIndex);
+
+    // Initialize Accumulo index table with default splits or splits calculated from data
+    if (dataConfig.calculateAccumuloSplits) {
+      env.initAccumuloIndexTable(IndexUtil.calculateSplits(accumuloIndex, 100));
+    } else {
+      env.initAccumuloIndexTable(IndexEnv.getDefaultSplits());
+    }
 
     env.saveRowColBytesToAccumulo(accumuloIndex);
   }
