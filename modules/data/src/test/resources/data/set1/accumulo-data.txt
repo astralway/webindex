@@ -21,9 +21,9 @@ p:com.b/3|page|incount|2
 p:com.c/1|inlinks|com.a/1|c1
 p:com.c/1|inlinks|com.b|c1
 p:com.c/1|page|incount|2
-t:incount|rank|fefdfdff:com.b/3|2
-t:incount|rank|fefdfdff:com.c/1|2
-t:incount|rank|fefdfefdff:com.b/1|1
-t:incount|rank|fefdfefdff:com.b/2|1
-t:incount|rank|fefeff:com.a/1|0
-t:incount|rank|fefeff:com.b|0
+t:fefdfdff:com.b/3|||2
+t:fefdfdff:com.c/1|||2
+t:fefdfefdff:com.b/1|||1
+t:fefdfefdff:com.b/2|||1
+t:fefeff:com.a/1|||0
+t:fefeff:com.b|||0

@@ -84,7 +84,7 @@ public class DataUtil {
   public static String toUri(URL url) {
     StringBuilder uri = new StringBuilder();
 
-    uri.append(getReverseHost(url.getHost()));
+    uri.append(getReverseHost(url.getHost().toLowerCase()));
 
     if (url.getProtocol().equalsIgnoreCase("https")) {
       uri.append(":s");

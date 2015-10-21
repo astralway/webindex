@@ -16,8 +16,6 @@
 # --------------------------------
 # Fluo Home
 fluoHome: /path/to/fluo/install
-# Hadoop conf dir
-hadoopConfDir: /path/to/hadoop/conf
 # Number of CC files to copy from AWS to HDFS
 numFilesToCopy: 2
 
@@ -25,19 +23,20 @@ numFilesToCopy: 2
 # --------------------------------------
 # Accumulo table where indexes are stored
 accumuloIndexTable: webindex_search
-# Common Crawl data type
-ccDataType: wat
-# Server URL of where CC data is hosted
+# Server URL of where Common Crawl data is hosted
 ccServerUrl: https://aws-publicdatasets.s3.amazonaws.com
-# Path of CC data set to use on server
-ccDataSet: common-crawl/crawl-data/CC-MAIN-2015-18
+# Location of Common Crawl paths file to use
+ccDataPaths: common-crawl/crawl-data/CC-MAIN-2015-18/wat.paths.gz
 # Fluo Application Name
 fluoApp: webindex
 # HDFS temporary directory
 hdfsTempDir: /cc/temp
 # HDFS Input directory
-hdfsDataDir: /cc/data/wat
+hdfsDataDir: /cc/data/2015-18
 # Number of Spark executors
 sparkExecutorInstances: 2
 # Spark executor memory
 sparkExecutorMemory: 1g
+# Init will calculate Accumulo splits from dataset if set to true
+# If false, default splits are used when creating Accumulo index table
+calculateAccumuloSplits: false

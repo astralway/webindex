@@ -38,7 +38,7 @@ public class WebIndexApp extends Application<WebIndexConfig> {
 
   @Override
   public void initialize(Bootstrap<WebIndexConfig> bootstrap) {
-    bootstrap.addBundle(new ViewBundle<WebIndexConfig>());
+    bootstrap.addBundle(new ViewBundle<>());
   }
 
   @Override

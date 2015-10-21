@@ -21,18 +21,16 @@ import com.esotericsoftware.yamlbeans.YamlReader;
 public class DataConfig {
 
   public String fluoHome;
-  public String hadoopConfDir;
   public int numFilesToCopy;
   public String accumuloIndexTable;
-  public String ccDataType;
   public String ccServerUrl;
-  public String ccDataSet;
+  public String ccDataPaths;
   public String fluoApp;
   public String hdfsDataDir;
   public String hdfsTempDir;
   public int sparkExecutorInstances;
   public String sparkExecutorMemory;
-
+  public boolean calculateAccumuloSplits;
 
   public String getFluoPropsPath() {
     return fluoHome + "/apps/" + fluoApp + "/conf/fluo.properties";

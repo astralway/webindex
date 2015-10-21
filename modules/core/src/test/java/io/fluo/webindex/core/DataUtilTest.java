@@ -38,7 +38,7 @@ public class DataUtilTest {
     Assert.assertEquals("http://example.com:83?a&b", DataUtil.toUrl("com.example:83?a&b"));
     Assert.assertEquals("http://example.com#a&b", DataUtil.toUrl("com.example#a&b"));
 
-    Assert.assertEquals("com.example:83?a&b", DataUtil.toUri("http://example.com:83?a&b"));
+    Assert.assertEquals("com.example:83?A&B", DataUtil.toUri("http://EXAMPLE.COM:83?A&B"));
     Assert.assertEquals("com.example:83#a&b", DataUtil.toUri("http://example.com:83#a&b"));
     Assert.assertEquals("com.example.b.a/page?1&2",
         DataUtil.toUri("http://a.b.example.com/page?1&2"));
@@ -47,9 +47,9 @@ public class DataUtilTest {
     Assert
         .assertEquals("com.example/1/2/3?c&d&e", DataUtil.toUri("http://example.com/1/2/3?c&d&e"));
     Assert.assertEquals("com.example.b.a", DataUtil.toUri("http://a.b.example.com"));
-    Assert.assertEquals("com.example.b.a:s/", DataUtil.toUri("https://a.b.example.com/"));
-    Assert.assertEquals("com.example.b.a:s8329/", DataUtil.toUri("https://a.b.example.com:8329/"));
-    Assert.assertEquals("com.example.b.a:8333/", DataUtil.toUri("http://a.b.example.com:8333/"));
+    Assert.assertEquals("com.example.b.a:s/", DataUtil.toUri("https://A.b.example.com/"));
+    Assert.assertEquals("com.example.b.a:s8329/", DataUtil.toUri("https://a.b.Example.com:8329/"));
+    Assert.assertEquals("com.example.b.a:8333/", DataUtil.toUri("http://a.B.example.com:8333/"));
     Assert.assertEquals("com.example:s/", DataUtil.toUri("https://example.com/"));
     Assert.assertEquals("com.example:s443/", DataUtil.toUri("https://example.com:443/"));
     Assert.assertEquals("com.example?b", DataUtil.toUri("http://example.com?b"));
