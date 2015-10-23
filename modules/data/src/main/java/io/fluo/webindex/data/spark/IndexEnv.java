@@ -77,9 +77,9 @@ public class IndexEnv {
     accumuloTempDir = new Path(dataConfig.hdfsTempDir + "/accumulo");
   }
 
-  public static SortedSet<Text> getDefaultSplits() {
+  private static SortedSet<Text> getSplits(String filename) {
     SortedSet<Text> splits = new TreeSet<>();
-    InputStream is = IndexEnv.class.getClassLoader().getResourceAsStream("default-splits.txt");
+    InputStream is = IndexEnv.class.getClassLoader().getResourceAsStream("splits/" + filename);
     try {
       try (BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
         String line;
@@ -88,10 +88,18 @@ public class IndexEnv {
         }
       }
     } catch (IOException e) {
-      log.error("Failed to read default-splits.txt resource", e);
+      log.error("Failed to read splits/accumulo-default.txt resource", e);
       System.exit(-1);
     }
     return splits;
+  }
+
+  public static SortedSet<Text> getAccumuloDefaultSplits() {
+    return getSplits("accumulo-default.txt");
+  }
+
+  public static SortedSet<Text> getFluoDefaultSplits() {
+    return getSplits("fluo-default.txt");
   }
 
   public void initAccumuloIndexTable(SortedSet<Text> splits) {
@@ -110,14 +118,19 @@ public class IndexEnv {
     }
 
     try {
-      conn.tableOperations().addSplits(dataConfig.accumuloIndexTable, splits);
+      conn.tableOperations().addSplits(table, splits);
     } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
       throw new IllegalStateException("Failed to add splits to Accumulo table " + table, e);
     }
   }
 
-  public void initAccumuloIndexTable() {
-    initAccumuloIndexTable(getDefaultSplits());
+  public void setFluoTableSplits(SortedSet<Text> splits) {
+    final String table = fluoConfig.getAccumuloTable();
+    try {
+      conn.tableOperations().addSplits(table, splits);
+    } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
+      throw new IllegalStateException("Failed to add splits to Fluo's Accumulo table " + table, e);
+    }
   }
 
   public void makeHdfsTempDirs() {
