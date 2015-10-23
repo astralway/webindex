@@ -55,7 +55,7 @@ public class Reindex {
     if (dataConfig.calculateAccumuloSplits) {
       env.initAccumuloIndexTable(IndexUtil.calculateSplits(accumuloIndex, 100));
     } else {
-      env.initAccumuloIndexTable(IndexEnv.getDefaultSplits());
+      env.initAccumuloIndexTable(IndexEnv.getAccumuloDefaultSplits());
     }
 
     env.saveRowColBytesToAccumulo(accumuloIndex);

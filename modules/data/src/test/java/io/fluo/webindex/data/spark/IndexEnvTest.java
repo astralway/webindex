@@ -24,9 +24,14 @@ public class IndexEnvTest {
 
   @Test
   public void testGetSplits() throws Exception {
-    SortedSet<Text> splits = IndexEnv.getDefaultSplits();
+    SortedSet<Text> splits = IndexEnv.getAccumuloDefaultSplits();
     Assert.assertEquals(97, splits.size());
     Assert.assertEquals(new Text("d:bz.vividracing"), splits.first());
     Assert.assertEquals(new Text("t:fefeff:do.dig/buk.edu.ng"), splits.last());
+
+    splits = IndexEnv.getFluoDefaultSplits();
+    Assert.assertEquals(93, splits.size());
+    Assert.assertEquals(new Text("d:com.discoverymusicsource"), splits.first());
+    Assert.assertEquals(new Text("p:uk.co.theregister.www/Alert"), splits.last());
   }
 }

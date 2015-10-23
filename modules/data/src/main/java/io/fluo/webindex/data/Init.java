@@ -16,7 +16,6 @@ package io.fluo.webindex.data;
 
 import java.util.LinkedList;
 import java.util.List;
-import java.util.SortedSet;
 
 import io.fluo.api.data.Bytes;
 import io.fluo.api.data.Column;
@@ -32,14 +31,10 @@ import io.fluo.webindex.data.util.WARCFileInputFormat;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapred.TextOutputFormat;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.storage.StorageLevel;
 import org.archive.io.ArchiveReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -111,7 +106,13 @@ public class Init {
     if (dataConfig.calculateAccumuloSplits) {
       env.initAccumuloIndexTable(IndexUtil.calculateSplits(accumuloIndex, 100));
     } else {
-      env.initAccumuloIndexTable(IndexEnv.getDefaultSplits());
+      env.initAccumuloIndexTable(IndexEnv.getAccumuloDefaultSplits());
+    }
+
+    if (dataConfig.calculateAccumuloSplits) {
+      env.setFluoTableSplits(IndexUtil.calculateSplits(fluoIndex, 100));
+    } else {
+      env.setFluoTableSplits(IndexEnv.getFluoDefaultSplits());
     }
 
     // Load the indexes into Fluo and Accumulo

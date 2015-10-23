@@ -44,6 +44,7 @@ FLUO_APP_LIB=$FLUO_APP_HOME/lib
 cp $WI_DATA_JAR $FLUO_APP_LIB
 mvn dependency:get -Dartifact=io.fluo:fluo-recipes-core:1.0.0-beta-1-SNAPSHOT:jar -Ddest=$FLUO_APP_LIB
 mvn dependency:get -Dartifact=io.fluo:fluo-recipes-accumulo:1.0.0-beta-1-SNAPSHOT:jar -Ddest=$FLUO_APP_LIB
+mvn dependency:get -Dartifact=com.esotericsoftware:kryo:3.0.3:jar -Ddest=$FLUO_APP_LIB
 
 java -cp $WI_DATA_DEP_JAR io.fluo.webindex.data.PrintProps $WI_HOME/conf/data.yml >> $FLUO_APP_HOME/conf/fluo.properties
 

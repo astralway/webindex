@@ -30,8 +30,12 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.archive.io.ArchiveReader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CalcSplits {
+
+  private static final Logger log = LoggerFactory.getLogger(CalcSplits.class);
 
   public static void main(String[] args) {
     SparkConf sparkConf = new SparkConf().setAppName("CC-CalcSplits");
@@ -45,8 +49,15 @@ public class CalcSplits {
             Text.class, ArchiveReader.class, new Configuration());
 
     JavaRDD<Page> pages = IndexUtil.createPages(archives);
+
     JavaPairRDD<RowColumn, Bytes> accumuloIndex = IndexUtil.createAccumuloIndex(stats, pages);
     SortedSet<Text> splits = IndexUtil.calculateSplits(accumuloIndex, 100);
+    log.info("Accumulo splits:");
+    splits.forEach(System.out::println);
+
+    JavaPairRDD<RowColumn, Bytes> fluoIndex = IndexUtil.createFluoIndex(accumuloIndex);
+    splits = IndexUtil.calculateSplits(fluoIndex, 100);
+    log.info("Fluo splits:");
     splits.forEach(System.out::println);
   }
 }
