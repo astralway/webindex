@@ -19,11 +19,17 @@ import java.net.MalformedURLException;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.google.gson.Gson;
 import io.fluo.webindex.core.DataUtil;
 
 public class Page implements Serializable {
 
-  public static Page EMPTY = new Page();
+  private static final long serialVersionUID = 1L;
+
+  public static final Page EMPTY = new Page();
+  public static final Page DELETE = new Page(true);
+  public static final String DELETE_JSON = "delete";
+
   private String url = "";
   private String domain;
   private Long numInbound;
@@ -32,8 +38,13 @@ public class Page implements Serializable {
   private String server;
   private String title;
   private Set<Link> outboundLinks = new HashSet<>();
+  private transient boolean isDelete = false;
 
   private Page() {}
+
+  private Page(boolean isDelete) {
+    this.isDelete = isDelete;
+  }
 
   public Page(String url) {
     this.url = url;
@@ -121,7 +132,25 @@ public class Page implements Serializable {
     this.title = title;
   }
 
-  public class Link implements Serializable {
+  public boolean isDelete() {
+    return isDelete;
+  }
+
+  public static Page fromJson(Gson gson, String pageJson) {
+    if (pageJson.isEmpty()) {
+      return Page.EMPTY;
+    }
+
+    if (pageJson.equals(DELETE_JSON)) {
+      return Page.DELETE;
+    }
+
+    return gson.fromJson(pageJson, Page.class);
+  }
+
+  public static class Link implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     private String url;
     private String anchorText;
@@ -134,6 +163,8 @@ public class Page implements Serializable {
     public Link(String url) {
       this(url, "");
     }
+
+    public Link() {}
 
     public String getUrl() {
       return url;

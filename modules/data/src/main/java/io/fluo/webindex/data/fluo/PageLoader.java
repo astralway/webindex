@@ -27,26 +27,26 @@ import io.fluo.webindex.data.util.FluoConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PageUpdate implements Loader {
+public class PageLoader implements Loader {
 
-  private static final Logger log = LoggerFactory.getLogger(PageUpdate.class);
+  private static final Logger log = LoggerFactory.getLogger(PageLoader.class);
   private Action action;
   private Page page;
   private String delUri;
 
-  private PageUpdate() {}
+  private PageLoader() {}
 
-  public static PageUpdate updatePage(Page page) {
+  public static PageLoader updatePage(Page page) {
     Preconditions.checkArgument(!page.isEmpty(), "Page cannot be empty");
-    PageUpdate update = new PageUpdate();
+    PageLoader update = new PageLoader();
     update.action = Action.UPDATE;
     update.page = page;
     return update;
   }
 
-  public static PageUpdate deletePage(String url) throws MalformedURLException {
+  public static PageLoader deletePage(String url) throws MalformedURLException {
     Preconditions.checkArgument(!url.isEmpty(), "Url cannot be empty");
-    PageUpdate update = new PageUpdate();
+    PageLoader update = new PageLoader();
     update.action = Action.DELETE;
     update.delUri = DataUtil.toUri(url);
     return update;
@@ -58,12 +58,13 @@ public class PageUpdate implements Loader {
     TypedTransactionBase ttx = FluoConstants.TYPEL.wrap(tx);
     String row;
 
+    Gson gson = new Gson();
+
     switch (action) {
       case DELETE:
-        ttx.mutate().row("p:" + delUri).col(FluoConstants.PAGE_NEW_COL).set("delete");
+        ttx.mutate().row("p:" + delUri).col(FluoConstants.PAGE_NEW_COL).set(Page.DELETE_JSON);
         break;
       case UPDATE:
-        Gson gson = new Gson();
         String newJson = gson.toJson(page);
         ttx.mutate().row("p:" + page.getUri()).col(FluoConstants.PAGE_NEW_COL).set(newJson);
         break;

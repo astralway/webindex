@@ -2,7 +2,10 @@
 
 [![Build Status](https://travis-ci.org/fluo-io/webindex.svg?branch=master)](https://travis-ci.org/fluo-io/webindex)
 
-An example Fluo applications that creates a web index using CommonCrawl data.
+An example Fluo applications that indexes links to web pages in multiple ways.
+The example uses CommonCrawl data as input.  See the
+[tables](docs/tables.md) and [code](docs/code-guide.md) documentation for
+more information about how this example works.
 
 ### Requirements
 

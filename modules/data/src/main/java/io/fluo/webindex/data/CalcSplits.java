@@ -55,7 +55,8 @@ public class CalcSplits {
     log.info("Accumulo splits:");
     splits.forEach(System.out::println);
 
-    JavaPairRDD<RowColumn, Bytes> fluoIndex = IndexUtil.createFluoIndex(accumuloIndex);
+    JavaPairRDD<RowColumn, Bytes> fluoIndex =
+        IndexUtil.createFluoIndex(accumuloIndex, FluoApp.NUM_BUCKETS);
     splits = IndexUtil.calculateSplits(fluoIndex, 100);
     log.info("Fluo splits:");
     splits.forEach(System.out::println);
