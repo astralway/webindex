@@ -183,10 +183,14 @@
   <repositories>
     <repository>
       <releases>
-        <updatePolicy>always</updatePolicy>
+        <enabled>false</enabled>
+        <updatePolicy>never</updatePolicy>
+        <checksumPolicy>fail</checksumPolicy>
       </releases>
       <snapshots>
-        <updatePolicy>always</updatePolicy>
+        <enabled>true</enabled>
+        <updatePolicy>daily</updatePolicy>
+        <checksumPolicy>fail</checksumPolicy>
       </snapshots>
       <id>sonatype-nexus-snapshots</id>
       <url>https://oss.sonatype.org/content/repositories/snapshots</url>
