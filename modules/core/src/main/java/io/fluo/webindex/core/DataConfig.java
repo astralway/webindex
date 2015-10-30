@@ -14,14 +14,21 @@
 
 package io.fluo.webindex.core;
 
+import java.io.File;
 import java.io.FileReader;
 
 import com.esotericsoftware.yamlbeans.YamlReader;
 
 public class DataConfig {
 
+  public static String INIT_DIR = "init";
+  public static String LOAD_DIR = "load";
+  public static String PATHS_FILE = "paths.gz";
+
   public String fluoHome;
-  public int numFilesToCopy;
+  public String hadoopConfDir;
+  public int numInitFiles;
+  public int numLoadFiles;
   public String accumuloIndexTable;
   public String ccServerUrl;
   public String ccDataPaths;
@@ -30,18 +37,56 @@ public class DataConfig {
   public String hdfsTempDir;
   public int sparkExecutorInstances;
   public String sparkExecutorMemory;
-  public boolean calculateAccumuloSplits;
 
   public String getFluoPropsPath() {
-    return fluoHome + "/apps/" + fluoApp + "/conf/fluo.properties";
+    return addSlash(fluoHome) + "apps/" + fluoApp + "/conf/fluo.properties";
+  }
+
+  public String getHdfsInitDir() {
+    return addSlash(hdfsDataDir) + INIT_DIR;
+  }
+
+  public String getHdfsLoadDir() {
+    return addSlash(hdfsDataDir) + LOAD_DIR;
+  }
+
+  public String getHdfsPathsFile() {
+    return addSlash(hdfsDataDir) + PATHS_FILE;
+  }
+
+  public static String getEnvPath(String name) {
+    String path = System.getenv(name);
+    if (path == null) {
+      throw new IllegalStateException(name + " must be set in environment!");
+    }
+    if (!(new File(path).exists())) {
+      throw new IllegalStateException("Directory set by " + name + "=" + path + " does not exist");
+    }
+    return path;
   }
 
   public static DataConfig load(String configPath) {
+    return load(configPath, true);
+  }
+
+  protected static DataConfig load(String configPath, boolean useEnv) {
     try {
       YamlReader reader = new YamlReader(new FileReader(configPath));
-      return reader.read(DataConfig.class);
+      DataConfig config = reader.read(DataConfig.class);
+      if (useEnv) {
+        config.hadoopConfDir = getEnvPath("HADOOP_CONF_DIR");
+        config.fluoHome = getEnvPath("FLUO_HOME");
+      }
+      return config;
     } catch (Exception e) {
       throw new IllegalStateException(e);
     }
+  }
+
+  public static String addSlash(String prefix) {
+    if (!prefix.endsWith("/")) {
+      return prefix + "/";
+    }
+    return prefix;
   }
 }

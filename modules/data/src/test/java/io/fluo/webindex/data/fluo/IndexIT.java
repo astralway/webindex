@@ -29,7 +29,6 @@ import io.fluo.api.client.FluoFactory;
 import io.fluo.api.client.LoaderExecutor;
 import io.fluo.api.client.Snapshot;
 import io.fluo.api.config.FluoConfiguration;
-import io.fluo.api.config.ObserverConfiguration;
 import io.fluo.api.config.ScannerConfiguration;
 import io.fluo.api.data.Bytes;
 import io.fluo.api.data.Column;
@@ -37,11 +36,12 @@ import io.fluo.api.data.RowColumn;
 import io.fluo.api.iterator.ColumnIterator;
 import io.fluo.api.iterator.RowIterator;
 import io.fluo.api.mini.MiniFluo;
-import io.fluo.recipes.accumulo.export.TableInfo;
 import io.fluo.webindex.core.Constants;
 import io.fluo.webindex.core.models.Page;
 import io.fluo.webindex.data.FluoApp;
+import io.fluo.webindex.data.SparkTestUtil;
 import io.fluo.webindex.data.spark.Hex;
+import io.fluo.webindex.data.spark.IndexEnv;
 import io.fluo.webindex.data.spark.IndexStats;
 import io.fluo.webindex.data.spark.IndexUtil;
 import io.fluo.webindex.data.util.ArchiveUtil;
@@ -77,11 +77,11 @@ public class IndexIT {
   public static TemporaryFolder folder = new TemporaryFolder();
   public static MiniAccumuloCluster cluster;
   private static MiniFluo miniFluo;
-  private static FluoConfiguration config;
   private static final PasswordToken password = new PasswordToken("secret");
   private static AtomicInteger tableCounter = new AtomicInteger(1);
   private String exportTable;
-  private transient JavaSparkContext sc;
+  private transient JavaSparkContext ctx;
+  private IndexEnv env;
 
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
@@ -99,19 +99,8 @@ public class IndexIT {
   }
 
   @Before
-  public void setUp() {
-    sc = new JavaSparkContext("local", getClass().getSimpleName());
-  }
-
-  @After
-  public void tearDown() {
-    sc.stop();
-    sc = null;
-  }
-
-  @Before
-  public void setUpFluo() throws Exception {
-    config = new FluoConfiguration();
+  public void setUp() throws Exception {
+    FluoConfiguration config = new FluoConfiguration();
     config.setMiniStartAccumulo(false);
     config.setApplicationName("lit");
     config.setAccumuloInstance(cluster.getInstanceName());
@@ -124,23 +113,24 @@ public class IndexIT {
 
     // create and configure export table
     exportTable = "export" + tableCounter.getAndIncrement();
-    cluster.getConnector("root", "secret").tableOperations().create(exportTable);
 
-    config.addObserver(new ObserverConfiguration(PageObserver.class.getName()));
-
-    FluoApp.configureApplication(config,
-        new TableInfo(cluster.getInstanceName(), cluster.getZooKeepers(), "root", "secret",
-            exportTable), FluoApp.NUM_BUCKETS);
+    ctx = SparkTestUtil.getSparkContext(getClass().getSimpleName());
+    env = new IndexEnv(config, exportTable, ctx.hadoopConfiguration(), "/tmp");
+    env.initAccumuloIndexTable();
+    env.configureApplication(config);
 
     FluoFactory.newAdmin(config).initialize(
         new FluoAdmin.InitOpts().setClearTable(true).setClearZookeeper(true));
 
+    env.setFluoTableSplits();
+
     miniFluo = FluoFactory.newMiniFluo(config);
   }
 
-
   @After
   public void tearDownFluo() throws Exception {
+    ctx.stop();
+    ctx = null;
     if (miniFluo != null) {
       miniFluo.close();
     }
@@ -160,31 +150,32 @@ public class IndexIT {
     return pageMap;
   }
 
-  private void assertOutput(Collection<Page> pages, FluoClient client) throws Exception {
-    JavaRDD<Page> pagesRDD = sc.parallelize(new ArrayList<>(pages));
+  private void assertOutput(Collection<Page> pages) throws Exception {
+    JavaRDD<Page> pagesRDD = ctx.parallelize(new ArrayList<>(pages));
     Assert.assertEquals(pages.size(), pagesRDD.count());
 
     // Create expected output using spark
-    IndexStats stats = new IndexStats(sc);
+    IndexStats stats = new IndexStats(ctx);
     JavaPairRDD<RowColumn, Bytes> accumuloIndex = IndexUtil.createAccumuloIndex(stats, pagesRDD);
     JavaPairRDD<RowColumn, Bytes> fluoIndex =
         IndexUtil.createFluoIndex(accumuloIndex, FluoApp.NUM_BUCKETS);
 
     // Compare against actual
-    boolean foundDiff = false;
-    foundDiff |= diffAccumuloTable(accumuloIndex.collect());
-    foundDiff |= diffFluoTable(client, fluoIndex.collect());
-    if (foundDiff) {
-      printFluoTable(client);
-      printAccumuloTable();
-      printRDD(accumuloIndex.collect());
-      printRDD(fluoIndex.collect());
+    try (FluoClient client = FluoFactory.newClient(miniFluo.getClientConfiguration())) {
+      boolean foundDiff = diffAccumuloTable(accumuloIndex.collect());
+      foundDiff |= diffFluoTable(client, fluoIndex.collect());
+      if (foundDiff) {
+        printFluoTable(client);
+        printAccumuloTable();
+        printRDD(accumuloIndex.collect());
+        printRDD(fluoIndex.collect());
+      }
+      Assert.assertFalse(foundDiff);
     }
-    Assert.assertFalse(foundDiff);
   }
 
   @Test
-  public void testIndexing() throws Exception {
+  public void testFluoIndexing() throws Exception {
 
     Map<String, Page> pages = readPages(new File("src/test/resources/wat-18.warc"));
 
@@ -198,6 +189,7 @@ public class IndexIT {
       }
 
       miniFluo.waitForObservers();
+      assertOutput(pages.values());
 
       String deleteUrl = "http://1000games.me/games/gametion/";
       log.info("Deleting page {}", deleteUrl);
@@ -209,7 +201,7 @@ public class IndexIT {
       int numPages = pages.size();
       Assert.assertNotNull(pages.remove(deleteUrl));
       Assert.assertEquals(numPages - 1, pages.size());
-      assertOutput(pages.values(), client);
+      assertOutput(pages.values());
 
       String updateUrl = "http://100zone.blogspot.com/2013/03/please-memp3-4shared.html";
       Page updatePage = pages.get(updateUrl);
@@ -225,8 +217,31 @@ public class IndexIT {
       miniFluo.waitForObservers();
 
       Assert.assertNotNull(pages.put(updateUrl, updatePage));
-      assertOutput(pages.values(), client);
+      assertOutput(pages.values());
     }
+  }
+
+  @Test
+  public void testSparkThenFluoIndexing() throws Exception {
+
+    Map<String, Page> pageMap = readPages(new File("src/test/resources/wat-18.warc"));
+    List<Page> pages = new ArrayList<>(pageMap.values());
+
+    env.initializeIndexes(ctx, ctx.parallelize(pages.subList(0, 2)), new IndexStats(ctx));
+
+    assertOutput(pages.subList(0, 2));
+
+    try (FluoClient client = FluoFactory.newClient(miniFluo.getClientConfiguration());
+        LoaderExecutor le = client.newLoaderExecutor()) {
+      for (Page page : pages.subList(2, pages.size())) {
+        log.info("Loading page {} with {} links {}", page.getUrl(), page.getOutboundLinks().size(),
+            page.getOutboundLinks());
+        le.execute(PageLoader.updatePage(page));
+      }
+    }
+    miniFluo.waitForObservers();
+
+    assertOutput(pages);
   }
 
   private void printRDD(List<Tuple2<RowColumn, Bytes>> rcvRDD) {
@@ -262,7 +277,6 @@ public class IndexIT {
 
   private boolean diffFluoTable(FluoClient client, List<Tuple2<RowColumn, Bytes>> linkIndex)
       throws Exception {
-    boolean retval = false;
     try (Snapshot s = client.newSnapshot()) {
       RowIterator iter = s.get(new ScannerConfiguration());
       Iterator<Tuple2<RowColumn, Bytes>> indexIter = linkIndex.iterator();
@@ -276,7 +290,7 @@ public class IndexIT {
           RowColumn rc = indexEntry._1();
           Column col = colEntry.getKey();
 
-          retval |= diff("fluo row", rc.getRow(), rowEntry.getKey());
+          boolean retval = diff("fluo row", rc.getRow(), rowEntry.getKey());
           retval |= diff("fluo fam", rc.getColumn().getFamily(), col.getFamily());
           retval |= diff("fluo qual", rc.getColumn().getQualifier(), col.getQualifier());
           if (!col.getQualifier().toString().equals(Constants.CUR)) {
@@ -284,6 +298,9 @@ public class IndexIT {
           }
 
           if (retval) {
+            log.error("Difference found - row {} cf {} cq {} val {}", rc.getRow().toString(), rc
+                .getColumn().getFamily().toString(), rc.getColumn().getQualifier().toString(),
+                indexEntry._2().toString());
             return true;
           }
 
@@ -339,8 +356,6 @@ public class IndexIT {
     Iterator<Map.Entry<Key, Value>> exportIter = scanner.iterator();
     Iterator<Tuple2<RowColumn, Bytes>> indexIter = linkIndex.iterator();
 
-    boolean retval = false;
-
     while (exportIter.hasNext() && indexIter.hasNext()) {
       Tuple2<RowColumn, Bytes> indexEntry = indexIter.next();
       Map.Entry<Key, Value> exportEntry = exportIter.next();
@@ -348,7 +363,7 @@ public class IndexIT {
       RowColumn rc = indexEntry._1();
       Column col = rc.getColumn();
 
-      retval |= diff("row", rc.getRow().toString(), key.getRow().toString());
+      boolean retval = diff("row", rc.getRow().toString(), key.getRow().toString());
       retval |= diff("fam", col.getFamily().toString(), key.getColumnFamily().toString());
       retval |= diff("qual", col.getQualifier().toString(), key.getColumnQualifier().toString());
       if (!col.getQualifier().toString().equals(Constants.CUR)) {
@@ -356,6 +371,9 @@ public class IndexIT {
       }
 
       if (retval) {
+        log.error("Difference found - row {} cf {} cq {} val {}", rc.getRow().toString(), rc
+            .getColumn().getFamily().toString(), rc.getColumn().getQualifier().toString(),
+            indexEntry._2().toString());
         return true;
       }
       log.debug("Verified row {} cf {} cq {} val {}", rc.getRow().toString(), rc.getColumn()

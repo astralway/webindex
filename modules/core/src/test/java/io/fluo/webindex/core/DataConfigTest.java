@@ -21,19 +21,19 @@ public class DataConfigTest {
 
   @Test
   public void testBasic() throws Exception {
-    DataConfig config = DataConfig.load("../../conf/data.yml.example");
-    Assert.assertEquals("/path/to/fluo/install", config.fluoHome);
+    DataConfig config = DataConfig.load("../../conf/data.yml.example", false);
     Assert.assertEquals("webindex_search", config.accumuloIndexTable);
-    Assert.assertEquals("/path/to/fluo/install/apps/webindex/conf/fluo.properties",
-        config.getFluoPropsPath());
     Assert.assertEquals("https://aws-publicdatasets.s3.amazonaws.com", config.ccServerUrl);
     Assert.assertEquals("common-crawl/crawl-data/CC-MAIN-2015-18/wat.paths.gz", config.ccDataPaths);
     Assert.assertEquals("webindex", config.fluoApp);
     Assert.assertEquals("/cc/temp", config.hdfsTempDir);
     Assert.assertEquals("/cc/data/2015-18", config.hdfsDataDir);
+    Assert.assertEquals("/cc/data/2015-18/init", config.getHdfsInitDir());
+    Assert.assertEquals("/cc/data/2015-18/load", config.getHdfsLoadDir());
+    Assert.assertEquals("/cc/data/2015-18/paths.gz", config.getHdfsPathsFile());
     Assert.assertEquals(2, config.sparkExecutorInstances);
     Assert.assertEquals("1g", config.sparkExecutorMemory);
-    Assert.assertEquals(2, config.numFilesToCopy);
-    Assert.assertEquals(false, config.calculateAccumuloSplits);
+    Assert.assertEquals(2, config.numInitFiles);
+    Assert.assertEquals(2, config.numLoadFiles);
   }
 }

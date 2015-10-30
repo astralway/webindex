@@ -20,33 +20,51 @@ Consider using [fluo-dev] to run these requirements
 
 ### Configure your environment
 
-First, you must create the configuration files `data.yml` and `dropwizard.yml` files in the `conf/` 
-directory and edit them for your environment:
+First, you must create the configuration file `data.yml` in the `conf/` directory and edit it
+for your environment:
 
     cp conf/data.yml.example conf/data.yml
-    cp conf/dropwizard.yml.example conf/dropwizard.yml
+
+There are a few environment variables that need to be set to run these scripts (see `conf/webindex-env.sh.example`
+for a list).  If you don't want to set them in your `~/.bashrc`, create `webindex-env.sh` in `conf/` and set them.
+
+    cp conf/webindex-env.sh.example conf/webindex-env.sh
 
 ### Copy CommonCrawl data from AWS into HDFS
 
 CommonCrawl data sets are hosted in S3.  The following command will run a Spark job that copies
-data files from AWS into HDFS.  This script is configured by `conf/data.yml` where you can specify
-the HDFS data directory, number of files to copy, and number of executors to run.
+data files from AWS into HDFS `init/` and `load/` directoires.  This script is configured by 
+`conf/data.yml` where you can specify the number of files to copy into each directory:
 
-    ./bin/copy.sh
+    ./bin/webindex copy
 
 ### Initialize Fluo & Accumulo with data
 
-After you have copied data to HDFS, run the following command to run a Spark job that will index
-your data in HDFS and initialize Accumulo and Fluo with data.
+After you have copied data into HDFS, run the following command to run a Spark job that will initialize 
+Fluo and Accumulo with data in your HDFS `init/` directory.
 
-    ./bin/init.sh
+    ./bin/webindex init
 
-### Run the web application
+### Load files into Fluo
 
-Finally, run the following command to run the web app:
+The `init` command can only be run on an empty cluster.  To add more data, run the `load` which starts
+a Spark job that loads Fluo with data in your HDFS `load/` directory.  Fluo will incrementally process 
+this data and update Accumulo.
 
-    ./bin/webapp.sh
+    ./bin/webindex copy
+
+### Run the webindex UI
+
+Run the following command to run the webindex UI:
+
+    ./bin/webindex ui
+
+The UI is implemented useing [dropwizard].  While the default dropwizard configuration works well, you can
+modify it by creating and editing `dropwizard.yml` in `conf/`:
+    
+    cp conf/dropwizard.yml.example conf/dropwizard.yml
 
 Open your browser to [http://localhost:8080/](http://localhost:8080/)
 
 [fluo-dev]: https://github.com/fluo-io/fluo-dev
+[dropwizard]: http://dropwizard.io/

@@ -27,34 +27,33 @@ import io.fluo.api.config.FluoConfiguration;
 import io.fluo.api.data.Bytes;
 import io.fluo.api.data.RowColumn;
 import io.fluo.core.util.AccumuloUtil;
-import io.fluo.core.util.SpanUtil;
+import io.fluo.recipes.accumulo.export.TableInfo;
 import io.fluo.webindex.core.DataConfig;
+import io.fluo.webindex.core.models.Page;
+import io.fluo.webindex.data.FluoApp;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.mapreduce.AccumuloFileOutputFormat;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Job;
-import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import scala.Tuple2;
 
 public class IndexEnv {
 
   private static final Logger log = LoggerFactory.getLogger(IndexEnv.class);
 
-  private JavaSparkContext sparkCtx;
-  private DataConfig dataConfig;
   private Connector conn;
+  final private String accumuloTable;
   private FluoConfiguration fluoConfig;
   private FileSystem hdfs;
   private Path failuresDir;
@@ -62,19 +61,51 @@ public class IndexEnv {
   private Path accumuloTempDir;
   private Path fluoTempDir;
 
-  public IndexEnv(DataConfig dataConfig, SparkConf sparkConf) throws IOException {
-    this.dataConfig = dataConfig;
-    Preconditions.checkNotNull(dataConfig.getFluoPropsPath());
+  public IndexEnv(DataConfig dataConfig) {
+    this(getFluoConfig(dataConfig), dataConfig.accumuloIndexTable, getHadoopConfigFromEnv(),
+        dataConfig.hdfsTempDir);
+  }
+
+  public IndexEnv(DataConfig dataConfig, Configuration hadoopConfig) {
+    this(getFluoConfig(dataConfig), dataConfig.accumuloIndexTable, hadoopConfig,
+        dataConfig.hdfsTempDir);
+  }
+
+  public IndexEnv(FluoConfiguration fluoConfig, String accumuloTable, Configuration hadoopConfig,
+      String hdfsTempDir) {
+    this.fluoConfig = fluoConfig;
+    this.accumuloTable = accumuloTable;
+    conn = AccumuloUtil.getConnector(fluoConfig);
+    try {
+      hdfs = FileSystem.get(hadoopConfig);
+    } catch (IOException e) {
+      throw new IllegalStateException("Unable to get HDFS client from hadoop config", e);
+    }
+    hadoopTempDir = new Path(hdfsTempDir + "/hadoop");
+    fluoTempDir = new Path(hdfsTempDir + "/fluo");
+    failuresDir = new Path(hdfsTempDir + "/failures");
+    accumuloTempDir = new Path(hdfsTempDir + "/accumulo");
+  }
+
+  private static Configuration getHadoopConfigFromEnv() {
+    String hadoopConfDir = System.getenv("HADOOP_CONF_DIR");
+    if (hadoopConfDir == null) {
+      log.error("HADOOP_CONF_DIR must be set in environment!");
+      System.exit(1);
+    }
+    if (!(new File(hadoopConfDir).exists())) {
+      log.error("Directory set by HADOOP_CONF_DIR={} does not exist", hadoopConfDir);
+      System.exit(1);
+    }
+    Configuration config = new Configuration();
+    config.addResource(hadoopConfDir);
+    return config;
+  }
+
+  private static FluoConfiguration getFluoConfig(DataConfig dataConfig) {
     Preconditions.checkArgument(new File(dataConfig.getFluoPropsPath()).exists(),
         "fluoPropsPath must be set in data.yml and exist");
-    fluoConfig = new FluoConfiguration(new File(dataConfig.getFluoPropsPath()));
-    conn = AccumuloUtil.getConnector(fluoConfig);
-    sparkCtx = new JavaSparkContext(sparkConf);
-    hdfs = FileSystem.get(sparkCtx.hadoopConfiguration());
-    hadoopTempDir = new Path(dataConfig.hdfsTempDir + "/hadoop");
-    fluoTempDir = new Path(dataConfig.hdfsTempDir + "/fluo");
-    failuresDir = new Path(dataConfig.hdfsTempDir + "/failures");
-    accumuloTempDir = new Path(dataConfig.hdfsTempDir + "/accumulo");
+    return new FluoConfiguration(new File(dataConfig.getFluoPropsPath()));
   }
 
   private static SortedSet<Text> getSplits(String filename) {
@@ -102,86 +133,76 @@ public class IndexEnv {
     return getSplits("fluo-default.txt");
   }
 
-  public void initAccumuloIndexTable(SortedSet<Text> splits) {
-    final String table = dataConfig.accumuloIndexTable;
-    if (conn.tableOperations().exists(table)) {
+  public void initAccumuloIndexTable() {
+    if (conn.tableOperations().exists(accumuloTable)) {
       try {
-        conn.tableOperations().delete(table);
+        conn.tableOperations().delete(accumuloTable);
       } catch (TableNotFoundException | AccumuloSecurityException | AccumuloException e) {
-        throw new IllegalStateException("Failed to delete Accumulo table " + table, e);
+        throw new IllegalStateException("Failed to delete Accumulo table " + accumuloTable, e);
       }
     }
     try {
-      conn.tableOperations().create(table);
+      conn.tableOperations().create(accumuloTable);
     } catch (AccumuloException | AccumuloSecurityException | TableExistsException e) {
-      throw new IllegalStateException("Failed to create Accumulo table " + table, e);
+      throw new IllegalStateException("Failed to create Accumulo table " + accumuloTable, e);
     }
 
     try {
-      conn.tableOperations().addSplits(table, splits);
+      conn.tableOperations().addSplits(accumuloTable, IndexEnv.getAccumuloDefaultSplits());
     } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
-      throw new IllegalStateException("Failed to add splits to Accumulo table " + table, e);
+      throw new IllegalStateException("Failed to add splits to Accumulo table " + accumuloTable, e);
     }
   }
 
-  public void setFluoTableSplits(SortedSet<Text> splits) {
+  public void setFluoTableSplits() {
     final String table = fluoConfig.getAccumuloTable();
     try {
-      conn.tableOperations().addSplits(table, splits);
+      conn.tableOperations().addSplits(table, IndexEnv.getAccumuloDefaultSplits());
     } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
       throw new IllegalStateException("Failed to add splits to Fluo's Accumulo table " + table, e);
     }
   }
 
-  public void makeHdfsTempDirs() {
-    Path tempDir = new Path(dataConfig.hdfsTempDir);
-    try {
-      if (!hdfs.exists(tempDir)) {
-        hdfs.mkdirs(tempDir);
-      }
-      if (!hdfs.exists(failuresDir)) {
-        hdfs.mkdirs(failuresDir);
-      }
-    } catch (IOException e) {
-      throw new IllegalStateException("Failed to create HDFS temp dirs", e);
-    }
+  public void configureApplication(FluoConfiguration appConfig) {
+    FluoApp.configureApplication(appConfig,
+        new TableInfo(fluoConfig.getAccumuloInstance(), fluoConfig.getAccumuloZookeepers(),
+            fluoConfig.getAccumuloUser(), fluoConfig.getAccumuloPassword(), accumuloTable),
+        FluoApp.NUM_BUCKETS);
   }
 
-  public void saveToFluo(JavaPairRDD<Key, Value> data) throws Exception {
-    Job job = Job.getInstance(sparkCtx.hadoopConfiguration());
+  public void initializeIndexes(JavaSparkContext ctx, JavaRDD<Page> pages, IndexStats stats)
+      throws Exception {
+    // Create the Accumulo index from pages RDD
+    JavaPairRDD<RowColumn, Bytes> accumuloIndex = IndexUtil.createAccumuloIndex(stats, pages);
 
-    if (hdfs.exists(fluoTempDir)) {
-      hdfs.delete(fluoTempDir, true);
-    }
-    AccumuloFileOutputFormat.setOutputPath(job, fluoTempDir);
+    // Create a Fluo index by filtering a subset of data from Accumulo index
+    JavaPairRDD<RowColumn, Bytes> fluoIndex =
+        IndexUtil.createFluoIndex(accumuloIndex, FluoApp.NUM_BUCKETS);
 
-    // must use new API here as saveAsHadoopFile throws exception
-    data.saveAsNewAPIHadoopFile(fluoTempDir.toString(), Key.class, Value.class,
-        AccumuloFileOutputFormat.class, job.getConfiguration());
-    conn.tableOperations().importDirectory(fluoConfig.getAccumuloTable(), fluoTempDir.toString(),
-        failuresDir.toString(), false);
-    log.info("Imported data at {} into Fluo app {}", fluoTempDir, fluoConfig.getApplicationName());
+    // Load the indexes into Fluo and Accumulo
+    saveRowColBytesToFluo(ctx, fluoIndex);
+    saveRowColBytesToAccumulo(ctx, accumuloIndex);
   }
 
-  public void saveRowColBytesToAccumulo(JavaPairRDD<RowColumn, Bytes> rowColBytes) throws Exception {
-    JavaPairRDD<Key, Value> kvData =
-        rowColBytes.mapToPair(t -> new Tuple2<Key, Value>(SpanUtil.toKey(t._1()), new Value(t._2()
-            .toArray())));
-    saveKeyValueToAccumulo(kvData);
+  public void saveRowColBytesToFluo(JavaSparkContext ctx, JavaPairRDD<RowColumn, Bytes> data)
+      throws Exception {
+    IndexUtil.saveRowColBytesToFluo(data, ctx, conn, fluoConfig, fluoTempDir, failuresDir);
   }
 
-  public void saveKeyValueToAccumulo(JavaPairRDD<Key, Value> data) throws Exception {
-    Job accJob = Job.getInstance(sparkCtx.hadoopConfiguration());
+  public void saveKeyValueToFluo(JavaSparkContext ctx, JavaPairRDD<Key, Value> data)
+      throws Exception {
+    IndexUtil.saveKeyValueToFluo(data, ctx, conn, fluoConfig, fluoTempDir, failuresDir);
+  }
 
-    if (hdfs.exists(accumuloTempDir)) {
-      hdfs.delete(accumuloTempDir, true);
-    }
-    AccumuloFileOutputFormat.setOutputPath(accJob, accumuloTempDir);
-    // must use new API here as saveAsHadoopFile throws exception
-    data.saveAsNewAPIHadoopFile(accumuloTempDir.toString(), Key.class, Value.class,
-        AccumuloFileOutputFormat.class, accJob.getConfiguration());
-    conn.tableOperations().importDirectory(dataConfig.accumuloIndexTable,
-        accumuloTempDir.toString(), failuresDir.toString(), false);
+  public void saveRowColBytesToAccumulo(JavaSparkContext ctx, JavaPairRDD<RowColumn, Bytes> data)
+      throws Exception {
+    IndexUtil.saveRowColBytesToAccumulo(data, ctx, conn, accumuloTempDir, failuresDir,
+        accumuloTable);
+  }
+
+  public void saveKeyValueToAccumulo(JavaSparkContext ctx, JavaPairRDD<Key, Value> data)
+      throws Exception {
+    IndexUtil.saveKeyValueToAccumulo(data, ctx, conn, accumuloTempDir, failuresDir, accumuloTable);
   }
 
   public FileSystem getHdfs() {
@@ -202,10 +223,6 @@ public class IndexEnv {
 
   public Path getFailuresDir() {
     return failuresDir;
-  }
-
-  public JavaSparkContext getSparkCtx() {
-    return sparkCtx;
   }
 
   public Connector getAccumuloConnector() {
