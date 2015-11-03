@@ -12,7 +12,7 @@
  * the License.
  */
 
-package io.fluo.webindex.data;
+package io.fluo.webindex.data.fluo;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -29,6 +29,7 @@ import io.fluo.api.client.FluoFactory;
 import io.fluo.api.client.LoaderExecutor;
 import io.fluo.api.client.Snapshot;
 import io.fluo.api.config.FluoConfiguration;
+import io.fluo.api.config.ObserverConfiguration;
 import io.fluo.api.config.ScannerConfiguration;
 import io.fluo.api.data.Bytes;
 import io.fluo.api.data.Column;
@@ -39,7 +40,8 @@ import io.fluo.api.mini.MiniFluo;
 import io.fluo.recipes.accumulo.export.TableInfo;
 import io.fluo.webindex.core.Constants;
 import io.fluo.webindex.core.models.Page;
-import io.fluo.webindex.data.fluo.PageUpdate;
+import io.fluo.webindex.data.FluoApp;
+import io.fluo.webindex.data.spark.Hex;
 import io.fluo.webindex.data.spark.IndexStats;
 import io.fluo.webindex.data.spark.IndexUtil;
 import io.fluo.webindex.data.util.ArchiveUtil;
@@ -124,9 +126,11 @@ public class IndexIT {
     exportTable = "export" + tableCounter.getAndIncrement();
     cluster.getConnector("root", "secret").tableOperations().create(exportTable);
 
-    PrintProps.configureApplication(config,
+    config.addObserver(new ObserverConfiguration(PageObserver.class.getName()));
+
+    FluoApp.configureApplication(config,
         new TableInfo(cluster.getInstanceName(), cluster.getZooKeepers(), "root", "secret",
-            exportTable), 5);
+            exportTable), FluoApp.NUM_BUCKETS);
 
     FluoFactory.newAdmin(config).initialize(
         new FluoAdmin.InitOpts().setClearTable(true).setClearZookeeper(true));
@@ -163,7 +167,8 @@ public class IndexIT {
     // Create expected output using spark
     IndexStats stats = new IndexStats(sc);
     JavaPairRDD<RowColumn, Bytes> accumuloIndex = IndexUtil.createAccumuloIndex(stats, pagesRDD);
-    JavaPairRDD<RowColumn, Bytes> fluoIndex = IndexUtil.createFluoIndex(accumuloIndex);
+    JavaPairRDD<RowColumn, Bytes> fluoIndex =
+        IndexUtil.createFluoIndex(accumuloIndex, FluoApp.NUM_BUCKETS);
 
     // Compare against actual
     boolean foundDiff = false;
@@ -173,6 +178,7 @@ public class IndexIT {
       printFluoTable(client);
       printAccumuloTable();
       printRDD(accumuloIndex.collect());
+      printRDD(fluoIndex.collect());
     }
     Assert.assertFalse(foundDiff);
   }
@@ -187,17 +193,16 @@ public class IndexIT {
       try (LoaderExecutor le = client.newLoaderExecutor()) {
         for (Page page : pages.values()) {
           log.debug("Loading page {} with {} links", page.getUrl(), page.getOutboundLinks().size());
-          le.execute(PageUpdate.updatePage(page));
+          le.execute(PageLoader.updatePage(page));
         }
       }
-      miniFluo.waitForObservers();
 
-      assertOutput(pages.values(), client);
+      miniFluo.waitForObservers();
 
       String deleteUrl = "http://1000games.me/games/gametion/";
       log.info("Deleting page {}", deleteUrl);
       try (LoaderExecutor le = client.newLoaderExecutor()) {
-        le.execute(PageUpdate.deletePage(deleteUrl));
+        le.execute(PageLoader.deletePage(deleteUrl));
       }
       miniFluo.waitForObservers();
 
@@ -215,7 +220,7 @@ public class IndexIT {
       Assert.assertEquals(numLinks, (long) updatePage.getNumOutbound());
 
       try (LoaderExecutor le = client.newLoaderExecutor()) {
-        le.execute(PageUpdate.updatePage(updatePage));
+        le.execute(PageLoader.updatePage(updatePage));
       }
       miniFluo.waitForObservers();
 
@@ -226,8 +231,7 @@ public class IndexIT {
 
   private void printRDD(List<Tuple2<RowColumn, Bytes>> rcvRDD) {
     System.out.println("== RDD start ==");
-    rcvRDD
-        .forEach(t -> System.out.println("rc " + t._1().toString() + " val " + t._2().toString()));
+    rcvRDD.forEach(t -> System.out.println("rc " + Hex.encNonAscii(t, " ")));
     System.out.println("== RDD end ==");
   }
 
@@ -241,8 +245,15 @@ public class IndexIT {
         ColumnIterator citer = rowEntry.getValue();
         while (citer.hasNext()) {
           Map.Entry<Column, Bytes> colEntry = citer.next();
-          System.out.println(rowEntry.getKey() + " " + colEntry.getKey() + "\t"
-              + colEntry.getValue());
+
+          StringBuilder sb = new StringBuilder();
+          Hex.encNonAscii(sb, rowEntry.getKey());
+          sb.append(" ");
+          Hex.encNonAscii(sb, colEntry.getKey(), " ");
+          sb.append("\t");
+          Hex.encNonAscii(sb, colEntry.getValue());
+
+          System.out.println(sb.toString());
         }
       }
       System.out.println("=== fluo end ===");
@@ -265,20 +276,18 @@ public class IndexIT {
           RowColumn rc = indexEntry._1();
           Column col = colEntry.getKey();
 
-          retval |= diff("row", rc.getRow().toString(), rowEntry.getKey().toString());
-          retval |= diff("fam", rc.getColumn().getFamily().toString(), col.getFamily().toString());
-          retval |=
-              diff("qual", rc.getColumn().getQualifier().toString(), col.getQualifier().toString());
+          retval |= diff("fluo row", rc.getRow(), rowEntry.getKey());
+          retval |= diff("fluo fam", rc.getColumn().getFamily(), col.getFamily());
+          retval |= diff("fluo qual", rc.getColumn().getQualifier(), col.getQualifier());
           if (!col.getQualifier().toString().equals(Constants.CUR)) {
-            retval |= diff("val", indexEntry._2().toString(), colEntry.getValue().toString());
+            retval |= diff("fluo val", indexEntry._2(), colEntry.getValue());
           }
 
           if (retval) {
             return true;
           }
-          log.debug("Verified row {} cf {} cq {} val {}", rc.getRow().toString(), rc.getColumn()
-              .getFamily().toString(), rc.getColumn().getQualifier().toString(), indexEntry._2()
-              .toString());
+
+          log.debug("Verified {}", Hex.encNonAscii(indexEntry, " "));
         }
         if (citer.hasNext()) {
           log.error("An column iterator still has more data");
@@ -310,6 +319,15 @@ public class IndexIT {
   private boolean diff(String dataType, String expected, String actual) {
     if (!expected.equals(actual)) {
       log.error("Difference found in {} - expected {} actual {}", dataType, expected, actual);
+      return true;
+    }
+    return false;
+  }
+
+  private boolean diff(String dataType, Bytes expected, Bytes actual) {
+    if (!expected.equals(actual)) {
+      log.error("Difference found in {} - expected {} actual {}", dataType,
+          Hex.encNonAscii(expected), Hex.encNonAscii(actual));
       return true;
     }
     return false;

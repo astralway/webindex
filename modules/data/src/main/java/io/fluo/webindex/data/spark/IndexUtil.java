@@ -15,6 +15,7 @@
 package io.fluo.webindex.data.spark;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
@@ -24,12 +25,20 @@ import com.google.gson.Gson;
 import io.fluo.api.data.Bytes;
 import io.fluo.api.data.Column;
 import io.fluo.api.data.RowColumn;
+import io.fluo.api.data.RowColumnValue;
+import io.fluo.recipes.map.CollisionFreeMap;
+import io.fluo.recipes.map.CollisionFreeMap.Initializer;
+import io.fluo.recipes.serialization.KryoSimplerSerializer;
 import io.fluo.webindex.core.Constants;
 import io.fluo.webindex.core.DataUtil;
 import io.fluo.webindex.core.models.Page;
+import io.fluo.webindex.data.fluo.DomainMap;
+import io.fluo.webindex.data.fluo.UriMap;
+import io.fluo.webindex.data.fluo.UriMap.UriInfo;
 import io.fluo.webindex.data.util.ArchiveUtil;
 import io.fluo.webindex.data.util.FluoConstants;
 import io.fluo.webindex.data.util.LinkUtil;
+import io.fluo.webindex.serialization.WebindexKryoFactory;
 import org.apache.accumulo.core.client.lexicoder.Lexicoder;
 import org.apache.accumulo.core.client.lexicoder.ReverseLexicoder;
 import org.apache.accumulo.core.client.lexicoder.ULongLexicoder;
@@ -160,11 +169,87 @@ public class IndexUtil {
    * Creates a Fluo index by filtering out unnecessary data from Accumulo Index
    */
   public static JavaPairRDD<RowColumn, Bytes> createFluoIndex(
-      JavaPairRDD<RowColumn, Bytes> accumuloIndex) {
+      JavaPairRDD<RowColumn, Bytes> accumuloIndex, int numBuckets) {
+
+    KryoSimplerSerializer serializer = new KryoSimplerSerializer(new WebindexKryoFactory());
+
+    JavaPairRDD<RowColumn, Bytes> pagesFiltered =
+        accumuloIndex.filter(t -> {
+          RowColumn rc = t._1();
+          String row = rc.getRow().toString();
+          String cf = rc.getColumn().getFamily().toString();
+          String cq = rc.getColumn().getQualifier().toString();
+
+          return row.startsWith("p:") && cf.equals(Constants.PAGE)
+              && (cq.equals(Constants.INCOUNT) || cq.equals(Constants.CUR));
+        });
+
+    JavaPairRDD<Bytes, Iterable<Tuple2<RowColumn, Bytes>>> pageRows =
+        pagesFiltered.groupBy(t -> t._1().getRow());
+
+    Initializer<String, UriInfo> uriMapInitializer =
+        CollisionFreeMap.getInitializer(UriMap.URI_MAP_ID, numBuckets, serializer);
+
+    JavaPairRDD<RowColumn, Bytes> uriMap =
+        pageRows.mapToPair(t -> {
+          int docs = 0;
+          long links = 0;
+
+          for (Tuple2<RowColumn, Bytes> rcv : t._2()) {
+            String cq = rcv._1().getColumn().getQualifier().toString();
+
+            if (cq.equals(Constants.CUR)) {
+              docs = 1;
+            } else if (cq.equals(Constants.INCOUNT)) {
+              links = Long.parseLong(rcv._2().toString());
+            }
+          }
+
+          String uri = t._1().toString().substring(2);
+
+          RowColumnValue rcv = uriMapInitializer.convert(uri, new UriInfo(links, docs));
+
+          return new Tuple2<RowColumn, Bytes>(new RowColumn(rcv.getRow(), rcv.getColumn()), rcv
+              .getValue());
+        });
+
+    Initializer<String, Long> domainMapInitializer =
+        CollisionFreeMap.getInitializer(DomainMap.DOMAIN_MAP_ID, numBuckets, serializer);
+
+    // generate the rest of the fluo table
     JavaPairRDD<RowColumn, Bytes> fluoIndex =
-        accumuloIndex.filter(t -> !t._1().getColumn().getFamily().toString().equals(Constants.RANK)
-            && !t._1().getRow().toString().startsWith("t:"));
+        accumuloIndex.flatMapToPair(
+            t -> {
+              RowColumn rc = t._1();
+              String row = rc.getRow().toString();
+              String cf = rc.getColumn().getFamily().toString();
+              String cq = rc.getColumn().getQualifier().toString();
+
+              if (row.startsWith("d:") && cf.equals(Constants.DOMAIN)
+                  && cq.equals(Constants.PAGECOUNT)) {
+                String domain = row.substring(2);
+                Long count = Long.valueOf(t._2().toString());
+
+                RowColumnValue rcv = domainMapInitializer.convert(domain, count);
+
+                return Collections.singleton(new Tuple2<RowColumn, Bytes>(new RowColumn(rcv
+                    .getRow(), rcv.getColumn()), rcv.getValue()));
+              }
+              if (row.startsWith("p:") && cf.equals(Constants.PAGE) && cq.equals(Constants.CUR)) {
+                return Collections.singleton(t);
+              }
+
+              return Collections.emptyList();
+            }).union(uriMap);
+
+
+
     fluoIndex.persist(StorageLevel.DISK_ONLY());
+
+    fluoIndex = fluoIndex.sortByKey();
+
+    fluoIndex.persist(StorageLevel.DISK_ONLY());
+
     return fluoIndex;
   }
 
@@ -201,11 +286,11 @@ public class IndexUtil {
 
     SortedSet<Text> splits = new TreeSet<>();
     for (Tuple2<RowColumn, Bytes> tuple : sample) {
-      String row = tuple._1().getRow().toString();
+      Bytes row = tuple._1().getRow();
       if (row.length() < 29) {
-        splits.add(new Text(row));
+        splits.add(new Text(row.toArray()));
       } else {
-        splits.add(new Text(row.substring(0, 29)));
+        splits.add(new Text(row.subSequence(0, 29).toArray()));
       }
     }
     return splits;

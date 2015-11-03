@@ -22,9 +22,9 @@ import java.util.Iterator;
 import java.util.List;
 
 import io.fluo.api.data.Bytes;
-import io.fluo.api.data.Column;
 import io.fluo.api.data.RowColumn;
 import io.fluo.webindex.core.models.Page;
+import io.fluo.webindex.data.FluoApp;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -60,24 +60,18 @@ public class IndexUtilTest {
     verifyRDD("data/set1/accumulo-data.txt", accumuloIndex);
 
     // Use Accumulo index to create Fluo index and verify
-    JavaPairRDD<RowColumn, Bytes> fluoIndex = IndexUtil.createFluoIndex(accumuloIndex);
+    JavaPairRDD<RowColumn, Bytes> fluoIndex =
+        IndexUtil.createFluoIndex(accumuloIndex, FluoApp.NUM_BUCKETS);
     verifyRDD("data/set1/fluo-data.txt", fluoIndex);
 
     // Use Fluo index to create Accumulo index and verify
-    JavaPairRDD<RowColumn, Bytes> accumuloIndexRecreated = IndexUtil.createAccumuloIndex(fluoIndex);
-    verifyRDD("data/set1/accumulo-data.txt", accumuloIndexRecreated);
-  }
-
-  public String rcvToString(RowColumn rc, Bytes v) {
-    Column col = rc.getColumn();
-    return String.format("%s|%s|%s|%s", rc.getRow().toString(), col.getFamily().toString(), col
-        .getQualifier().toString(), v.toString());
+    // JavaPairRDD<RowColumn, Bytes> accumuloIndexRecreated =
+    // IndexUtil.createAccumuloIndex(fluoIndex);
+    // verifyRDD("data/set1/accumulo-data.txt", accumuloIndexRecreated);
   }
 
   public void dump(JavaPairRDD<RowColumn, Bytes> rcb) {
-    for (Tuple2<RowColumn, Bytes> tuple : rcb.collect()) {
-      System.out.println(rcvToString(tuple._1(), tuple._2()));
-    }
+    rcb.foreach(t -> System.out.println(Hex.encNonAscii(t, "|")));
   }
 
   public void verifyRDD(String expectedFilename, JavaPairRDD<RowColumn, Bytes> actual)
@@ -100,7 +94,7 @@ public class IndexUtilTest {
     while (actualIter.hasNext() && expectedIter.hasNext()) {
       String exp = expectedIter.next();
       Tuple2<RowColumn, Bytes> act = actualIter.next();
-      Assert.assertEquals(exp, rcvToString(act._1(), act._2()));
+      Assert.assertEquals(exp, Hex.encNonAscii(act, "|"));
     }
   }
 

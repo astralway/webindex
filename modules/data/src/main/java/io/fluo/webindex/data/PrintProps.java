@@ -18,34 +18,14 @@ import java.io.File;
 import java.util.Iterator;
 
 import io.fluo.api.config.FluoConfiguration;
-import io.fluo.api.config.ObserverConfiguration;
-import io.fluo.api.data.Bytes;
 import io.fluo.recipes.accumulo.export.TableInfo;
-import io.fluo.recipes.export.ExportQueue;
-import io.fluo.recipes.transaction.TxLog;
 import io.fluo.webindex.core.DataConfig;
-import io.fluo.webindex.data.fluo.IndexExporter;
-import io.fluo.webindex.data.fluo.InlinksObserver;
-import io.fluo.webindex.data.fluo.PageObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class PrintProps {
 
   private static final Logger log = LoggerFactory.getLogger(PrintProps.class);
-
-  public static void configureApplication(FluoConfiguration appConfig, TableInfo exportTable,
-      int numExportBuckets) {
-
-    appConfig.addObserver(new ObserverConfiguration(PageObserver.class.getName()));
-    appConfig.addObserver(new ObserverConfiguration(InlinksObserver.class.getName()));
-
-    ExportQueue.configure(appConfig, new ExportQueue.Options(IndexExporter.QUEUE_ID,
-        IndexExporter.class, Bytes.class, TxLog.class, numExportBuckets));
-
-    IndexExporter.setExportTableInfo(appConfig.getAppConfiguration(), IndexExporter.QUEUE_ID,
-        exportTable);
-  }
 
   public static void main(String[] args) {
 
@@ -58,10 +38,10 @@ public class PrintProps {
 
     FluoConfiguration appConfig = new FluoConfiguration();
 
-    configureApplication(appConfig,
+    FluoApp.configureApplication(appConfig,
         new TableInfo(fluoConfig.getAccumuloInstance(), fluoConfig.getAccumuloZookeepers(),
             fluoConfig.getAccumuloUser(), fluoConfig.getAccumuloPassword(),
-            dataConfig.accumuloIndexTable), 13);
+            dataConfig.accumuloIndexTable), FluoApp.NUM_BUCKETS);
 
     Iterator<String> iter = appConfig.getKeys();
 

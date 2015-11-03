@@ -18,7 +18,6 @@ import java.util.LinkedList;
 import java.util.List;
 
 import io.fluo.api.data.Bytes;
-import io.fluo.api.data.Column;
 import io.fluo.api.data.RowColumn;
 import io.fluo.mapreduce.FluoKeyValue;
 import io.fluo.mapreduce.FluoKeyValueGenerator;
@@ -61,12 +60,9 @@ public class Init {
     JavaPairRDD<Key, Value> fluoData = linkIndex.flatMapToPair(tuple -> {
       List<Tuple2<Key, Value>> output = new LinkedList<>();
       RowColumn rc = tuple._1();
-      String row = rc.getRow().toString();
-      String cf = rc.getColumn().getFamily().toString();
-      String cq = rc.getColumn().getQualifier().toString();
       byte[] val = tuple._2().toArray();
       FluoKeyValueGenerator fkvg = new FluoKeyValueGenerator();
-      fkvg.setRow(row).setColumn(new Column(cf, cq)).setValue(val);
+      fkvg.setRow(rc.getRow()).setColumn(rc.getColumn()).setValue(val);
       for (FluoKeyValue kv : fkvg.getKeyValues()) {
         output.add(new Tuple2<>(kv.getKey(), kv.getValue()));
       }
@@ -100,7 +96,8 @@ public class Init {
     JavaPairRDD<RowColumn, Bytes> accumuloIndex = IndexUtil.createAccumuloIndex(stats, pages);
 
     // Create a Fluo index by filtering a subset of data from Accumulo index
-    JavaPairRDD<RowColumn, Bytes> fluoIndex = IndexUtil.createFluoIndex(accumuloIndex);
+    JavaPairRDD<RowColumn, Bytes> fluoIndex =
+        IndexUtil.createFluoIndex(accumuloIndex, FluoApp.NUM_BUCKETS);
 
     // Initialize Accumulo index table with default splits or splits calculated from data
     if (dataConfig.calculateAccumuloSplits) {
