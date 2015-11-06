@@ -40,7 +40,7 @@ public class PageObserver extends AbstractObserver {
   private static final Logger log = LoggerFactory.getLogger(PageObserver.class);
   private static final Gson gson = new Gson();
 
-  private CollisionFreeMap<String, UriInfo, UriInfo> uriMap;
+  private CollisionFreeMap<String, UriInfo> uriMap;
   private ExportQueue<String, Transmutable<String>> exportQ;
 
   @Override

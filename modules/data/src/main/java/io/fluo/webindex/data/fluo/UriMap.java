@@ -85,18 +85,17 @@ public class UriMap {
   /**
    * Combines updates made to the uri map
    */
-  public static class UriCombiner implements Combiner<String, UriInfo, UriInfo> {
+  public static class UriCombiner implements Combiner<String, UriInfo> {
     @Override
-    public Optional<UriInfo> combine(String key, Optional<UriInfo> currentValue,
-        Iterator<UriInfo> updates) {
+    public Optional<UriInfo> combine(String key, Iterator<UriInfo> updates) {
 
-      UriInfo total = currentValue.or(new UriInfo(0, 0));
+      UriInfo total = new UriInfo(0, 0);
 
       while (updates.hasNext()) {
         total.add(updates.next());
       }
 
-      if (total.equals(new UriInfo(0, 0))) {
+      if (total.equals(UriInfo.EMPTY)) {
         return Optional.absent();
       } else {
         return Optional.of(total);
@@ -110,7 +109,7 @@ public class UriMap {
   public static class UriUpdateObserver extends UpdateObserver<String, UriInfo> {
 
     private ExportQueue<String, Transmutable<String>> exportQ;
-    private CollisionFreeMap<String, Long, Long> domainMap;
+    private CollisionFreeMap<String, Long> domainMap;
 
     @Override
     public void init(String mapId, Context observerContext) throws Exception {
@@ -156,6 +155,6 @@ public class UriMap {
    */
   public static void configure(FluoConfiguration config, int numBuckets) {
     CollisionFreeMap.configure(config, new Options(URI_MAP_ID, UriCombiner.class,
-        UriUpdateObserver.class, String.class, UriInfo.class, UriInfo.class, numBuckets));
+        UriUpdateObserver.class, String.class, UriInfo.class, numBuckets));
   }
 }

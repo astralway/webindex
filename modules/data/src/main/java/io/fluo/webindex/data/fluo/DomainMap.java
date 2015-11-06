@@ -35,10 +35,10 @@ public class DomainMap {
   /**
    * Combines updates made to the domain map
    */
-  public static class DomainCombiner implements Combiner<String, Long, Long> {
+  public static class DomainCombiner implements Combiner<String, Long> {
     @Override
-    public Optional<Long> combine(String key, Optional<Long> currentValue, Iterator<Long> updates) {
-      long l = currentValue.or(0L);
+    public Optional<Long> combine(String key, Iterator<Long> updates) {
+      long l = 0;
 
       while (updates.hasNext()) {
         l += updates.next();
@@ -80,6 +80,6 @@ public class DomainMap {
    */
   public static void configure(FluoConfiguration config, int numBuckets) {
     CollisionFreeMap.configure(config, new Options(DOMAIN_MAP_ID, DomainCombiner.class,
-        DomainUpdateObserver.class, String.class, Long.class, Long.class, numBuckets));
+        DomainUpdateObserver.class, String.class, Long.class, numBuckets));
   }
 }
