@@ -1,0 +1,116 @@
+#! /usr/bin/env bash
+
+# Copyright 2015 Fluo authors (see AUTHORS)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+BIN_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+export WI_HOME=$( cd "$( dirname "$BIN_DIR" )" && pwd )
+
+if [ -f $WI_HOME/conf/webindex-env.sh ]; then
+  . $WI_HOME/conf/webindex-env.sh
+fi
+if [ -z $HADOOP_CONF_DIR ]; then
+  echo "HADOOP_CONF_DIR must be set in bash env or conf/webindex-env.sh"
+  exit 1
+fi
+if [ ! -d $HADOOP_CONF_DIR ]; then
+  echo "HADOOP_CONF_DIR=$HADOOP_CONF_DIR does not exist"
+  exit 1
+fi
+if [ -z $FLUO_HOME ]; then
+  echo "FLUO_HOME must be set in bash env or conf/webindex-env.sh"
+  exit 1
+fi
+if [ ! -d $FLUO_HOME ]; then
+  echo "FLUO_HOME=$FLUO_HOME does not exist"
+  exit 1
+fi
+
+COMMAND_LOGFILE=$WI_HOME/logs/$1_`date +%s`.log
+
+case "$1" in
+copy)
+  . $BIN_DIR/impl/base.sh "${*:2}"
+  $SPARK_SUBMIT --class io.fluo.webindex.data.Copy \
+    --master yarn-client \
+    --num-executors `get_prop sparkExecutorInstances` \
+    --executor-memory `get_prop sparkExecutorMemory` \
+    --conf spark.shuffle.service.enabled=true \
+    $WI_DATA_DEP_JAR $WI_HOME/conf/data.yml &> $COMMAND_LOGFILE &
+  echo "Started copy.  Logs are being output to $COMMAND_LOGFILE"
+	;;
+init)
+  $BIN_DIR/impl/init.sh &> $COMMAND_LOGFILE &
+  echo "Started initialization.  Logs are being output to $COMMAND_LOGFILE"
+	;;
+load)
+  . $BIN_DIR/impl/base.sh "${*:2}"
+  FLUO_APP=`get_prop fluoApp`
+  FLUO_PROPS=$FLUO_HOME/apps/$FLUO_APP/conf/fluo.properties
+  if [ ! -f $FLUO_PROPS ]; then
+    echo "Fluo properties file must exist at $FLUO_PROPS"
+    exit 1
+  fi
+  $SPARK_SUBMIT --class io.fluo.webindex.data.Load \
+    --master yarn-client \
+    --num-executors `get_prop sparkExecutorInstances` \
+    --executor-memory `get_prop sparkExecutorMemory` \
+    --conf spark.shuffle.service.enabled=true \
+    --files $FLUO_PROPS \
+    $WI_DATA_DEP_JAR $WI_HOME/conf/data.yml &> $COMMAND_LOGFILE &
+  echo "Started load.  Logs are being output to $COMMAND_LOGFILE"
+	;;
+reindex)
+  . $BIN_DIR/impl/base.sh "${*:2}"
+  $SPARK_SUBMIT --class io.fluo.webindex.data.Reindex \
+    --master yarn-client \
+    --num-executors `get_prop sparkExecutorInstances` \
+    --executor-memory `get_prop sparkExecutorMemory` \
+    $WI_DATA_DEP_JAR $WI_HOME/conf/data.yml &> $COMMAND_LOGFILE &
+  echo "Started reindex.  Logs are being output to $COMMAND_LOGFILE"
+	;;
+ui)
+  cd $WI_HOME/modules/ui
+  mvn clean install -DskipTests
+  DROPWIZARD_CONFIG=""
+  if [ -f $WI_HOME/conf/dropwizard.yml ]; then
+    DROPWIZARD_CONFIG=$WI_HOME/conf/dropwizard.yml
+    echo "Running with dropwizard config at $DROPWIZARD_CONFIG"
+  fi
+  java -jar $WI_HOME/modules/ui/target/webindex-ui-0.0.1-SNAPSHOT.jar \
+    server $DROPWIZARD_CONFIG &> $COMMAND_LOGFILE &
+  echo "Started UI.  Logs are being output to $COMMAND_LOGFILE"
+  ;;
+splits)
+  . $BIN_DIR/impl/base.sh "${*:2}"
+  $SPARK_SUBMIT --class io.fluo.webindex.data.CalcSplits \
+    --master yarn-client \
+    --num-executors `get_prop sparkExecutorInstances` \
+    --executor-memory `get_prop sparkExecutorMemory` \
+    --conf spark.shuffle.service.enabled=true \
+    $WI_DATA_DEP_JAR $WI_HOME/conf/data.yml &> $COMMAND_LOGFILE &
+  echo "Started splits calculation.  Logs are being output to $COMMAND_LOGFILE"
+  ;;
+*)
+  echo -e "Usage: webindex <command> (<argument>)\n"
+  echo -e "Possible commands:\n"
+  echo "  copy        Copies CommonCrawl data files from AWS into HDFS init & load directories"
+  echo "  init        Starts Spark job that initializes Fluo & Accumulo tables using data in HDFS init directory "
+  echo "  load        Starts Spark job that adds pages to Fluo using data in the HDFS load directory"
+  echo "  ui          Runs the webindex UI"
+  echo "  reindex     Runs Spark data in Fluo and recreates Accumulo indexes"
+  echo "  splits      Calculate splits"
+  echo " " 
+  exit 1
+esac

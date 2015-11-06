@@ -14,10 +14,10 @@
 
 # Settings that must be changed
 # --------------------------------
-# Fluo Home
-fluoHome: /path/to/fluo/install
-# Number of CC files to copy from AWS to HDFS
-numFilesToCopy: 2
+# Number of CC files to copy from AWS to HDFS for init phase
+numInitFiles: 2
+# Number of CC files to copy from AWS to HDFS for load phase
+numLoadFiles: 2
 
 # Settings that you might want to change
 # --------------------------------------
@@ -37,6 +37,3 @@ hdfsDataDir: /cc/data/2015-18
 sparkExecutorInstances: 2
 # Spark executor memory
 sparkExecutorMemory: 1g
-# Init will calculate Accumulo splits from dataset if set to true
-# If false, default splits are used when creating Accumulo index table
-calculateAccumuloSplits: false

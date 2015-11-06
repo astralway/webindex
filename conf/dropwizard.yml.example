@@ -12,4 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-dataConfigPath: /path/to/data.yml
+# This optional file configures the dropwizard settings in the UI.
+# See the URL below for possible configuration:
+# http://www.dropwizard.io/0.8.2/docs/manual/configuration.html
+
+# This file is optional.  If you don't need to change the default dropwizard
+# configuration, don't create this file as dropwizard will complain if it is
+# created but empty.

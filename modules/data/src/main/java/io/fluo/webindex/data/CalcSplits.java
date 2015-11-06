@@ -45,8 +45,8 @@ public class CalcSplits {
     IndexStats stats = new IndexStats(ctx);
 
     final JavaPairRDD<Text, ArchiveReader> archives =
-        ctx.newAPIHadoopFile(dataConfig.hdfsDataDir + "/data", WARCFileInputFormat.class,
-            Text.class, ArchiveReader.class, new Configuration());
+        ctx.newAPIHadoopFile(dataConfig.getHdfsInitDir(), WARCFileInputFormat.class, Text.class,
+            ArchiveReader.class, new Configuration());
 
     JavaRDD<Page> pages = IndexUtil.createPages(archives);
 
@@ -60,5 +60,7 @@ public class CalcSplits {
     splits = IndexUtil.calculateSplits(fluoIndex, 100);
     log.info("Fluo splits:");
     splits.forEach(System.out::println);
+
+    ctx.stop();
   }
 }

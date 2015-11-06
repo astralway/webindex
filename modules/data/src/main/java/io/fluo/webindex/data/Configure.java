@@ -14,40 +14,42 @@
 
 package io.fluo.webindex.data;
 
-import java.io.File;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.PrintWriter;
 import java.util.Iterator;
 
 import io.fluo.api.config.FluoConfiguration;
-import io.fluo.recipes.accumulo.export.TableInfo;
 import io.fluo.webindex.core.DataConfig;
+import io.fluo.webindex.data.spark.IndexEnv;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PrintProps {
+public class Configure {
 
-  private static final Logger log = LoggerFactory.getLogger(PrintProps.class);
+  private static final Logger log = LoggerFactory.getLogger(Configure.class);
 
-  public static void main(String[] args) {
+  public static void main(String[] args) throws Exception {
 
     if (args.length != 1) {
-      log.error("Usage: Init <dataConfigPath>");
+      log.error("Usage: Configure <dataConfigPath>");
       System.exit(1);
     }
     DataConfig dataConfig = DataConfig.load(args[0]);
-    FluoConfiguration fluoConfig = new FluoConfiguration(new File(dataConfig.getFluoPropsPath()));
+
+    IndexEnv env = new IndexEnv(dataConfig);
+    env.initAccumuloIndexTable();
 
     FluoConfiguration appConfig = new FluoConfiguration();
-
-    FluoApp.configureApplication(appConfig,
-        new TableInfo(fluoConfig.getAccumuloInstance(), fluoConfig.getAccumuloZookeepers(),
-            fluoConfig.getAccumuloUser(), fluoConfig.getAccumuloPassword(),
-            dataConfig.accumuloIndexTable), FluoApp.NUM_BUCKETS);
+    env.configureApplication(appConfig);
 
     Iterator<String> iter = appConfig.getKeys();
-
-    while (iter.hasNext()) {
-      String key = iter.next();
-      System.out.println(key + " = " + appConfig.getProperty(key));
+    try (PrintWriter out =
+        new PrintWriter(new BufferedWriter(new FileWriter(dataConfig.getFluoPropsPath(), true)))) {
+      while (iter.hasNext()) {
+        String key = iter.next();
+        out.println(key + " = " + appConfig.getProperty(key));
+      }
     }
   }
 }

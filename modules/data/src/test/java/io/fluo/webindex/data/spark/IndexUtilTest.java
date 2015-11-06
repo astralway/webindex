@@ -25,6 +25,7 @@ import io.fluo.api.data.Bytes;
 import io.fluo.api.data.RowColumn;
 import io.fluo.webindex.core.models.Page;
 import io.fluo.webindex.data.FluoApp;
+import io.fluo.webindex.data.SparkTestUtil;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -40,7 +41,7 @@ public class IndexUtilTest {
 
   @Before
   public void setUp() {
-    sc = new JavaSparkContext("local", getClass().getSimpleName());
+    sc = SparkTestUtil.getSparkContext(getClass().getSimpleName());
   }
 
   @After

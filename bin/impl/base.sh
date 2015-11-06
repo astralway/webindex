@@ -19,6 +19,8 @@ if [ -z $WI_HOME ]; then
   exit 1
 fi
 
+mkdir -p $WI_HOME/logs
+
 export DATA_CONFIG=$WI_HOME/conf/data.yml
 if [ ! -f $DATA_CONFIG ]; then
   echo "You must create $DATA_CONFIG"
@@ -36,7 +38,12 @@ function print_usage {
   exit 1
 }
 
-hash spark-submit 2>/dev/null || { echo >&2 "Spark must be installed & spark-submit command must be on path.  Aborting."; exit 1; }
+export SPARK_SUBMIT=$SPARK_HOME/bin/spark-submit
+if [ ! -f $SPARK_SUBMIT ]; then
+  echo "The spark-submit command cannot be found in SPARK_HOME=$SPARK_HOME.  Please set SPARK_HOME in conf/webindex-env.sh"
+  exit 1
+fi
+
 hash mvn 2>/dev/null || { echo >&2 "Maven must be installed & mvn command must be on path.  Aborting."; exit 1; }
 
 # Stop if any command after this fails
@@ -52,14 +59,11 @@ if [ ! -z $1 ]; then
   fi
 fi
 
-export WI_DATA_JAR=$WI_HOME/modules/data/target/webindex-data-0.0.1-SNAPSHOT.jar
-if [ "$BUILD" = true -o ! -f $WI_DATA_JAR ]; then
-  echo "Building $WI_DATA_JAR"
-  cd $WI_HOME
-  mvn clean install -DskipTests
-fi
 export WI_DATA_DEP_JAR=$WI_HOME/modules/data/target/webindex-data-0.0.1-SNAPSHOT-jar-with-dependencies.jar
 if [ "$BUILD" = true -o ! -f $WI_DATA_DEP_JAR ]; then
+  echo "Installing all webindex jars"
+  cd $WI_HOME
+  mvn clean install -DskipTests
   echo "Building $WI_DATA_DEP_JAR"
   cd $WI_HOME/modules/data
   mvn package assembly:single -DskipTests

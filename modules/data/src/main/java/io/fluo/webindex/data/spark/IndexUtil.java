@@ -16,16 +16,20 @@ package io.fluo.webindex.data.spark;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
 import com.google.gson.Gson;
+import io.fluo.api.config.FluoConfiguration;
 import io.fluo.api.data.Bytes;
 import io.fluo.api.data.Column;
 import io.fluo.api.data.RowColumn;
 import io.fluo.api.data.RowColumnValue;
+import io.fluo.mapreduce.FluoKeyValue;
+import io.fluo.mapreduce.FluoKeyValueGenerator;
 import io.fluo.recipes.map.CollisionFreeMap;
 import io.fluo.recipes.map.CollisionFreeMap.Initializer;
 import io.fluo.recipes.serialization.KryoSimplerSerializer;
@@ -39,19 +43,31 @@ import io.fluo.webindex.data.util.ArchiveUtil;
 import io.fluo.webindex.data.util.FluoConstants;
 import io.fluo.webindex.data.util.LinkUtil;
 import io.fluo.webindex.serialization.WebindexKryoFactory;
+import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.lexicoder.Lexicoder;
 import org.apache.accumulo.core.client.lexicoder.ReverseLexicoder;
 import org.apache.accumulo.core.client.lexicoder.ULongLexicoder;
+import org.apache.accumulo.core.client.mapreduce.AccumuloFileOutputFormat;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Value;
 import org.apache.commons.codec.binary.Hex;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Job;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.storage.StorageLevel;
 import org.archive.io.ArchiveReader;
 import org.archive.io.ArchiveRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import scala.Tuple2;
 
 public class IndexUtil {
+
+  private static final Logger log = LoggerFactory.getLogger(IndexUtil.class);
 
   private static Gson gson = new Gson();
 
@@ -278,6 +294,79 @@ public class IndexUtil {
     });
 
     return indexWithRank.sortByKey();
+  }
+
+  public static void saveRowColBytesToFluo(JavaPairRDD<RowColumn, Bytes> data,
+      JavaSparkContext ctx, Connector conn, FluoConfiguration fluoConfig, Path fluoTempDir,
+      Path failuresDir) throws Exception {
+    JavaPairRDD<Key, Value> fluoData = data.flatMapToPair(tuple -> {
+      List<Tuple2<Key, Value>> output = new LinkedList<>();
+      RowColumn rc = tuple._1();
+      FluoKeyValueGenerator fkvg = new FluoKeyValueGenerator();
+      fkvg.setRow(rc.getRow()).setColumn(rc.getColumn()).setValue(tuple._2().toArray());
+      for (FluoKeyValue kv : fkvg.getKeyValues()) {
+        output.add(new Tuple2<>(kv.getKey(), kv.getValue()));
+      }
+      return output;
+    });
+    saveKeyValueToFluo(fluoData, ctx, conn, fluoConfig, fluoTempDir, failuresDir);
+  }
+
+  public static void saveKeyValueToFluo(JavaPairRDD<Key, Value> data, JavaSparkContext ctx,
+      Connector conn, FluoConfiguration fluoConfig, Path fluoTempDir, Path failuresDir)
+      throws Exception {
+    Job job = Job.getInstance(ctx.hadoopConfiguration());
+
+    FileSystem hdfs = FileSystem.get(ctx.hadoopConfiguration());
+    if (hdfs.exists(fluoTempDir)) {
+      hdfs.delete(fluoTempDir, true);
+    }
+    if (!hdfs.exists(failuresDir)) {
+      hdfs.mkdirs(failuresDir);
+    }
+    AccumuloFileOutputFormat.setOutputPath(job, fluoTempDir);
+
+    // must use new API here as saveAsHadoopFile throws exception
+    data.saveAsNewAPIHadoopFile(fluoTempDir.toString(), Key.class, Value.class,
+        AccumuloFileOutputFormat.class, job.getConfiguration());
+    conn.tableOperations().importDirectory(fluoConfig.getAccumuloTable(), fluoTempDir.toString(),
+        failuresDir.toString(), false);
+    log.info("Imported data at {} into Fluo table {}", fluoTempDir, fluoConfig.getApplicationName());
+  }
+
+  public static void saveRowColBytesToAccumulo(JavaPairRDD<RowColumn, Bytes> data,
+      JavaSparkContext ctx, Connector conn, Path accumuloTempDir, Path failuresDir,
+      String accumuloTable) throws Exception {
+    JavaPairRDD<Key, Value> kvData = data.mapToPair(tuple -> {
+      RowColumn rc = tuple._1();
+      String row = rc.getRow().toString();
+      String cf = rc.getColumn().getFamily().toString();
+      String cq = rc.getColumn().getQualifier().toString();
+      byte[] val = tuple._2().toArray();
+      return new Tuple2<>(new Key(new Text(row), new Text(cf), new Text(cq), 0), new Value(val));
+    });
+    saveKeyValueToAccumulo(kvData, ctx, conn, accumuloTempDir, failuresDir, accumuloTable);
+  }
+
+  public static void saveKeyValueToAccumulo(JavaPairRDD<Key, Value> data, JavaSparkContext ctx,
+      Connector conn, Path accumuloTempDir, Path failuresDir, String accumuloTable)
+      throws Exception {
+    Job accJob = Job.getInstance(ctx.hadoopConfiguration());
+
+    FileSystem hdfs = FileSystem.get(ctx.hadoopConfiguration());
+    if (hdfs.exists(accumuloTempDir)) {
+      hdfs.delete(accumuloTempDir, true);
+    }
+    if (!hdfs.exists(failuresDir)) {
+      hdfs.mkdirs(failuresDir);
+    }
+    AccumuloFileOutputFormat.setOutputPath(accJob, accumuloTempDir);
+    // must use new API here as saveAsHadoopFile throws exception
+    data.saveAsNewAPIHadoopFile(accumuloTempDir.toString(), Key.class, Value.class,
+        AccumuloFileOutputFormat.class, accJob.getConfiguration());
+    conn.tableOperations().importDirectory(accumuloTable, accumuloTempDir.toString(),
+        failuresDir.toString(), false);
+    log.info("Imported data at {} into Accumulo table {}", accumuloTempDir, accumuloTable);
   }
 
   public static SortedSet<Text> calculateSplits(JavaPairRDD<RowColumn, Bytes> accumuloIndex,

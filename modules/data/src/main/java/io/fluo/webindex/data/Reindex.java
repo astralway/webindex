@@ -23,6 +23,7 @@ import io.fluo.webindex.data.spark.IndexUtil;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaSparkContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,25 +40,22 @@ public class Reindex {
     DataConfig dataConfig = DataConfig.load(args[0]);
 
     SparkConf sparkConf = new SparkConf().setAppName("CC-Reindex");
-    IndexEnv env = new IndexEnv(dataConfig, sparkConf);
-    env.makeHdfsTempDirs();
+    JavaSparkContext ctx = new JavaSparkContext(sparkConf);
 
-    Job job = Job.getInstance(env.getSparkCtx().hadoopConfiguration());
+    IndexEnv env = new IndexEnv(dataConfig);
+    env.initAccumuloIndexTable();
+
+    Job job = Job.getInstance(ctx.hadoopConfiguration());
     FluoEntryInputFormat.configure(job, env.getFluoConfig());
 
     JavaPairRDD<RowColumn, Bytes> fluoIndex =
-        env.getSparkCtx().newAPIHadoopRDD(job.getConfiguration(), FluoEntryInputFormat.class,
-            RowColumn.class, Bytes.class);
+        ctx.newAPIHadoopRDD(job.getConfiguration(), FluoEntryInputFormat.class, RowColumn.class,
+            Bytes.class);
 
     JavaPairRDD<RowColumn, Bytes> accumuloIndex = IndexUtil.createAccumuloIndex(fluoIndex);
 
-    // Initialize Accumulo index table with default splits or splits calculated from data
-    if (dataConfig.calculateAccumuloSplits) {
-      env.initAccumuloIndexTable(IndexUtil.calculateSplits(accumuloIndex, 100));
-    } else {
-      env.initAccumuloIndexTable(IndexEnv.getAccumuloDefaultSplits());
-    }
+    env.saveRowColBytesToAccumulo(ctx, accumuloIndex);
 
-    env.saveRowColBytesToAccumulo(accumuloIndex);
+    ctx.stop();
   }
 }
