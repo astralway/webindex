@@ -59,6 +59,7 @@ if [ ! -z $1 ]; then
   fi
 fi
 
+export WI_DATA_JAR=$WI_HOME/modules/data/target/webindex-data-0.0.1-SNAPSHOT.jar
 export WI_DATA_DEP_JAR=$WI_HOME/modules/data/target/webindex-data-0.0.1-SNAPSHOT-jar-with-dependencies.jar
 if [ "$BUILD" = true -o ! -f $WI_DATA_DEP_JAR ]; then
   echo "Installing all webindex jars"
