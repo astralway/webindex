@@ -33,12 +33,15 @@ public class WebindexKryoFactory implements KryoFactory, Serializable {
   public Kryo create() {
     Kryo kryo = new Kryo();
 
-    kryo.register(UriInfo.class);
-    kryo.register(DomainExport.class);
-    kryo.register(UriCountExport.class);
-    kryo.register(PageExport.class);
-    kryo.register(ArrayList.class);
-    kryo.register(Link.class);
+    // Explicitly set class ids when registering. Did not set ids (because thought if registered in
+    // same order it would be ok) and ran into issue where Spark and Fluo code were using different
+    // ids for some reason.
+    kryo.register(UriInfo.class, 9);
+    kryo.register(DomainExport.class, 10);
+    kryo.register(UriCountExport.class, 11);
+    kryo.register(PageExport.class, 12);
+    kryo.register(ArrayList.class, 13);
+    kryo.register(Link.class, 14);
 
     kryo.setRegistrationRequired(true);
 
