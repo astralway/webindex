@@ -25,6 +25,7 @@ import io.fluo.webindex.data.recipes.Transmutable;
 import io.fluo.webindex.data.spark.IndexUtil;
 import io.fluo.webindex.data.util.LinkUtil;
 import org.apache.accumulo.core.data.Mutation;
+import org.slf4j.LoggerFactory;
 
 public class UriCountExport implements Transmutable<String> {
   public UriInfo prevCount = UriInfo.EMPTY;
@@ -42,7 +43,10 @@ public class UriCountExport implements Transmutable<String> {
     ArrayList<Mutation> mutations = new ArrayList<>(4);
 
     createTotalUpdates(mutations, uri, seq, prevCount, newCount);
-    mutations.add(createDomainUpdate(uri, seq, prevCount, newCount));
+    Mutation m = createDomainUpdate(uri, seq, prevCount, newCount);
+    if (m != null) {
+      mutations.add(m);
+    }
     mutations.add(createPageUpdate(uri, seq, newCount));
 
     return mutations;
@@ -53,13 +57,20 @@ public class UriCountExport implements Transmutable<String> {
     String pageDomain;
     try {
       pageDomain = LinkUtil.getReverseTopPrivate(DataUtil.toUrl(pageUri));
+      return "d:" + pageDomain;
     } catch (ParseException e) {
-      throw new RuntimeException(e);
+      LoggerFactory.getLogger(UriCountExport.class).warn(
+          "Unable to get domain for " + pageUri + " " + e.getMessage());
     }
-    return "d:" + pageDomain;
+
+    return null;
   }
 
   private static Mutation createDomainUpdate(String uri, long seq, UriInfo prev, UriInfo curr) {
+    String domain = getDomainRow(uri);
+    if (domain == null) {
+      return null;
+    }
     Mutation m = new Mutation(getDomainRow(uri));
     // TODO screwy case when it does not exists... prev is 0 and initial val could be 0
     if (prev.linksTo != curr.linksTo) {
