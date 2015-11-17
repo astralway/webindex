@@ -24,6 +24,7 @@ import io.fluo.api.client.TransactionBase;
 import io.fluo.api.data.Bytes;
 import io.fluo.api.data.Column;
 import io.fluo.api.observer.AbstractObserver;
+import io.fluo.api.types.TypedSnapshotBase.Value;
 import io.fluo.api.types.TypedTransactionBase;
 import io.fluo.recipes.export.ExportQueue;
 import io.fluo.recipes.map.CollisionFreeMap;
@@ -54,14 +55,16 @@ public class PageObserver extends AbstractObserver {
 
     TypedTransactionBase ttx = FluoConstants.TYPEL.wrap(tx);
 
-    String nextJson = ttx.get().row(row).col(FluoConstants.PAGE_NEW_COL).toString("");
+    Map<Column, Value> pages =
+        ttx.get().row(row).columns(FluoConstants.PAGE_NEW_COL, FluoConstants.PAGE_CUR_COL);
+
+    String nextJson = pages.get(FluoConstants.PAGE_NEW_COL).toString("");
     if (nextJson.isEmpty()) {
       log.error("An empty page was set at row {} col {}", row.toString(), col.toString());
       return;
     }
 
-    Page curPage =
-        Page.fromJson(gson, ttx.get().row(row).col(FluoConstants.PAGE_CUR_COL).toString(""));
+    Page curPage = Page.fromJson(gson, pages.get(FluoConstants.PAGE_CUR_COL).toString(""));
     Set<Page.Link> curLinks = curPage.getOutboundLinks();
 
     Map<String, UriInfo> updates = new HashMap<>();

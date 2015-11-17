@@ -34,6 +34,7 @@ import io.fluo.webindex.core.DataUtil;
 import io.fluo.webindex.data.FluoApp;
 import io.fluo.webindex.data.recipes.Transmutable;
 import io.fluo.webindex.data.util.LinkUtil;
+import org.slf4j.LoggerFactory;
 
 /**
  * This class contains code related to a CollisionFreeMap that keeps track of the count of
@@ -133,8 +134,10 @@ public class UriMap {
         exportQ.add(tx, update.getKey(), new UriCountExport(oldVal, newVal));
 
         String pageDomain = getDomain(update.getKey());
-        long domainDelta = (newVal.linksTo + newVal.docs) - (oldVal.linksTo + oldVal.docs);
-        domainUpdates.merge(pageDomain, domainDelta, (o, n) -> o + n);
+        if (pageDomain != null) {
+          long domainDelta = (newVal.linksTo + newVal.docs) - (oldVal.linksTo + oldVal.docs);
+          domainUpdates.merge(pageDomain, domainDelta, (o, n) -> o + n);
+        }
       }
 
       domainMap.update(tx, domainUpdates);
@@ -142,11 +145,13 @@ public class UriMap {
 
     private String getDomain(String uri) {
       try {
-        // TODO does this need to throw exception????????
         return LinkUtil.getReverseTopPrivate(DataUtil.toUrl(uri));
       } catch (ParseException e) {
-        throw new RuntimeException(e);
+        LoggerFactory.getLogger(getClass()).warn(
+            "Unable to get domain for " + uri + " " + e.getMessage());
       }
+
+      return null;
     }
   }
 
