@@ -28,6 +28,12 @@ public class LinkUtilTest {
     Assert.assertTrue(LinkUtil.isValid("http://1.2.3.4/"));
     Assert.assertTrue(LinkUtil.isValid("http://a.b.c.d.com/1/2/3/4/5"));
     Assert.assertTrue(LinkUtil.isValid("http://a.b.com:281/1/2"));
+    Assert.assertTrue(LinkUtil.isValid("http://A.B.Com:281/a/b"));
+    Assert.assertTrue(LinkUtil.isValid("http://A.b.Com:281/A/b"));
+    Assert.assertTrue(LinkUtil.isValid("http://a.B.Com?A/b/C"));
+    Assert.assertTrue(LinkUtil.isValid("http://A.Be.COM"));
+    Assert.assertTrue(LinkUtil.isValid("http://a.com:/test"));
+    Assert.assertTrue(LinkUtil.isValid("http://z.com:"));
     Assert.assertTrue(LinkUtil.isValid("http://1.2.3.4:281/1/2"));
 
     // invalid urls
@@ -44,7 +50,11 @@ public class LinkUtilTest {
 
     Assert.assertEquals("example.com", LinkUtil.getHost("http://example.com:281/1/2"));
     Assert.assertEquals("a.b.example.com", LinkUtil.getHost("http://a.b.example.com/1/2"));
+    Assert.assertEquals("a.b.example.com", LinkUtil.getHost("http://A.B.Example.Com/1/2"));
     Assert.assertEquals("1.2.3.4", LinkUtil.getHost("http://1.2.3.4:89/1/2"));
+
+    Assert.assertEquals("/A/b/C", LinkUtil.createURL("http://A.B.Example.Com/A/b/C").getPath());
+    Assert.assertEquals("", LinkUtil.createURL("http://A.B.Example.Com?D/E/f").getPath());
 
     Assert.assertEquals("com.example", LinkUtil.getReverseHost("http://example.com:281/1"));
     Assert.assertEquals("com.example.b.a", LinkUtil.getReverseHost("http://a.b.example.com/1/2"));

@@ -58,11 +58,18 @@ public class DataUtilTest {
     Assert.assertEquals("com.example:8080/b", DataUtil.toUri("http://example.com:8080/b"));
     Assert.assertEquals("1.2.3.4////c", DataUtil.toUri("http://1.2.3.4////c"));
 
-
     Assert.assertEquals("com.example.:s/", DataUtil.toUri("https://example.com./"));
     Assert.assertEquals("https://example.com./", DataUtil.toUrl("com.example.:s/"));
 
     Assert.assertEquals("http://example.com", DataUtil.cleanUrl("Http://example.com  "));
     Assert.assertEquals("https://example.com", DataUtil.cleanUrl(" HTTPS://example.com "));
+    Assert.assertEquals("http://a.com/test/", DataUtil.cleanUrl("http://a.com:/test/"));
+    Assert.assertEquals("http://a.com", DataUtil.cleanUrl("http://a.com:"));
+    Assert.assertEquals("http://a.b.com:281/a/b", DataUtil.cleanUrl("http://A.B.Com:281/a/b"));
+    Assert.assertEquals("http://a.b.com:281/A/b", DataUtil.cleanUrl("http://A.b.Com:281/A/b"));
+    Assert.assertEquals("http://a.b.com?A/b/C", DataUtil.cleanUrl("http://a.B.Com?A/b/C"));
+    Assert.assertEquals("http://a.be.com", DataUtil.cleanUrl("http://A.Be.COM"));
+    Assert.assertEquals("http://a.com/test", DataUtil.cleanUrl("http://a.com:/test"));
+    Assert.assertEquals("http://z.com", DataUtil.cleanUrl("http://z.com:"));
   }
 }
