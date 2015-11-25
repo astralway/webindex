@@ -28,6 +28,7 @@ import io.fluo.api.data.Bytes;
 import io.fluo.api.data.RowColumn;
 import io.fluo.core.util.AccumuloUtil;
 import io.fluo.recipes.accumulo.export.TableInfo;
+import io.fluo.recipes.accumulo.ops.TableOperations;
 import io.fluo.webindex.core.DataConfig;
 import io.fluo.webindex.core.models.Page;
 import io.fluo.webindex.data.FluoApp;
@@ -157,8 +158,9 @@ public class IndexEnv {
   public void setFluoTableSplits() {
     final String table = fluoConfig.getAccumuloTable();
     try {
-      conn.tableOperations().addSplits(table, IndexEnv.getAccumuloDefaultSplits());
-    } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
+      conn.tableOperations().addSplits(table, IndexEnv.getFluoDefaultSplits());
+      TableOperations.optimizeTable(getFluoConfig());
+    } catch (Exception e) {
       throw new IllegalStateException("Failed to add splits to Fluo's Accumulo table " + table, e);
     }
   }
