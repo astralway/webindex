@@ -22,6 +22,9 @@ import org.apache.commons.validator.routines.InetAddressValidator;
 
 public class DataUtil {
 
+  public static String URL_SEP_REGEX = "[/?#]";
+  public static String HTTP_PROTO = "http://";
+  public static String HTTPS_PROTO = "https://";
   public static InetAddressValidator validator = InetAddressValidator.getInstance();
 
   public static String reverseDomain(String domain) {
@@ -40,7 +43,7 @@ public class DataUtil {
   }
 
   public static String toUrl(String uri) {
-    String[] args = uri.split("[\\/\\?\\#]", 2);
+    String[] args = uri.split(URL_SEP_REGEX, 2);
     String[] hostArgs = args[0].split(":", 2);
     String domain = getReverseHost(hostArgs[0]);
     StringBuilder url = new StringBuilder();
@@ -106,14 +109,36 @@ public class DataUtil {
   }
 
   public static String cleanUrl(String url) {
-    String cleanUrl = url.trim();
-    if (cleanUrl.length() >= 8) {
-      if (cleanUrl.substring(0, 7).equalsIgnoreCase("http://")) {
-        cleanUrl = "http://" + cleanUrl.substring(7);
-      } else if (cleanUrl.substring(0, 8).equalsIgnoreCase("https://")) {
-        cleanUrl = "https://" + cleanUrl.substring(8);
+    StringBuilder cleanUrl = new StringBuilder();
+    String trimUrl = url.trim();
+    if (trimUrl.toLowerCase().startsWith("http")) {
+      String urlNoProto = "";
+      if (trimUrl.substring(0, 7).equalsIgnoreCase(HTTP_PROTO)) {
+        cleanUrl.append(HTTP_PROTO);
+        urlNoProto = trimUrl.substring(7);
+      } else if (trimUrl.substring(0, 8).equalsIgnoreCase(HTTPS_PROTO)) {
+        cleanUrl.append(HTTPS_PROTO);
+        urlNoProto = trimUrl.substring(8);
       }
+      String[] args = urlNoProto.split(URL_SEP_REGEX, 2);
+      if (args.length == 2) {
+        int sepIndex = args[0].length();
+        String host = args[0].toLowerCase();
+        if (host.endsWith(":")) {
+          host = host.substring(0, host.length() - 1);
+        }
+        cleanUrl.append(host);
+        cleanUrl.append(urlNoProto.substring(sepIndex, sepIndex + 1));
+        cleanUrl.append(args[1]);
+      } else {
+        if (urlNoProto.endsWith(":")) {
+          urlNoProto = urlNoProto.substring(0, urlNoProto.length() - 1);
+        }
+        cleanUrl.append(urlNoProto.toLowerCase());
+      }
+    } else {
+      cleanUrl.append(trimUrl);
     }
-    return cleanUrl;
+    return cleanUrl.toString();
   }
 }
