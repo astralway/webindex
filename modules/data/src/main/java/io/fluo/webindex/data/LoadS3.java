@@ -14,28 +14,31 @@
 
 package io.fluo.webindex.data;
 
-import java.io.BufferedInputStream;
 import java.io.File;
-import java.io.IOException;
-import java.io.OutputStream;
 import java.net.URL;
 import java.util.List;
 
+import io.fluo.api.client.FluoClient;
+import io.fluo.api.client.FluoFactory;
+import io.fluo.api.client.LoaderExecutor;
+import io.fluo.api.config.FluoConfiguration;
 import io.fluo.webindex.core.DataConfig;
+import io.fluo.webindex.core.models.Page;
+import io.fluo.webindex.data.fluo.PageLoader;
 import io.fluo.webindex.data.spark.IndexEnv;
-import org.apache.commons.io.IOUtils;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
+import io.fluo.webindex.data.util.ArchiveUtil;
 import org.apache.spark.SparkConf;
-import org.apache.spark.api.java.JavaFutureAction;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.archive.io.ArchiveReader;
+import org.archive.io.ArchiveRecord;
+import org.archive.io.warc.WARCReaderFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Copy {
+public class LoadS3 {
 
-  private static final Logger log = LoggerFactory.getLogger(Copy.class);
+  private static final Logger log = LoggerFactory.getLogger(LoadS3.class);
 
   public static String getFilename(String fullPath) {
     int slashIndex = fullPath.lastIndexOf("/");
@@ -47,8 +50,8 @@ public class Copy {
 
   public static void main(String[] args) throws Exception {
 
-    if (args.length != 3) {
-      log.error("Usage: Copy <pathsFile> <range> <dest>");
+    if (args.length != 2) {
+      log.error("Usage: LoadS3 <pathsFile> <range>");
       System.exit(1);
     }
     final String hadoopConfDir = IndexEnv.getHadoopConfDir();
@@ -68,48 +71,42 @@ public class Copy {
     }
     DataConfig dataConfig = DataConfig.load();
 
-    SparkConf sparkConf = new SparkConf().setAppName("Webindex-Copy");
+    SparkConf sparkConf = new SparkConf().setAppName("Webindex-LoadS3");
     JavaSparkContext ctx = new JavaSparkContext(sparkConf);
-
-    FileSystem hdfs = FileSystem.get(ctx.hadoopConfiguration());
-    Path destPath = new Path(args[2]);
-    if (!hdfs.exists(destPath)) {
-      hdfs.mkdirs(destPath);
-    }
 
     JavaRDD<String> allFiles = ctx.textFile("file://" + ccPaths);
 
     List<String> copyList = allFiles.takeOrdered(end + 1).subList(start, end + 1);
 
-    log.info("Copying {} files (Range {} of paths file {}) from AWS to HDFS {}", copyList.size(),
-        args[1], args[0], destPath.toString());
+    log.info("Loading {} files (Range {} of paths file {}) from AWS", copyList.size(), args[1],
+        args[0]);
 
     JavaRDD<String> copyRDD = ctx.parallelize(copyList, dataConfig.sparkExecutorInstances);
 
     final String prefix = DataConfig.CC_URL_PREFIX;
-    final String destDir = destPath.toString();
 
     copyRDD.foreachPartition(iter -> {
-      FileSystem fs = IndexEnv.getHDFS(hadoopConfDir);
-      iter.forEachRemaining(ccPath -> {
-        try {
-          Path dfsPath = new Path(destDir + "/" + getFilename(ccPath));
-          if (fs.exists(dfsPath)) {
-            log.error("File {} exists in HDFS and should have been previously filtered",
-                dfsPath.getName());
-          } else {
-            String urlToCopy = prefix + ccPath;
-            log.info("Starting copy of {} to {}", urlToCopy, destDir);
-            try (OutputStream out = fs.create(dfsPath);
-                BufferedInputStream in = new BufferedInputStream(new URL(urlToCopy).openStream())) {
-              IOUtils.copy(in, out);
+      final FluoConfiguration fluoConfig = new FluoConfiguration(new File("fluo.properties"));
+      try (FluoClient client = FluoFactory.newClient(fluoConfig);
+          LoaderExecutor le = client.newLoaderExecutor()) {
+        iter.forEachRemaining(path -> {
+          String urlToCopy = prefix + path;
+          log.info("Loading {} to Fluo", urlToCopy);
+          try {
+            ArchiveReader reader = WARCReaderFactory.get(new URL(urlToCopy), 0);
+            for (ArchiveRecord record : reader) {
+              Page page = ArchiveUtil.buildPageIgnoreErrors(record);
+              if (page.getOutboundLinks().size() > 0) {
+                log.info("Loading page {} with {} links", page.getUrl(), page.getOutboundLinks()
+                    .size());
+                le.execute(PageLoader.updatePage(page));
+              }
             }
-            log.info("Created {}", dfsPath.getName());
+          } catch (Exception e) {
+            log.error("Exception while processing {}", path, e);
           }
-        } catch (IOException e) {
-          log.error("Exception while copying {}", ccPath, e);
-        }
-      });
+        });
+      }
     });
     ctx.stop();
   }

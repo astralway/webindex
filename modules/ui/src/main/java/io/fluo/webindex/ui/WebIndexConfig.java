@@ -14,29 +14,12 @@
 
 package io.fluo.webindex.ui;
 
-import java.io.File;
-
-import com.fasterxml.jackson.annotation.JsonProperty;
 import io.dropwizard.Configuration;
 import io.fluo.webindex.core.DataConfig;
-import org.hibernate.validator.constraints.NotEmpty;
 
 public class WebIndexConfig extends Configuration {
 
-  public static String getEnvPath(String name) {
-    String path = System.getenv(name);
-    if (path == null) {
-      throw new IllegalStateException(name + " must be set in environment!");
-    }
-    if (!(new File(path).exists())) {
-      throw new IllegalStateException("Directory set by " + name + "=" + path + " does not exist");
-    }
-    return path;
-  }
-
   public static DataConfig getDataConfig() {
-    String dataConfigPath = getEnvPath("WI_HOME") + "/conf/data.yml";
-    System.out.println(dataConfigPath);
-    return DataConfig.load(dataConfigPath);
+    return DataConfig.load();
   }
 }

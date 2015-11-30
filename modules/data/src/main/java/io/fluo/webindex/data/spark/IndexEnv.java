@@ -19,6 +19,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -41,8 +43,11 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapred.JobTracker;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -88,8 +93,8 @@ public class IndexEnv {
     accumuloTempDir = new Path(hdfsTempDir + "/accumulo");
   }
 
-  private static Configuration getHadoopConfigFromEnv() {
-    String hadoopConfDir = System.getenv("HADOOP_CONF_DIR");
+  public static String getHadoopConfDir() {
+    final String hadoopConfDir = System.getenv("HADOOP_CONF_DIR");
     if (hadoopConfDir == null) {
       log.error("HADOOP_CONF_DIR must be set in environment!");
       System.exit(1);
@@ -98,6 +103,11 @@ public class IndexEnv {
       log.error("Directory set by HADOOP_CONF_DIR={} does not exist", hadoopConfDir);
       System.exit(1);
     }
+    return hadoopConfDir;
+  }
+
+  private static Configuration getHadoopConfigFromEnv() {
+    String hadoopConfDir = getHadoopConfDir();
     Configuration config = new Configuration();
     config.addResource(hadoopConfDir);
     return config;
@@ -132,6 +142,38 @@ public class IndexEnv {
 
   public static SortedSet<Text> getFluoDefaultSplits() {
     return getSplits("fluo-default.txt");
+  }
+
+  public static FileSystem getHDFS() throws IOException {
+    return getHDFS(getHadoopConfDir());
+  }
+
+  public static void validateDataDir(String dataDir) {
+    try {
+      FileSystem hdfs = getHDFS();
+      Path dataPath = new Path(dataDir);
+      if (!hdfs.exists(dataPath)) {
+        log.error("HDFS data directory {} does not exist", dataDir);
+        System.exit(-1);
+      }
+      RemoteIterator<LocatedFileStatus> listIter = hdfs.listFiles(dataPath, true);
+      while (listIter.hasNext()) {
+        LocatedFileStatus status = listIter.next();
+        if (status.isFile()) {
+          return;
+        }
+      }
+      log.error("HDFS data directory {} has no files", dataDir);
+      System.exit(-1);
+    } catch (IOException e) {
+      throw new IllegalStateException(e);
+    }
+  }
+
+  public static FileSystem getHDFS(String hadoopConfDir) throws IOException {
+    Configuration config = new Configuration();
+    config.addResource(hadoopConfDir);
+    return FileSystem.get(config);
   }
 
   public void initAccumuloIndexTable() {

@@ -21,6 +21,8 @@ import io.fluo.webindex.data.spark.IndexStats;
 import io.fluo.webindex.data.spark.IndexUtil;
 import io.fluo.webindex.data.util.WARCFileInputFormat;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
@@ -36,29 +38,36 @@ public class Init {
 
   public static void main(String[] args) throws Exception {
 
-    if (args.length != 1) {
-      log.error("Usage: Init <dataConfigPath>");
+    if (args.length > 1) {
+      log.error("Usage: Init [<dataDir>]");
       System.exit(1);
     }
-    DataConfig dataConfig = DataConfig.load(args[0]);
+    DataConfig dataConfig = DataConfig.load();
 
-    SparkConf sparkConf = new SparkConf().setAppName("CC-Init");
-    JavaSparkContext ctx = new JavaSparkContext(sparkConf);
     IndexEnv env = new IndexEnv(dataConfig);
     env.setFluoTableSplits();
+    log.info("Initialized Fluo table splits");
 
-    IndexStats stats = new IndexStats(ctx);
+    if (args.length == 1) {
+      final String dataDir = args[0];
+      IndexEnv.validateDataDir(dataDir);
 
-    final JavaPairRDD<Text, ArchiveReader> archives =
-        ctx.newAPIHadoopFile(dataConfig.getHdfsInitDir(), WARCFileInputFormat.class, Text.class,
-            ArchiveReader.class, new Configuration());
+      SparkConf sparkConf = new SparkConf().setAppName("Webindex-Init");
+      JavaSparkContext ctx = new JavaSparkContext(sparkConf);
+      IndexStats stats = new IndexStats(ctx);
 
-    JavaRDD<Page> pages = IndexUtil.createPages(archives);
+      final JavaPairRDD<Text, ArchiveReader> archives =
+          ctx.newAPIHadoopFile(dataDir, WARCFileInputFormat.class, Text.class, ArchiveReader.class,
+              new Configuration());
 
-    env.initializeIndexes(ctx, pages, stats);
+      JavaRDD<Page> pages = IndexUtil.createPages(archives);
 
-    stats.print();
+      env.initializeIndexes(ctx, pages, stats);
 
-    ctx.stop();
+      stats.print();
+      ctx.stop();
+    } else {
+      log.info("An init data dir was not specified");
+    }
   }
 }

@@ -34,12 +34,12 @@ public class Reindex {
   public static void main(String[] args) throws Exception {
 
     if (args.length != 1) {
-      log.error("Usage: Reindex <dataConfigPath>");
+      log.error("Usage: Reindex");
       System.exit(1);
     }
-    DataConfig dataConfig = DataConfig.load(args[0]);
+    DataConfig dataConfig = DataConfig.load();
 
-    SparkConf sparkConf = new SparkConf().setAppName("CC-Reindex");
+    SparkConf sparkConf = new SparkConf().setAppName("Webindex-Reindex");
     JavaSparkContext ctx = new JavaSparkContext(sparkConf);
 
     IndexEnv env = new IndexEnv(dataConfig);

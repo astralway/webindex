@@ -14,28 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if [ -z $WI_HOME ]; then
-  echo "WI_HOME=$WI_HOME must be set!"
-  exit 1
-fi
-
-mkdir -p $WI_HOME/logs
-
-export DATA_CONFIG=$WI_HOME/conf/data.yml
-if [ ! -f $DATA_CONFIG ]; then
-  echo "You must create $DATA_CONFIG"
-  exit 1
-fi
+: ${WI_HOME?"WI_HOME must be set"}
+: ${DATA_CONFIG?"DATA_CONFIG must be set"}
+: ${SPARK_HOME?"SPARK_HOME must be set"}
 
 function get_prop {
   echo "`grep $1 $DATA_CONFIG | cut -d ' ' -f 2`"
-}
-
-function print_usage {
-  echo -e "Usage: load.sh [--build]\n"
-  echo "where:"
-  echo "  --build   Optionally, force rebuild of jars"
-  exit 1
 }
 
 export SPARK_SUBMIT=$SPARK_HOME/bin/spark-submit
@@ -49,19 +33,9 @@ hash mvn 2>/dev/null || { echo >&2 "Maven must be installed & mvn command must b
 # Stop if any command after this fails
 set -e
 
-BUILD=false
-if [ ! -z $1 ]; then
-  if [ "$1" == "--build" ]; then
-    BUILD=true
-  else
-    echo "Unknown argument $1"
-    exit 1
-  fi
-fi
-
 export WI_DATA_JAR=$WI_HOME/modules/data/target/webindex-data-0.0.1-SNAPSHOT.jar
 export WI_DATA_DEP_JAR=$WI_HOME/modules/data/target/webindex-data-0.0.1-SNAPSHOT-jar-with-dependencies.jar
-if [ "$BUILD" = true -o ! -f $WI_DATA_DEP_JAR ]; then
+if [ ! -f $WI_DATA_DEP_JAR ]; then
   echo "Installing all webindex jars"
   cd $WI_HOME
   mvn clean install -DskipTests
