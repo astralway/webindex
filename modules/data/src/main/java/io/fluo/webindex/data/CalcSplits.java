@@ -20,6 +20,7 @@ import io.fluo.api.data.Bytes;
 import io.fluo.api.data.RowColumn;
 import io.fluo.webindex.core.DataConfig;
 import io.fluo.webindex.core.models.Page;
+import io.fluo.webindex.data.spark.IndexEnv;
 import io.fluo.webindex.data.spark.IndexStats;
 import io.fluo.webindex.data.spark.IndexUtil;
 import io.fluo.webindex.data.util.WARCFileInputFormat;
@@ -38,15 +39,21 @@ public class CalcSplits {
   private static final Logger log = LoggerFactory.getLogger(CalcSplits.class);
 
   public static void main(String[] args) {
-    SparkConf sparkConf = new SparkConf().setAppName("CC-CalcSplits");
+    if (args.length != 1) {
+      log.error("Usage: CalcSplits <dataDir>");
+      System.exit(1);
+    }
+    final String dataDir = args[0];
+    IndexEnv.validateDataDir(dataDir);
+
+    SparkConf sparkConf = new SparkConf().setAppName("Webindex-CalcSplits");
     JavaSparkContext ctx = new JavaSparkContext(sparkConf);
 
-    DataConfig dataConfig = DataConfig.load(args[0]);
     IndexStats stats = new IndexStats(ctx);
 
     final JavaPairRDD<Text, ArchiveReader> archives =
-        ctx.newAPIHadoopFile(dataConfig.getHdfsInitDir(), WARCFileInputFormat.class, Text.class,
-            ArchiveReader.class, new Configuration());
+        ctx.newAPIHadoopFile(dataDir, WARCFileInputFormat.class, Text.class, ArchiveReader.class,
+            new Configuration());
 
     JavaRDD<Page> pages = IndexUtil.createPages(archives);
 

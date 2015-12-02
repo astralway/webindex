@@ -12,27 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Settings that must be changed
-# --------------------------------
-# Number of CC files to copy from AWS to HDFS for init phase
-numInitFiles: 2
-# Number of CC files to copy from AWS to HDFS for load phase
-numLoadFiles: 2
-
-# Settings that you might want to change
-# --------------------------------------
-# Accumulo table where indexes are stored
+# Accumulo table where indexes are exported for search
 accumuloIndexTable: webindex_search
-# Server URL of where Common Crawl data is hosted
-ccServerUrl: https://aws-publicdatasets.s3.amazonaws.com
-# Location of Common Crawl paths file to use
-ccDataPaths: common-crawl/crawl-data/CC-MAIN-2015-18/wat.paths.gz
 # Fluo Application Name
 fluoApp: webindex
 # HDFS temporary directory
 hdfsTempDir: /cc/temp
-# HDFS Input directory
-hdfsDataDir: /cc/data/2015-18
 # Number of Spark executors
 sparkExecutorInstances: 2
 # Spark executor memory

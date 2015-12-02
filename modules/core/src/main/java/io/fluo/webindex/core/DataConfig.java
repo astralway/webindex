@@ -21,37 +21,18 @@ import com.esotericsoftware.yamlbeans.YamlReader;
 
 public class DataConfig {
 
-  public static String INIT_DIR = "init";
-  public static String LOAD_DIR = "load";
-  public static String PATHS_FILE = "paths.gz";
+  public static String CC_URL_PREFIX = "https://aws-publicdatasets.s3.amazonaws.com/";
 
   public String fluoHome;
   public String hadoopConfDir;
-  public int numInitFiles;
-  public int numLoadFiles;
   public String accumuloIndexTable;
-  public String ccServerUrl;
-  public String ccDataPaths;
   public String fluoApp;
-  public String hdfsDataDir;
   public String hdfsTempDir;
   public int sparkExecutorInstances;
   public String sparkExecutorMemory;
 
   public String getFluoPropsPath() {
     return addSlash(fluoHome) + "apps/" + fluoApp + "/conf/fluo.properties";
-  }
-
-  public String getHdfsInitDir() {
-    return addSlash(hdfsDataDir) + INIT_DIR;
-  }
-
-  public String getHdfsLoadDir() {
-    return addSlash(hdfsDataDir) + LOAD_DIR;
-  }
-
-  public String getHdfsPathsFile() {
-    return addSlash(hdfsDataDir) + PATHS_FILE;
   }
 
   public static String getEnvPath(String name) {
@@ -63,6 +44,17 @@ public class DataConfig {
       throw new IllegalStateException("Directory set by " + name + "=" + path + " does not exist");
     }
     return path;
+  }
+
+  public static DataConfig load() {
+    final String homePath = getEnvPath("WI_HOME");
+    final String userPath = homePath + "/conf/data.yml";
+    final String defaultPath = homePath + "/conf/data.yml.example";
+    if ((new File(userPath).exists())) {
+      return load(userPath);
+    } else {
+      return load(defaultPath);
+    }
   }
 
   public static DataConfig load(String configPath) {

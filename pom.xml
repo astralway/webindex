@@ -236,6 +236,7 @@
               <exclude>src/main/resources/io/fluo/webindex/ui/views/*.ftl</exclude>
               <exclude>src/main/resources/io/fluo/webindex/ui/views/common/*.ftl</exclude>
               <exclude>logs/*</exclude>
+              <exclude>paths/*</exclude>
               <exclude>dependency-reduced-pom.xml</exclude>
             </excludes>
           </configuration>

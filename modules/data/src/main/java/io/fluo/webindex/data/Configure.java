@@ -32,10 +32,10 @@ public class Configure {
   public static void main(String[] args) throws Exception {
 
     if (args.length != 1) {
-      log.error("Usage: Configure <dataConfigPath>");
+      log.error("Usage: Configure");
       System.exit(1);
     }
-    DataConfig dataConfig = DataConfig.load(args[0]);
+    DataConfig dataConfig = DataConfig.load();
 
     IndexEnv env = new IndexEnv(dataConfig);
     env.initAccumuloIndexTable();

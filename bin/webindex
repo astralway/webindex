@@ -20,97 +20,181 @@ export WI_HOME=$( cd "$( dirname "$BIN_DIR" )" && pwd )
 if [ -f $WI_HOME/conf/webindex-env.sh ]; then
   . $WI_HOME/conf/webindex-env.sh
 fi
-if [ -z $HADOOP_CONF_DIR ]; then
-  echo "HADOOP_CONF_DIR must be set in bash env or conf/webindex-env.sh"
-  exit 1
-fi
+
+: ${HADOOP_CONF_DIR?"HADOOP_CONF_DIR must be set in bash env or conf/webindex-env.sh"}
 if [ ! -d $HADOOP_CONF_DIR ]; then
   echo "HADOOP_CONF_DIR=$HADOOP_CONF_DIR does not exist"
   exit 1
 fi
-if [ -z $FLUO_HOME ]; then
-  echo "FLUO_HOME must be set in bash env or conf/webindex-env.sh"
-  exit 1
-fi
+: ${FLUO_HOME?"FLUO_HOME must be set in bash env or conf/webindex-env.sh"}
 if [ ! -d $FLUO_HOME ]; then
   echo "FLUO_HOME=$FLUO_HOME does not exist"
   exit 1
 fi
 
+mkdir -p $WI_HOME/logs
+
+export DATA_CONFIG=$WI_HOME/conf/data.yml
+if [ ! -f $DATA_CONFIG ]; then
+  echo "You must create $DATA_CONFIG"
+  exit 1
+fi
+
+function get_prop {
+  echo "`grep $1 $DATA_CONFIG | cut -d ' ' -f 2`"
+}
+
 COMMAND_LOGFILE=$WI_HOME/logs/$1_`date +%s`.log
+COMMON_SPARK_OPTS="--master yarn-client --num-executors `get_prop sparkExecutorInstances` --executor-memory `get_prop sparkExecutorMemory`"
 
 case "$1" in
+getpaths)
+  PATHS_DIR=$WI_HOME/paths
+  mkdir -p $PATHS_DIR
+  rm -f $PATHS_DIR/wat.paths.gz
+  PATHS_URL=https://aws-publicdatasets.s3.amazonaws.com/common-crawl/crawl-data/CC-MAIN-$2/wat.paths.gz
+  if [[ `wget -S --spider $PATHS_URL 2>&1 | grep 'HTTP/1.1 200 OK'` ]]; then
+    wget -P $PATHS_DIR $PATHS_URL
+    gzip -d $PATHS_DIR/wat.paths.gz
+    PATHS_FILE="$2".wat.paths
+    mv $PATHS_DIR/wat.paths $PATHS_DIR/$PATHS_FILE
+    echo "Downloaded paths file to $PATHS_DIR/$PATHS_FILE"
+  else
+    echo "Crawl paths file for date $2 does not exist at $PATHS_URL"
+    exit 1
+  fi  
+  ;;
 copy)
-  . $BIN_DIR/impl/base.sh "${*:2}"
-  $SPARK_SUBMIT --class io.fluo.webindex.data.Copy \
-    --master yarn-client \
-    --num-executors `get_prop sparkExecutorInstances` \
-    --executor-memory `get_prop sparkExecutorMemory` \
-    --conf spark.shuffle.service.enabled=true \
-    $WI_DATA_DEP_JAR $WI_HOME/conf/data.yml &> $COMMAND_LOGFILE &
-  echo "Started copy.  Logs are being output to $COMMAND_LOGFILE"
-	;;
+  if [ "$#" -lt 4 -o "$#" -gt 5 ]; then
+    echo "Usage: webindex copy <DATE> <RANGE> <DEST> [-fg]"
+    exit 1
+  fi
+  . $BIN_DIR/impl/base.sh
+  COMMAND="$SPARK_SUBMIT --class io.fluo.webindex.data.Copy $COMMON_SPARK_OPTS \
+    $WI_DATA_DEP_JAR $WI_HOME/paths/"$2".wat.paths $3 $4"
+  if [ "$5" != "-fg" ]; then
+    nohup ${COMMAND} &> $COMMAND_LOGFILE &
+    echo "Started copy.  Logs are being output to $COMMAND_LOGFILE"
+  else
+    ${COMMAND}
+  fi
+  ;;
 init)
-  $BIN_DIR/impl/init.sh &> $COMMAND_LOGFILE &
-  echo "Started initialization.  Logs are being output to $COMMAND_LOGFILE"
-	;;
-load)
-  . $BIN_DIR/impl/base.sh "${*:2}"
-  FLUO_APP=`get_prop fluoApp`
-  FLUO_PROPS=$FLUO_HOME/apps/$FLUO_APP/conf/fluo.properties
+  if [ "$#" -lt 1 -o "$#" -gt 3 ]; then
+    echo "Usage: webindex init <SRC> [-fg]"
+    exit 1
+  fi
+  . $BIN_DIR/impl/base.sh
+  COMMAND="$BIN_DIR/impl/init.sh $2"
+  if [ "$2" == "-fg" ]; then
+    COMMAND="$BIN_DIR/impl/init.sh"
+  fi
+  if [ "$2" != "-fg" -a "$3" != "-fg" ]; then
+    nohup ${COMMAND} &> $COMMAND_LOGFILE &
+    echo "Started init.  Logs are being output to $COMMAND_LOGFILE"
+  else
+    ${COMMAND}
+  fi
+  ;;
+load-hdfs)
+  if [ "$#" -lt 2 -o "$#" -gt 3 ]; then
+    echo "Usage: webindex load-hdfs <SRC> [-fg]"
+    exit 1
+  fi
+  . $BIN_DIR/impl/base.sh
+  FLUO_PROPS=$FLUO_HOME/apps/`get_prop fluoApp`/conf/fluo.properties
   if [ ! -f $FLUO_PROPS ]; then
     echo "Fluo properties file must exist at $FLUO_PROPS"
     exit 1
   fi
-  $SPARK_SUBMIT --class io.fluo.webindex.data.Load \
-    --master yarn-client \
-    --num-executors `get_prop sparkExecutorInstances` \
-    --executor-memory `get_prop sparkExecutorMemory` \
-    --conf spark.shuffle.service.enabled=true \
-    --files $FLUO_PROPS \
-    $WI_DATA_DEP_JAR $WI_HOME/conf/data.yml &> $COMMAND_LOGFILE &
-  echo "Started load.  Logs are being output to $COMMAND_LOGFILE"
+  COMMAND="$SPARK_SUBMIT --class io.fluo.webindex.data.LoadHdfs $COMMON_SPARK_OPTS \
+    --files $FLUO_PROPS $WI_DATA_DEP_JAR $2"
+  if [ "$3" != "-fg" ]; then
+    nohup ${COMMAND} &> $COMMAND_LOGFILE &
+    echo "Started load-hdfs.  Logs are being output to $COMMAND_LOGFILE"
+  else
+    ${COMMAND}
+  fi
 	;;
+load-s3)
+  if [ "$#" -lt 3 -o "$#" -gt 4 ]; then
+    echo "Usage: webindex load-s3 <DATE> <RANGE> [-fg]"
+    exit 1
+  fi
+  . $BIN_DIR/impl/base.sh
+  FLUO_PROPS=$FLUO_HOME/apps/`get_prop fluoApp`/conf/fluo.properties
+  if [ ! -f $FLUO_PROPS ]; then
+    echo "Fluo properties file must exist at $FLUO_PROPS"
+    exit 1
+  fi
+  COMMAND="$SPARK_SUBMIT --class io.fluo.webindex.data.LoadS3 $COMMON_SPARK_OPTS \
+    --files $FLUO_PROPS $WI_DATA_DEP_JAR $WI_HOME/paths/"$2".wat.paths $3"
+  if [ "$4" != "-fg" ]; then
+    nohup ${COMMAND} &> $COMMAND_LOGFILE &
+    echo "Started load-s3.  Logs are being output to $COMMAND_LOGFILE"
+  else
+    ${COMMAND}
+  fi
+  ;;
 reindex)
-  . $BIN_DIR/impl/base.sh "${*:2}"
-  $SPARK_SUBMIT --class io.fluo.webindex.data.Reindex \
-    --master yarn-client \
-    --num-executors `get_prop sparkExecutorInstances` \
-    --executor-memory `get_prop sparkExecutorMemory` \
-    $WI_DATA_DEP_JAR $WI_HOME/conf/data.yml &> $COMMAND_LOGFILE &
-  echo "Started reindex.  Logs are being output to $COMMAND_LOGFILE"
-	;;
+  . $BIN_DIR/impl/base.sh
+  COMMAND="$SPARK_SUBMIT --class io.fluo.webindex.data.Reindex $COMMON_SPARK_OPTS $WI_DATA_DEP_JAR"
+  if [ "$2" != "-fg" ]; then
+    nohup ${COMMAND} &> $COMMAND_LOGFILE &
+    echo "Started reindex.  Logs are being output to $COMMAND_LOGFILE"
+  else
+    ${COMMAND}
+  fi
+  ;;
 ui)
-  cd $WI_HOME/modules/ui
-  mvn clean install -DskipTests
+  pkill -9 -f webindex-ui
+  WI_UI_JAR=$WI_HOME/modules/ui/target/webindex-ui-0.0.1-SNAPSHOT.jar
+  if [ ! -f $WI_UI_JAR ]; then
+    cd $WI_HOME/modules/ui
+    mvn clean install -DskipTests
+  fi
   DROPWIZARD_CONFIG=""
   if [ -f $WI_HOME/conf/dropwizard.yml ]; then
     DROPWIZARD_CONFIG=$WI_HOME/conf/dropwizard.yml
     echo "Running with dropwizard config at $DROPWIZARD_CONFIG"
   fi
-  java -jar $WI_HOME/modules/ui/target/webindex-ui-0.0.1-SNAPSHOT.jar \
-    server $DROPWIZARD_CONFIG &> $COMMAND_LOGFILE &
-  echo "Started UI.  Logs are being output to $COMMAND_LOGFILE"
+  COMMAND="java -jar $WI_UI_JAR server $DROPWIZARD_CONFIG"
+  if [ "$2" != "-fg" ]; then
+    nohup ${COMMAND} &> $COMMAND_LOGFILE &
+    echo "Started UI.  Logs are being output to $COMMAND_LOGFILE"
+  else
+    ${COMMAND}
+  fi
   ;;
 splits)
-  . $BIN_DIR/impl/base.sh "${*:2}"
-  $SPARK_SUBMIT --class io.fluo.webindex.data.CalcSplits \
-    --master yarn-client \
-    --num-executors `get_prop sparkExecutorInstances` \
-    --executor-memory `get_prop sparkExecutorMemory` \
+  . $BIN_DIR/impl/base.sh
+  COMMAND="$SPARK_SUBMIT --class io.fluo.webindex.data.CalcSplits \
+    $COMMON_SPARK_OPTS \
     --conf spark.shuffle.service.enabled=true \
-    $WI_DATA_DEP_JAR $WI_HOME/conf/data.yml &> $COMMAND_LOGFILE &
-  echo "Started splits calculation.  Logs are being output to $COMMAND_LOGFILE"
+    $WI_DATA_DEP_JAR $2"
+  if [ "$2" != "-fg" ]; then
+    nohup ${COMMAND} &> $COMMAND_LOGFILE &
+    echo "Started splits calculation.  Logs are being output to $COMMAND_LOGFILE"
+  else
+    ${COMMAND}
+  fi
   ;;
 *)
   echo -e "Usage: webindex <command> (<argument>)\n"
   echo -e "Possible commands:\n"
-  echo "  copy        Copies CommonCrawl data files from AWS into HDFS init & load directories"
-  echo "  init        Starts Spark job that initializes Fluo & Accumulo tables using data in HDFS init directory "
-  echo "  load        Starts Spark job that adds pages to Fluo using data in the HDFS load directory"
-  echo "  ui          Runs the webindex UI"
-  echo "  reindex     Runs Spark data in Fluo and recreates Accumulo indexes"
-  echo "  splits      Calculate splits"
+  echo "  getpaths <DATE>             Retrieves paths file for given crawl <DATE> (i.e 2015-18) and stores file in the 'paths/' directory"
+  echo "                              See https://commoncrawl.org/the-data/get-started/ for possible crawl dates"
+  echo "  copy <DATE> <RANGE> <DEST>  Copies CommonCrawl data files from S3 given a <DATE> and <RANGE> (i.e 0-8) into HDFS <DEST> directory"
+  echo "  init [<SRC>]                Initializes and starts the WebIndex application. Optionally, a <SRC> HDFS directory can be added to"
+  echo "                              to the command to initialize Fluo's table in Accumulo with data before starting the application"
+  echo "  load-hdfs <SRC>             Loads data from the HDFS <SRC> directory into Fluo"
+  echo "  load-s3 <DATE> <RANGE>      Loads data from S3 into Fluo.  Data is selected using a paths file <DATE> and file <RANGE> (i.e 5-7)"
+  echo "  ui                          Starts the webindex UI"
+  echo "  reindex                     Recreates Accumulo indexes using data in Fluo"
+  echo "  splits <SRC>                Calculate splits using data in HDFS <SRC> directory"
+  echo " "
+  echo "NOTE: All commands except getpaths will run in background and output to a log by default.  Add -fg to end of these commands"
+  echo "to run them in the foreground."
   echo " " 
   exit 1
 esac

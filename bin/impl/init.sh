@@ -14,10 +14,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-. $WI_HOME/bin/impl/base.sh "$@"
+: ${WI_HOME?"WI_HOME must be set"}
+
+. $WI_HOME/bin/impl/base.sh
 
 # stop if any command fails
 set -e
+
+: ${SPARK_SUBMIT?"SPARK_SUBMIT must be set"}
+: ${WI_DATA_JAR?"WI_DATA_JAR must be set"}
+: ${WI_DATA_DEP_JAR?"WI_DATA_DEP_JAR must be set"}
 
 FLUO_APP=`get_prop fluoApp`
 FLUO_CMD=$FLUO_HOME/bin/fluo
@@ -52,12 +58,12 @@ java -cp $WI_DATA_DEP_JAR io.fluo.webindex.data.Configure $WI_HOME/conf/data.yml
 
 $FLUO_CMD init $FLUO_APP --force
 
-spark-submit --class io.fluo.webindex.data.Init \
+$SPARK_SUBMIT --class io.fluo.webindex.data.Init \
     --master yarn-client \
     --num-executors `get_prop sparkExecutorInstances` \
     --executor-memory `get_prop sparkExecutorMemory` \
     --conf spark.shuffle.service.enabled=true \
     --conf spark.executor.extraJavaOptions=-XX:+UseCompressedOops \
-    $WI_DATA_DEP_JAR $WI_HOME/conf/data.yml
+    $WI_DATA_DEP_JAR $1
 
 $FLUO_CMD start $FLUO_APP
