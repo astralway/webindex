@@ -19,10 +19,14 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.google.common.base.Preconditions;
 import io.fluo.api.config.FluoConfiguration;
@@ -47,7 +51,6 @@ import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapred.JobTracker;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -275,5 +278,32 @@ public class IndexEnv {
 
   public FluoConfiguration getFluoConfig() {
     return fluoConfig;
+  }
+
+  public static List<String> getPathsRange(String ccPaths, String range) {
+    if (!(new File(ccPaths).exists())) {
+      log.error("CC paths file {} does not exist", ccPaths);
+      System.exit(1);
+    }
+    int start = 0;
+    int end = 0;
+    try {
+      start = Integer.parseInt(range.split("-")[0]);
+      end = Integer.parseInt(range.split("-")[1]);
+    } catch (NumberFormatException e) {
+      log.error("Invalid range: {}", range);
+      System.exit(1);
+    }
+    if (start > end) {
+      log.error("Invalid range: {}", range);
+      System.exit(1);
+    }
+    try (Stream<String> lines = Files.lines(Paths.get(ccPaths))) {
+      return lines.skip(start).limit(end - start + 1).collect(Collectors.toList());
+    } catch (IOException e) {
+      log.error("Failed to read CC paths file {}", ccPaths, e);
+      System.exit(1);
+    }
+    return Collections.emptyList();
   }
 }

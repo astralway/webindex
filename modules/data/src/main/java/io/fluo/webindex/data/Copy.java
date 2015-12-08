@@ -15,7 +15,6 @@
 package io.fluo.webindex.data;
 
 import java.io.BufferedInputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URL;
@@ -27,7 +26,6 @@ import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.spark.SparkConf;
-import org.apache.spark.api.java.JavaFutureAction;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.slf4j.Logger;
@@ -52,23 +50,15 @@ public class Copy {
       System.exit(1);
     }
     final String hadoopConfDir = IndexEnv.getHadoopConfDir();
-    final String ccPaths = args[0];
-    if (!(new File(ccPaths).exists())) {
-      log.error("CC paths file {} does not exist", ccPaths);
+    final List<String> copyList = IndexEnv.getPathsRange(args[0], args[1]);
+    if (copyList.isEmpty()) {
+      log.error("No files to copy given {} {}", args[0], args[1]);
       System.exit(1);
     }
-    int start = 0;
-    int end = 0;
-    try {
-      start = Integer.parseInt(args[1].split("-")[0]);
-      end = Integer.parseInt(args[1].split("-")[1]);
-    } catch (NumberFormatException e) {
-      log.error("Invalid range: {}", args[1]);
-      System.exit(1);
-    }
+
     DataConfig dataConfig = DataConfig.load();
 
-    SparkConf sparkConf = new SparkConf().setAppName("Webindex-Copy");
+    SparkConf sparkConf = new SparkConf().setAppName("webindex-copy");
     JavaSparkContext ctx = new JavaSparkContext(sparkConf);
 
     FileSystem hdfs = FileSystem.get(ctx.hadoopConfiguration());
@@ -76,10 +66,6 @@ public class Copy {
     if (!hdfs.exists(destPath)) {
       hdfs.mkdirs(destPath);
     }
-
-    JavaRDD<String> allFiles = ctx.textFile("file://" + ccPaths);
-
-    List<String> copyList = allFiles.takeOrdered(end + 1).subList(start, end + 1);
 
     log.info("Copying {} files (Range {} of paths file {}) from AWS to HDFS {}", copyList.size(),
         args[1], args[0], destPath.toString());

@@ -36,8 +36,12 @@ mkdir -p $WI_HOME/logs
 
 export DATA_CONFIG=$WI_HOME/conf/data.yml
 if [ ! -f $DATA_CONFIG ]; then
-  echo "You must create $DATA_CONFIG"
-  exit 1
+  export DATA_CONFIG=$WI_HOME/conf/data.yml.example
+  if [ ! -f $DATA_CONFIG ]; then
+    echo "Could not find data.yml or data.yml.example in $WI_HOME/conf"
+    exit 1
+  fi
+  echo "Using default config at $DATA_CONFIG"
 fi
 
 function get_prop {
@@ -45,24 +49,30 @@ function get_prop {
 }
 
 COMMAND_LOGFILE=$WI_HOME/logs/$1_`date +%s`.log
-COMMON_SPARK_OPTS="--master yarn-client --num-executors `get_prop sparkExecutorInstances` --executor-memory `get_prop sparkExecutorMemory`"
+test -z "$SPARK_EXECUTOR_INSTANCES" && export SPARK_EXECUTOR_INSTANCES=`get_prop sparkExecutorInstances`
+test -z "$SPARK_EXECUTOR_MEMORY" && export SPARK_EXECUTOR_MEMORY=`get_prop sparkExecutorMemory`
+export COMMON_SPARK_OPTS="--master yarn-client --num-executors $SPARK_EXECUTOR_INSTANCES --executor-memory $SPARK_EXECUTOR_MEMORY"
 
 case "$1" in
 getpaths)
   PATHS_DIR=$WI_HOME/paths
   mkdir -p $PATHS_DIR
-  rm -f $PATHS_DIR/wat.paths.gz
-  PATHS_URL=https://aws-publicdatasets.s3.amazonaws.com/common-crawl/crawl-data/CC-MAIN-$2/wat.paths.gz
-  if [[ `wget -S --spider $PATHS_URL 2>&1 | grep 'HTTP/1.1 200 OK'` ]]; then
-    wget -P $PATHS_DIR $PATHS_URL
-    gzip -d $PATHS_DIR/wat.paths.gz
-    PATHS_FILE="$2".wat.paths
-    mv $PATHS_DIR/wat.paths $PATHS_DIR/$PATHS_FILE
-    echo "Downloaded paths file to $PATHS_DIR/$PATHS_FILE"
+  PATHS_FILE="$2".wat.paths
+  if [ ! -f $PATHS_DIR/$PATHS_FILE ]; then
+    rm -f $PATHS_DIR/wat.paths.gz
+    PATHS_URL=https://aws-publicdatasets.s3.amazonaws.com/common-crawl/crawl-data/CC-MAIN-$2/wat.paths.gz
+    if [[ `wget -S --spider $PATHS_URL 2>&1 | grep 'HTTP/1.1 200 OK'` ]]; then
+      wget -P $PATHS_DIR $PATHS_URL
+      gzip -d $PATHS_DIR/wat.paths.gz
+      mv $PATHS_DIR/wat.paths $PATHS_DIR/$PATHS_FILE
+      echo "Downloaded paths file to $PATHS_DIR/$PATHS_FILE"
+    else
+      echo "Crawl paths file for date $2 does not exist at $PATHS_URL"
+      exit 1
+    fi
   else
-    echo "Crawl paths file for date $2 does not exist at $PATHS_URL"
-    exit 1
-  fi  
+    echo "Crawl paths file already exists at $PATHS_DIR/$PATHS_FILE"
+  fi
   ;;
 copy)
   if [ "$#" -lt 4 -o "$#" -gt 5 ]; then
@@ -179,6 +189,61 @@ splits)
     ${COMMAND}
   fi
   ;;
+test)
+  COMMAND="$BIN_DIR/impl/test.sh ${@:2}"
+  if [[ $@ != *"-fg"* ]]; then
+    nohup ${COMMAND} &> $COMMAND_LOGFILE &
+    echo "Started webindex test ${@:2}.  Logs are being output to $COMMAND_LOGFILE"
+  else
+    ${COMMAND}
+  fi
+  ;;
+test-id)
+  if [ "$#" -gt 3 ]; then
+    echo "Usage: webindex test-id <ID> [-fg]"
+    exit 1
+  fi
+  if [ -z "$2" ]; then
+    echo "Available tests:"
+    echo "----------------"
+    cat $WI_HOME/conf/webindex-tests.txt
+    exit 1
+  fi
+  TEST_ARGS="`grep $2 conf/webindex-tests.txt | cut -d = -f 2`"
+  if [ -z "$TEST_ARGS" ]; then
+    echo "Unknown test ID: $2"
+    echo "Available tests:"
+    echo "----------------"
+    cat $WI_HOME/conf/webindex-tests.txt
+    exit 1
+  fi
+  COMMAND="$BIN_DIR/impl/test.sh $TEST_ARGS"
+  if [[ $@ != *"-fg"* ]]; then
+    COMMAND_LOGFILE=$WI_HOME/logs/test_"$2"_`date +%s`.log
+    nohup ${COMMAND} &> $COMMAND_LOGFILE &
+    echo "Started webindex run-test $2.  Logs are being output to $COMMAND_LOGFILE"
+  else
+    ${COMMAND}
+  fi
+  ;;
+kill)
+  : ${HADOOP_PREFIX?"HADOOP_PREFIX must be set"}
+  FLUO_APP=`get_prop fluoApp`
+  FLUO_CMD=$FLUO_HOME/bin/fluo
+  if [ ! -f $FLUO_CMD ]; then
+    echo "Fluo command script does not exist at $FLUO_CMD"
+    exit 1
+  fi
+  echo "Killing the webindex UI web server..."
+  pkill -9 -f webindex-ui
+
+  echo "Stopping the $FLUO_APP Fluo application (if running)..."
+  $FLUO_CMD stop $FLUO_APP
+
+  echo "Killing any webindex Spark jobs running in YARN..."
+  YARN=$HADOOP_PREFIX/bin/yarn
+  $YARN application -list | grep webindex | while read x; do yarn application -kill `echo $x | cut -d ' ' -f 1` ; done
+  ;;
 *)
   echo -e "Usage: webindex <command> (<argument>)\n"
   echo -e "Possible commands:\n"
@@ -192,6 +257,18 @@ splits)
   echo "  ui                          Starts the webindex UI"
   echo "  reindex                     Recreates Accumulo indexes using data in Fluo"
   echo "  splits <SRC>                Calculate splits using data in HDFS <SRC> directory"
+  echo "  kill                        Kills the webindex Fluo application and any webindex Spark jobs (if running)"
+  echo "  test-id <ID>                Starts a pre-configured webindex test indentified by <ID>.  Run without arguments for a list of tests."
+  echo "  test <args>                 Starts a webindex test.  Each test will first remove any previously running test.  It will"
+  echo "                              then initialize the webindex application, start the UI, and load data."
+  echo "                              Tests can be configured by the following arguments." 
+  echo "                              Required args:"
+  echo "                                -d <DATE>   Date of common crawl paths file (required)"
+  echo "                                -i <RANGE>  Init data range (i.e START-END).  Set to 'none' to not initialize with any data."
+  echo "                                -l <RANGE>  Load data range (i.e START-END)"
+  echo "                              Optional args:"
+  echo "                                -e <NUM>    Number of Spark executors to run in all Spark jobs" 
+  echo "                                -m <MEM>    Amount of memory (i.e 512m, 1g) to provide to each Spark executor"
   echo " "
   echo "NOTE: All commands except getpaths will run in background and output to a log by default.  Add -fg to end of these commands"
   echo "to run them in the foreground."

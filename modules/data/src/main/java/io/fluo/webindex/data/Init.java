@@ -21,8 +21,6 @@ import io.fluo.webindex.data.spark.IndexStats;
 import io.fluo.webindex.data.spark.IndexUtil;
 import io.fluo.webindex.data.util.WARCFileInputFormat;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
@@ -52,7 +50,7 @@ public class Init {
       final String dataDir = args[0];
       IndexEnv.validateDataDir(dataDir);
 
-      SparkConf sparkConf = new SparkConf().setAppName("Webindex-Init");
+      SparkConf sparkConf = new SparkConf().setAppName("webindex-init");
       JavaSparkContext ctx = new JavaSparkContext(sparkConf);
       IndexStats stats = new IndexStats(ctx);
 
