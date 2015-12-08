@@ -25,13 +25,15 @@ set -e
 : ${WI_DATA_JAR?"WI_DATA_JAR must be set"}
 : ${WI_DATA_DEP_JAR?"WI_DATA_DEP_JAR must be set"}
 
+echo "Kill any previously running webindex Fluo application or Spark job"
+$WI_HOME/bin/webindex kill
+
 FLUO_APP=`get_prop fluoApp`
 FLUO_CMD=$FLUO_HOME/bin/fluo
 if [ ! -f $FLUO_CMD ]; then
   echo "Fluo command script does not exist at $FLUO_CMD"
   exit 1
 fi
-$FLUO_CMD stop $FLUO_APP || true
 
 FLUO_APP_HOME=$FLUO_HOME/apps/$FLUO_APP
 if [ -d $FLUO_APP_HOME ]; then
@@ -58,10 +60,7 @@ java -cp $WI_DATA_DEP_JAR io.fluo.webindex.data.Configure $WI_HOME/conf/data.yml
 
 $FLUO_CMD init $FLUO_APP --force
 
-$SPARK_SUBMIT --class io.fluo.webindex.data.Init \
-    --master yarn-client \
-    --num-executors `get_prop sparkExecutorInstances` \
-    --executor-memory `get_prop sparkExecutorMemory` \
+$SPARK_SUBMIT --class io.fluo.webindex.data.Init $COMMON_SPARK_OPTS \
     --conf spark.shuffle.service.enabled=true \
     --conf spark.executor.extraJavaOptions=-XX:+UseCompressedOops \
     $WI_DATA_DEP_JAR $1

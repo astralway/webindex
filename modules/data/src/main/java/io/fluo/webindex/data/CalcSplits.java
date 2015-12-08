@@ -18,7 +18,6 @@ import java.util.SortedSet;
 
 import io.fluo.api.data.Bytes;
 import io.fluo.api.data.RowColumn;
-import io.fluo.webindex.core.DataConfig;
 import io.fluo.webindex.core.models.Page;
 import io.fluo.webindex.data.spark.IndexEnv;
 import io.fluo.webindex.data.spark.IndexStats;
@@ -46,7 +45,7 @@ public class CalcSplits {
     final String dataDir = args[0];
     IndexEnv.validateDataDir(dataDir);
 
-    SparkConf sparkConf = new SparkConf().setAppName("Webindex-CalcSplits");
+    SparkConf sparkConf = new SparkConf().setAppName("webindex-calcsplits");
     JavaSparkContext ctx = new JavaSparkContext(sparkConf);
 
     IndexStats stats = new IndexStats(ctx);

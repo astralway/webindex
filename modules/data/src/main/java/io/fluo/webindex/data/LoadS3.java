@@ -40,52 +40,31 @@ public class LoadS3 {
 
   private static final Logger log = LoggerFactory.getLogger(LoadS3.class);
 
-  public static String getFilename(String fullPath) {
-    int slashIndex = fullPath.lastIndexOf("/");
-    if (slashIndex == -1) {
-      return fullPath;
-    }
-    return fullPath.substring(slashIndex + 1);
-  }
-
   public static void main(String[] args) throws Exception {
 
     if (args.length != 2) {
       log.error("Usage: LoadS3 <pathsFile> <range>");
       System.exit(1);
     }
-    final String hadoopConfDir = IndexEnv.getHadoopConfDir();
-    final String ccPaths = args[0];
-    if (!(new File(ccPaths).exists())) {
-      log.error("CC paths file {} does not exist", ccPaths);
+    final List<String> loadList = IndexEnv.getPathsRange(args[0], args[1]);
+    if (loadList.isEmpty()) {
+      log.error("No files to load given {} {}", args[0], args[1]);
       System.exit(1);
     }
-    int start = 0;
-    int end = 0;
-    try {
-      start = Integer.parseInt(args[1].split("-")[0]);
-      end = Integer.parseInt(args[1].split("-")[1]);
-    } catch (NumberFormatException e) {
-      log.error("Invalid range: {}", args[1]);
-      System.exit(1);
-    }
+
     DataConfig dataConfig = DataConfig.load();
 
-    SparkConf sparkConf = new SparkConf().setAppName("Webindex-LoadS3");
+    SparkConf sparkConf = new SparkConf().setAppName("webindex-load-s3");
     JavaSparkContext ctx = new JavaSparkContext(sparkConf);
 
-    JavaRDD<String> allFiles = ctx.textFile("file://" + ccPaths);
-
-    List<String> copyList = allFiles.takeOrdered(end + 1).subList(start, end + 1);
-
-    log.info("Loading {} files (Range {} of paths file {}) from AWS", copyList.size(), args[1],
+    log.info("Loading {} files (Range {} of paths file {}) from AWS", loadList.size(), args[1],
         args[0]);
 
-    JavaRDD<String> copyRDD = ctx.parallelize(copyList, dataConfig.sparkExecutorInstances);
+    JavaRDD<String> loadRDD = ctx.parallelize(loadList, dataConfig.sparkExecutorInstances);
 
     final String prefix = DataConfig.CC_URL_PREFIX;
 
-    copyRDD.foreachPartition(iter -> {
+    loadRDD.foreachPartition(iter -> {
       final FluoConfiguration fluoConfig = new FluoConfiguration(new File("fluo.properties"));
       try (FluoClient client = FluoFactory.newClient(fluoConfig);
           LoaderExecutor le = client.newLoaderExecutor()) {

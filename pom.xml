@@ -230,6 +230,7 @@
             <excludes>
               <exclude>README.md</exclude>
               <exclude>docs/**.md</exclude>
+              <exclude>conf/webindex-tests.txt</exclude>
               <exclude>src/test/resources/*.warc</exclude>
               <exclude>src/test/resources/data/set1/*.txt</exclude>
               <exclude>src/main/resources/splits/*.txt</exclude>

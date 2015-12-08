@@ -70,7 +70,7 @@ public class LoadHdfs {
 
     log.info("Loading {} files into Fluo from {}", loadPaths.size(), dataDir);
 
-    SparkConf sparkConf = new SparkConf().setAppName("Webindex-LoadHdfs");
+    SparkConf sparkConf = new SparkConf().setAppName("webindex-load-hdfs");
     JavaSparkContext ctx = new JavaSparkContext(sparkConf);
 
     JavaRDD<String> paths = ctx.parallelize(loadPaths, dataConfig.sparkExecutorInstances);

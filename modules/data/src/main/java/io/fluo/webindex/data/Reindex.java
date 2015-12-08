@@ -39,7 +39,7 @@ public class Reindex {
     }
     DataConfig dataConfig = DataConfig.load();
 
-    SparkConf sparkConf = new SparkConf().setAppName("Webindex-Reindex");
+    SparkConf sparkConf = new SparkConf().setAppName("webindex-reindex");
     JavaSparkContext ctx = new JavaSparkContext(sparkConf);
 
     IndexEnv env = new IndexEnv(dataConfig);
