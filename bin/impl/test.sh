@@ -15,10 +15,14 @@
 # limitations under the License.
 
 : ${WI_HOME?"WI_HOME must be set"}
+: ${HADOOP_PREFIX?"HADOOP_PREFIX must be set"}
 
 set -e
 
-while getopts ":d:i:l:e:m:fg" opt; do
+# defaults
+LOAD_SRC=s3
+
+while getopts ":d:i:l:s:e:m:fg" opt; do
   case $opt in
     d)
       PATHS_DATE=$OPTARG
@@ -29,13 +33,16 @@ while getopts ":d:i:l:e:m:fg" opt; do
     l)
       LOAD_RANGE=$OPTARG
       ;;
+    s)
+      LOAD_SRC=$OPTARG
+      ;;
     f|g)
       ;;
     e)
-      export SPARK_EXECUTOR_INSTANCES=$OPTARG
+      export WI_EXECUTOR_INSTANCES=$OPTARG
       ;;
     m)
-      export SPARK_EXECUTOR_MEMORY=$OPTARG
+      export WI_EXECUTOR_MEMORY=$OPTARG
       ;;
     \?)
       echo "Invalid option: -$OPTARG"
@@ -58,6 +65,7 @@ if [ -z $LOAD_RANGE ]; then
 fi
 
 WIC=$WI_HOME/bin/webindex
+HDFS=$HADOOP_PREFIX/bin/hdfs
 
 echo "Killing any running webindex Fluo applications or Spark jobs"
 $WIC kill
@@ -69,17 +77,29 @@ if [ "$INIT_RANGE" == "none" ]; then
   echo "Initializing webindex application with no data"
   $WIC init -fg
 else
-  DATA_PATH=/cc/data/$PATHS_DATE/$INIT_RANGE
-  echo "Copying data $PATHS_DATE $INIT_RANGE to $DATA_PATH"
-  $WIC copy $PATHS_DATE $INIT_RANGE $DATA_PATH -fg
-  echo "Initializing webindex application with HDFS data $DATA_PATH"
-  $WIC init $DATA_PATH -fg
+  INIT_PATH=/cc/data/$PATHS_DATE/$INIT_RANGE
+  $HDFS dfs -test -d $INIT_PATH
+  if [ $? != 0 ]; then
+    echo "Copying data $PATHS_DATE $INIT_RANGE to $INIT_PATH"
+    $WIC copy $PATHS_DATE $INIT_RANGE $INIT_PATH -fg
+  fi
+  echo "Initializing webindex application with HDFS data $INIT_PATH"
+  $WIC init $INIT_PATH -fg
 fi
 
 echo "Starting UI.  Logs will go to seperate file"
 $WIC ui
 
-if [ "$LOAD_RANGE" != "none" ]; then
+if [ "$LOAD_SRC" == "hdfs" -a "$LOAD_RANGE" != "none" ]; then
+  LOAD_PATH=/cc/data/$PATHS_DATE/$LOAD_RANGE
+  $HDFS dfs -test -d $LOAD_PATH
+  if [ $? != 0 ]; then
+    echo "Copying data $PATHS_DATE $LOAD_RANGE to $LOAD_PATH"
+    $WIC copy $PATHS_DATE $LOAD_RANGE $LOAD_PATH -fg
+  fi
+  echo "Loading HDFS data $LOAD_PATH into Fluo"
+  $WIC load-hdfs $LOAD_PATH -fg
+elif [ "$LOAD_RANGE" != "none" ]; then
   echo "Loading S3 data $PATHS_DATE $LOAD_RANGE into Fluo"
   $WIC load-s3 $PATHS_DATE $LOAD_RANGE -fg
 fi

@@ -18,7 +18,3 @@ accumuloIndexTable: webindex_search
 fluoApp: webindex
 # HDFS temporary directory
 hdfsTempDir: /cc/temp
-# Number of Spark executors
-sparkExecutorInstances: 2
-# Spark executor memory
-sparkExecutorMemory: 1g

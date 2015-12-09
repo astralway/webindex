@@ -1,2 +1,12 @@
-load1 = -d 2015-18 -i none -l 0-0 -e 1 -m 512m
-index1k = -d 2015-18 -i 0-99 -l 100-999 -e 10 -m 1024
+# Tests using 1 executor
+load1-s3 = -d 2015-18 -i none -l 0-0 -e 1 -m 512m -s s3
+load1-hdfs = -d 2015-18 -i none -l 0-0 -e 1 -m 512m -s hdfs
+index2-hdfs = -d 2015-18 -i 0-0 -l 1-1 -e 1 -m 512m -s hdfs
+# Tests using 2 executors
+load2-s3 = -d 2015-18 -i none -l 0-1 -e 1 -m 512m -s s3
+load2-hdfs = -d 2015-18 -i none -l 0-1 -e 1 -m 512m -s hdfs
+# Tests using 5 executors
+load5 = -d 2015-18 -i none -l 0-4 -e 5 -m 512m
+load10 = -d 2015-18 -i none -l 0-4 -e 10 -m 512m
+# Tests using 10 executors
+index100 = -d 2015-18 -i 0-9 -l 10-99 -e 10 -m 512m

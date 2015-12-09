@@ -48,10 +48,10 @@ function get_prop {
   echo "`grep $1 $DATA_CONFIG | cut -d ' ' -f 2`"
 }
 
+: ${WI_EXECUTOR_INSTANCES?"WI_EXECUTOR_INSTANCES must be set in bash env or conf/webindex-env.sh"}
+: ${WI_EXECUTOR_MEMORY?"WI_EXECUTOR_MEMORY must be set in bash env or conf/webindex-env.sh"}
+export COMMON_SPARK_OPTS="--master yarn-client --num-executors $WI_EXECUTOR_INSTANCES --executor-memory $WI_EXECUTOR_MEMORY"
 COMMAND_LOGFILE=$WI_HOME/logs/$1_`date +%s`.log
-test -z "$SPARK_EXECUTOR_INSTANCES" && export SPARK_EXECUTOR_INSTANCES=`get_prop sparkExecutorInstances`
-test -z "$SPARK_EXECUTOR_MEMORY" && export SPARK_EXECUTOR_MEMORY=`get_prop sparkExecutorMemory`
-export COMMON_SPARK_OPTS="--master yarn-client --num-executors $SPARK_EXECUTOR_INSTANCES --executor-memory $SPARK_EXECUTOR_MEMORY"
 
 case "$1" in
 getpaths)
@@ -267,6 +267,7 @@ kill)
   echo "                                -i <RANGE>  Init data range (i.e START-END).  Set to 'none' to not initialize with any data."
   echo "                                -l <RANGE>  Load data range (i.e START-END)"
   echo "                              Optional args:"
+  echo "                                -s <SRC>    Source (i.e. hdfs, s3) to use when loading data. If not set, defaults to 's3'"
   echo "                                -e <NUM>    Number of Spark executors to run in all Spark jobs" 
   echo "                                -m <MEM>    Amount of memory (i.e 512m, 1g) to provide to each Spark executor"
   echo " "

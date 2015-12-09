@@ -25,7 +25,5 @@ public class DataConfigTest {
     Assert.assertEquals("webindex_search", config.accumuloIndexTable);
     Assert.assertEquals("webindex", config.fluoApp);
     Assert.assertEquals("/cc/temp", config.hdfsTempDir);
-    Assert.assertEquals(2, config.sparkExecutorInstances);
-    Assert.assertEquals("1g", config.sparkExecutorMemory);
   }
 }
