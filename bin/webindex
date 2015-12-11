@@ -209,7 +209,7 @@ test-id)
     cat $WI_HOME/conf/webindex-tests.txt
     exit 1
   fi
-  TEST_ARGS="`grep $2 conf/webindex-tests.txt | cut -d = -f 2`"
+  TEST_ARGS="`grep $2 $WI_HOME/conf/webindex-tests.txt | cut -d = -f 2`"
   if [ -z "$TEST_ARGS" ]; then
     echo "Unknown test ID: $2"
     echo "Available tests:"
