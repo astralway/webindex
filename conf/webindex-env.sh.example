@@ -20,3 +20,7 @@ test -z "$HADOOP_PREFIX" && export HADOOP_PREFIX=/path/to/hadoop
 test -z "$HADOOP_CONF_DIR" && export HADOOP_CONF_DIR=/path/to/hadoop/etc/hadoop
 test -z "$FLUO_HOME" && export FLUO_HOME=/path/to/fluo
 test -z "$SPARK_HOME" && export SPARK_HOME=/path/to/spark
+# Number of Spark executor instances
+test -z "$WI_EXECUTOR_INSTANCES" && export WI_EXECUTOR_INSTANCES=1
+# Amount of memory given to each Spark executor
+test -z "$WI_EXECUTOR_MEMORY" && export WI_EXECUTOR_MEMORY=512m

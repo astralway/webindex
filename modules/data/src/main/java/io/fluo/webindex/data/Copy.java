@@ -70,7 +70,7 @@ public class Copy {
     log.info("Copying {} files (Range {} of paths file {}) from AWS to HDFS {}", copyList.size(),
         args[1], args[0], destPath.toString());
 
-    JavaRDD<String> copyRDD = ctx.parallelize(copyList, dataConfig.sparkExecutorInstances);
+    JavaRDD<String> copyRDD = ctx.parallelize(copyList, dataConfig.getNumExecutorInstances());
 
     final String prefix = DataConfig.CC_URL_PREFIX;
     final String destDir = destPath.toString();

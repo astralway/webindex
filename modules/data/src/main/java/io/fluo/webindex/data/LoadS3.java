@@ -60,7 +60,7 @@ public class LoadS3 {
     log.info("Loading {} files (Range {} of paths file {}) from AWS", loadList.size(), args[1],
         args[0]);
 
-    JavaRDD<String> loadRDD = ctx.parallelize(loadList, dataConfig.sparkExecutorInstances);
+    JavaRDD<String> loadRDD = ctx.parallelize(loadList, dataConfig.getNumExecutorInstances());
 
     final String prefix = DataConfig.CC_URL_PREFIX;
 

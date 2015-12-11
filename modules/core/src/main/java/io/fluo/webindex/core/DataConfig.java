@@ -22,24 +22,38 @@ import com.esotericsoftware.yamlbeans.YamlReader;
 public class DataConfig {
 
   public static String CC_URL_PREFIX = "https://aws-publicdatasets.s3.amazonaws.com/";
+  public static String WI_EXECUTOR_INSTANCES = "WI_EXECUTOR_INSTANCES";
 
   public String fluoHome;
   public String hadoopConfDir;
   public String accumuloIndexTable;
   public String fluoApp;
   public String hdfsTempDir;
-  public int sparkExecutorInstances;
-  public String sparkExecutorMemory;
 
   public String getFluoPropsPath() {
     return addSlash(fluoHome) + "apps/" + fluoApp + "/conf/fluo.properties";
   }
 
-  public static String getEnvPath(String name) {
-    String path = System.getenv(name);
-    if (path == null) {
+  public int getNumExecutorInstances() {
+    String numInstances = getEnv(WI_EXECUTOR_INSTANCES);
+    try {
+      return Integer.parseInt(numInstances);
+    } catch (NumberFormatException e) {
+      throw new IllegalStateException("Failed to parse value of " + numInstances + " for "
+          + WI_EXECUTOR_INSTANCES);
+    }
+  }
+
+  public static String getEnv(String name) {
+    String value = System.getenv(name);
+    if (value == null) {
       throw new IllegalStateException(name + " must be set in environment!");
     }
+    return value;
+  }
+
+  public static String getEnvPath(String name) {
+    String path = getEnv(name);
     if (!(new File(path).exists())) {
       throw new IllegalStateException("Directory set by " + name + "=" + path + " does not exist");
     }
