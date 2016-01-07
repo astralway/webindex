@@ -32,8 +32,8 @@ public class IndexEnvTest {
 
     splits = IndexEnv.getFluoDefaultSplits();
 
-    Assert.assertEquals(43, splits.size());
+    Assert.assertEquals(44, splits.size());
     Assert.assertEquals(new Text("p:c"), splits.first());
-    Assert.assertEquals(new Text("p:uk.co.v"), splits.last());
+    Assert.assertEquals(new Text("p:~"), splits.last());
   }
 }

@@ -66,7 +66,7 @@ public class CalcSplits {
     splits = IndexUtil.calculateSplits(fluoIndex, 100);
     log.info("Fluo splits:");
     splits.forEach(System.out::println);
-
+    System.out.println("p:~");
     ctx.stop();
   }
 }
