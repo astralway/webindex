@@ -41,11 +41,11 @@
     </snapshotRepository>
   </distributionManagement>
   <properties>
-    <accumulo.version>1.6.1</accumulo.version>
+    <accumulo.version>1.6.4</accumulo.version>
     <dropwizard.version>0.8.2</dropwizard.version>
     <eclipseFormatterStyle>${project.parent.basedir}/conf/fluo-eclipse-style.xml</eclipseFormatterStyle>
-    <fluo-recipes.version>1.0.0-beta-1-SNAPSHOT</fluo-recipes.version>
-    <fluo.version>1.0.0-beta-2-SNAPSHOT</fluo.version>
+    <fluo-recipes.version>1.0.0-beta-1</fluo-recipes.version>
+    <fluo.version>1.0.0-beta-2</fluo.version>
     <hadoop.version>2.7.0</hadoop.version>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
