@@ -106,7 +106,7 @@ The `load-s3` command below loads data hosted on S3 into Fluo.  It select files 
 
 ### Compact Transient Ranges
 
-For long runs, this example has [transient ranges](transient) that need to be 
+For long runs, this example has [transient ranges][transient] that need to be 
 periodically compacted.  This can be accomplished with the following command.
 
 ```bash
