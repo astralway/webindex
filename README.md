@@ -104,6 +104,18 @@ The `load-s3` command below loads data hosted on S3 into Fluo.  It select files 
 
     ./bin/webindex load-s3 2015-18 9-10
 
+### Compact Transient Ranges
+
+For long runs, this example has [transient ranges](transient) that need to be 
+periodically compacted.  This can be accomplished with the following command.
+
+```bash
+nohup fluo exec webindex io.fluo.recipes.accumulo.cmds.CompactTransient 600 &> your_log_file.log &
+```
+
+As long as this command is running, it will initiate a compaction of all transient 
+ranges every 10 minutes.
+
 ### Run the webindex UI
 
 Run the following command to run the webindex UI which can be viewed at 
@@ -123,3 +135,4 @@ configuration by creating a `dropwizard.yml` in `conf/`.
 [dropwizard]: http://dropwizard.io/
 [cc]: https://commoncrawl.org/
 [cdata]: https://commoncrawl.org/the-data/get-started/
+[transient]: https://github.com/fluo-io/fluo-recipes/blob/master/docs/transient.md
