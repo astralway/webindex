@@ -14,30 +14,30 @@
 
 package io.fluo.webindex.data.fluo;
 
-import java.util.Collection;
 import java.util.Collections;
+import java.util.Map;
+import java.util.Optional;
 
-import io.fluo.webindex.core.Constants;
-import io.fluo.webindex.data.recipes.Transmutable;
-import org.apache.accumulo.core.data.Mutation;
+import io.fluo.api.data.Bytes;
+import io.fluo.api.data.RowColumn;
+import io.fluo.recipes.accumulo.export.DifferenceExport;
 
-public class DomainExport implements Transmutable<String> {
-  private long count;
+import static io.fluo.webindex.data.util.FluoConstants.PAGECOUNT_COL;
+
+public class DomainExport extends DifferenceExport<String, Long> {
 
   public DomainExport() {}
 
-  public DomainExport(long c) {
-    this.count = c;
+  public DomainExport(Optional<Long> oldCount, Optional<Long> newCount) {
+    super(oldCount, newCount);
   }
 
   @Override
-  public Collection<Mutation> toMutations(String domain, long seq) {
-    Mutation m = new Mutation("d:" + domain);
-    if (count == 0) {
-      m.putDelete(Constants.DOMAIN, Constants.PAGECOUNT, seq);
-    } else {
-      m.put(Constants.DOMAIN, Constants.PAGECOUNT, seq, count + "");
+  protected Map<RowColumn, Bytes> generateData(String domain, Optional<Long> count) {
+    if (!count.isPresent() || count.get() == 0) {
+      return Collections.emptyMap();
     }
-    return Collections.singleton(m);
+    return Collections.singletonMap(new RowColumn("d:" + domain, PAGECOUNT_COL),
+        Bytes.of(count.get() + ""));
   }
 }

@@ -19,12 +19,13 @@ import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Optional;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import io.fluo.api.client.TransactionBase;
 import io.fluo.api.config.FluoConfiguration;
 import io.fluo.api.observer.Observer.Context;
+import io.fluo.recipes.accumulo.export.AccumuloExport;
 import io.fluo.recipes.export.ExportQueue;
 import io.fluo.recipes.map.CollisionFreeMap;
 import io.fluo.recipes.map.CollisionFreeMap.Options;
@@ -33,7 +34,6 @@ import io.fluo.recipes.map.Update;
 import io.fluo.recipes.map.UpdateObserver;
 import io.fluo.webindex.core.DataUtil;
 import io.fluo.webindex.data.FluoApp;
-import io.fluo.webindex.data.recipes.Transmutable;
 import io.fluo.webindex.data.util.LinkUtil;
 import org.slf4j.LoggerFactory;
 
@@ -107,7 +107,7 @@ public class UriMap {
       }
 
       if (total.equals(UriInfo.ZERO)) {
-        return Optional.absent();
+        return Optional.empty();
       } else {
         return Optional.of(total);
       }
@@ -119,7 +119,7 @@ public class UriMap {
    */
   public static class UriUpdateObserver extends UpdateObserver<String, UriInfo> {
 
-    private ExportQueue<String, Transmutable<String>> exportQ;
+    private ExportQueue<String, AccumuloExport<String>> exportQ;
     private CollisionFreeMap<String, Long> domainMap;
 
     @Override
@@ -138,10 +138,11 @@ public class UriMap {
       while (updates.hasNext()) {
         Update<String, UriInfo> update = updates.next();
 
-        UriInfo oldVal = update.getOldValue().or(UriInfo.ZERO);
-        UriInfo newVal = update.getNewValue().or(UriInfo.ZERO);
+        UriInfo oldVal = update.getOldValue().orElse(UriInfo.ZERO);
+        UriInfo newVal = update.getNewValue().orElse(UriInfo.ZERO);
 
-        exportQ.add(tx, update.getKey(), new UriCountExport(oldVal, newVal));
+        exportQ.add(tx, update.getKey(),
+            new UriCountExport(Optional.of(oldVal), Optional.of(newVal)));
 
         String pageDomain = getDomain(update.getKey());
         if (pageDomain != null) {

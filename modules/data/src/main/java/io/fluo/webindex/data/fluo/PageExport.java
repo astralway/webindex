@@ -20,13 +20,13 @@ import java.util.Collection;
 import java.util.List;
 
 import com.google.common.collect.Sets.SetView;
+import io.fluo.recipes.accumulo.export.AccumuloExport;
 import io.fluo.webindex.core.Constants;
 import io.fluo.webindex.core.models.Page;
 import io.fluo.webindex.core.models.Page.Link;
-import io.fluo.webindex.data.recipes.Transmutable;
 import org.apache.accumulo.core.data.Mutation;
 
-public class PageExport implements Transmutable<String> {
+public class PageExport implements AccumuloExport<String> {
 
   private String json;
   private List<Page.Link> addedLinks;
