@@ -49,6 +49,7 @@
     <hadoop.version>2.6.3</hadoop.version>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
+    <thrift.version>0.9.1</thrift.version>
   </properties>
   <dependencyManagement>
     <dependencies>
@@ -159,6 +160,11 @@
         <version>1.5.1</version>
       </dependency>
       <dependency>
+        <groupId>org.apache.thrift</groupId>
+        <artifactId>libthrift</artifactId>
+        <version>${thrift.version}</version>
+      </dependency>
+      <dependency>
         <groupId>org.apache.zookeeper</groupId>
         <artifactId>zookeeper</artifactId>
         <version>3.4.6</version>
@@ -222,6 +228,11 @@
               <version>3.10.0.v20140604-1726</version>
             </dependency>
           </dependencies>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-shade-plugin</artifactId>
+          <version>2.4.3</version>
         </plugin>
         <plugin>
           <groupId>org.apache.rat</groupId>
@@ -339,15 +350,6 @@
           <target>${maven.compiler.target}</target>
           <optimize>true</optimize>
           <encoding>UTF-8</encoding>
-        </configuration>
-      </plugin>
-      <plugin>
-        <artifactId>maven-assembly-plugin</artifactId>
-        <version>2.4</version>
-        <configuration>
-          <descriptorRefs>
-            <descriptorRef>jar-with-dependencies</descriptorRef>
-          </descriptorRefs>
         </configuration>
       </plugin>
       <plugin>
