@@ -34,12 +34,9 @@ hash mvn 2>/dev/null || { echo >&2 "Maven must be installed & mvn command must b
 set -e
 
 export WI_DATA_JAR=$WI_HOME/modules/data/target/webindex-data-0.0.1-SNAPSHOT.jar
-export WI_DATA_DEP_JAR=$WI_HOME/modules/data/target/webindex-data-0.0.1-SNAPSHOT-jar-with-dependencies.jar
+export WI_DATA_DEP_JAR=$WI_HOME/modules/data/target/webindex-data-0.0.1-SNAPSHOT-shaded.jar
 if [ ! -f $WI_DATA_DEP_JAR ]; then
-  echo "Installing all webindex jars"
-  cd $WI_HOME
-  mvn clean install -DskipTests
   echo "Building $WI_DATA_DEP_JAR"
-  cd $WI_HOME/modules/data
-  mvn package assembly:single -DskipTests
+  cd $WI_HOME
+  mvn clean package -DskipTests
 fi
