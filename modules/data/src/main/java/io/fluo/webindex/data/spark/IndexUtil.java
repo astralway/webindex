@@ -37,6 +37,7 @@ import io.fluo.webindex.core.Constants;
 import io.fluo.webindex.core.DataUtil;
 import io.fluo.webindex.core.models.Page;
 import io.fluo.webindex.data.fluo.DomainMap;
+import io.fluo.webindex.data.fluo.PageObserver;
 import io.fluo.webindex.data.fluo.UriMap;
 import io.fluo.webindex.data.fluo.UriMap.UriInfo;
 import io.fluo.webindex.data.util.ArchiveUtil;
@@ -252,7 +253,10 @@ public class IndexUtil {
                     .getRow(), rcv.getColumn()), rcv.getValue()));
               }
               if (row.startsWith("p:") && cf.equals(Constants.PAGE) && cq.equals(Constants.CUR)) {
-                return Collections.singleton(t);
+                String hashedRow =
+                    PageObserver.getPageRowHasher().addHash(row.substring(2)).toString();
+                return Collections.singleton(new Tuple2<RowColumn, Bytes>(new RowColumn(hashedRow,
+                    rc.getColumn()), t._2()));
               }
 
               return Collections.emptyList();

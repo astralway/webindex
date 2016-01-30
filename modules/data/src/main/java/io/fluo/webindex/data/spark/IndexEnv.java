@@ -35,9 +35,11 @@ import io.fluo.api.data.RowColumn;
 import io.fluo.core.util.AccumuloUtil;
 import io.fluo.recipes.accumulo.export.TableInfo;
 import io.fluo.recipes.accumulo.ops.TableOperations;
+import io.fluo.recipes.common.Pirtos;
 import io.fluo.webindex.core.DataConfig;
 import io.fluo.webindex.core.models.Page;
 import io.fluo.webindex.data.FluoApp;
+import io.fluo.webindex.data.fluo.PageObserver;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
@@ -143,10 +145,6 @@ public class IndexEnv {
     return getSplits("accumulo-default.txt");
   }
 
-  public static SortedSet<Text> getFluoDefaultSplits() {
-    return getSplits("fluo-default.txt");
-  }
-
   public static FileSystem getHDFS() throws IOException {
     return getHDFS(getHadoopConfDir());
   }
@@ -203,8 +201,10 @@ public class IndexEnv {
   public void setFluoTableSplits() {
     final String table = fluoConfig.getAccumuloTable();
     try {
-      conn.tableOperations().addSplits(table, IndexEnv.getFluoDefaultSplits());
-      TableOperations.optimizeTable(getFluoConfig());
+      Pirtos tableOptimizations = Pirtos.getTableOptimizations(getFluoConfig());
+      tableOptimizations.merge(PageObserver.getPageRowHasher().getTableOptimizations(
+          FluoApp.NUM_BUCKETS));
+      TableOperations.optimizeTable(getFluoConfig(), tableOptimizations);
     } catch (Exception e) {
       throw new IllegalStateException("Failed to add splits to Fluo's Accumulo table " + table, e);
     }
