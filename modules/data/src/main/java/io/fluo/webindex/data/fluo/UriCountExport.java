@@ -22,9 +22,12 @@ import io.fluo.webindex.core.Constants;
 import io.fluo.webindex.core.DataUtil;
 import io.fluo.webindex.data.fluo.UriMap.UriInfo;
 import io.fluo.webindex.data.recipes.Transmutable;
-import io.fluo.webindex.data.spark.IndexUtil;
 import io.fluo.webindex.data.util.LinkUtil;
+import org.apache.accumulo.core.client.lexicoder.Lexicoder;
+import org.apache.accumulo.core.client.lexicoder.ReverseLexicoder;
+import org.apache.accumulo.core.client.lexicoder.ULongLexicoder;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.commons.codec.binary.Hex;
 import org.slf4j.LoggerFactory;
 
 public class UriCountExport implements Transmutable<String> {
@@ -52,6 +55,11 @@ public class UriCountExport implements Transmutable<String> {
     return mutations;
   }
 
+  public static String revEncodeLong(Long num) {
+    Lexicoder<Long> lexicoder = new ReverseLexicoder<>(new ULongLexicoder());
+    return Hex.encodeHexString(lexicoder.encode(num));
+  }
+
   // TODO maybe move code for mutating index table to central place.
   private static String getDomainRow(String pageUri) {
     String pageDomain;
@@ -74,11 +82,11 @@ public class UriCountExport implements Transmutable<String> {
     Mutation m = new Mutation(getDomainRow(uri));
     // TODO screwy case when it does not exists... prev is 0 and initial val could be 0
     if (prev.linksTo != curr.linksTo) {
-      String cf = String.format("%s:%s", IndexUtil.revEncodeLong(prev.linksTo), uri);
+      String cf = String.format("%s:%s", revEncodeLong(prev.linksTo), uri);
       m.putDelete(Constants.RANK, cf, seq);
     }
 
-    String cf = String.format("%s:%s", IndexUtil.revEncodeLong(curr.linksTo), uri);
+    String cf = String.format("%s:%s", revEncodeLong(curr.linksTo), uri);
     if (curr.equals(UriInfo.EMPTY)) {
       m.putDelete(Constants.RANK, cf, seq);
     } else {
@@ -99,7 +107,7 @@ public class UriCountExport implements Transmutable<String> {
   }
 
   private static String createTotalRow(String uri, long curr) {
-    return String.format("t:%s:%s", IndexUtil.revEncodeLong(curr), uri);
+    return String.format("t:%s:%s", revEncodeLong(curr), uri);
   }
 
   private static void createTotalUpdates(ArrayList<Mutation> mutations, String uri, long seq,

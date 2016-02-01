@@ -19,6 +19,7 @@ import java.util.SortedSet;
 import io.fluo.api.data.Bytes;
 import io.fluo.api.data.RowColumn;
 import io.fluo.webindex.core.models.Page;
+import io.fluo.webindex.data.fluo.UriMap.UriInfo;
 import io.fluo.webindex.data.spark.IndexEnv;
 import io.fluo.webindex.data.spark.IndexStats;
 import io.fluo.webindex.data.spark.IndexUtil;
@@ -56,17 +57,14 @@ public class CalcSplits {
 
     JavaRDD<Page> pages = IndexUtil.createPages(archives);
 
-    JavaPairRDD<RowColumn, Bytes> accumuloIndex = IndexUtil.createAccumuloIndex(stats, pages);
+    JavaPairRDD<String, UriInfo> uriMap = IndexUtil.createUriMap(pages);
+    JavaPairRDD<String, Long> domainMap = IndexUtil.createDomainMap(uriMap);
+    JavaPairRDD<RowColumn, Bytes> accumuloIndex =
+        IndexUtil.createAccumuloIndex(stats, pages, uriMap, domainMap);
     SortedSet<Text> splits = IndexUtil.calculateSplits(accumuloIndex, 100);
     log.info("Accumulo splits:");
     splits.forEach(System.out::println);
 
-    JavaPairRDD<RowColumn, Bytes> fluoIndex =
-        IndexUtil.createFluoIndex(accumuloIndex, FluoApp.NUM_BUCKETS);
-    splits = IndexUtil.calculateSplits(fluoIndex, 100);
-    log.info("Fluo splits:");
-    splits.forEach(System.out::println);
-    System.out.println("p:~");
     ctx.stop();
   }
 }
