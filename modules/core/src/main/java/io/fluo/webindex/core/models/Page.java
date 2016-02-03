@@ -15,12 +15,11 @@
 package io.fluo.webindex.core.models;
 
 import java.io.Serializable;
-import java.net.MalformedURLException;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 import com.google.gson.Gson;
-import io.fluo.webindex.core.DataUtil;
 
 public class Page implements Serializable {
 
@@ -30,10 +29,10 @@ public class Page implements Serializable {
   public static final Page DELETE = new Page(true);
   public static final String DELETE_JSON = "delete";
 
-  private String url = "";
-  private String domain;
+  private String url;
+  private String pageID;
   private Long numInbound;
-  private Long numOutbound = new Long(0);
+  private Long numOutbound = 0L;
   private String crawlDate;
   private String server;
   private String title;
@@ -46,8 +45,10 @@ public class Page implements Serializable {
     this.isDelete = isDelete;
   }
 
-  public Page(String url) {
-    this.url = DataUtil.cleanUrl(url);
+  public Page(String pageID) {
+    Objects.requireNonNull(pageID);
+    this.url = URL.fromPageID(pageID).toString();
+    this.pageID = pageID;
   }
 
   public String getServer() {
@@ -62,8 +63,8 @@ public class Page implements Serializable {
     return url;
   }
 
-  public String getUri() throws MalformedURLException {
-    return DataUtil.toUri(url);
+  public String getPageID() {
+    return pageID;
   }
 
   public Set<Link> getOutboundLinks() {
@@ -73,8 +74,8 @@ public class Page implements Serializable {
   /**
    * @return True if page did not already contain link
    */
-  public boolean addOutboundLink(String url, String anchorText) {
-    boolean added = outboundLinks.add(new Link(url, anchorText));
+  public boolean addOutbound(Link link) {
+    boolean added = outboundLinks.add(link);
     if (added) {
       numOutbound++;
     }
@@ -84,8 +85,8 @@ public class Page implements Serializable {
   /**
    * @return True if link was removed
    */
-  public boolean removeOutboundLink(String url) {
-    boolean removed = outboundLinks.remove(new Link(url));
+  public boolean removeOutbound(Link link) {
+    boolean removed = outboundLinks.remove(link);
     if (removed) {
       numOutbound--;
     }
@@ -93,15 +94,11 @@ public class Page implements Serializable {
   }
 
   public boolean isEmpty() {
-    return url.isEmpty() && outboundLinks.isEmpty();
+    return url == null && outboundLinks.isEmpty();
   }
 
   public String getDomain() {
-    return domain;
-  }
-
-  public void setDomain(String domain) {
-    this.domain = domain;
+    return URL.fromPageID(pageID).getDomain();
   }
 
   public Long getNumInbound() {
@@ -146,50 +143,5 @@ public class Page implements Serializable {
     }
 
     return gson.fromJson(pageJson, Page.class);
-  }
-
-  public static class Link implements Serializable {
-
-    private static final long serialVersionUID = 1L;
-
-    private String url;
-    private String anchorText;
-
-    public Link(String url, String anchorText) {
-      this.url = DataUtil.cleanUrl(url);
-      this.anchorText = anchorText;
-    }
-
-    public Link(String url) {
-      this(url, "");
-    }
-
-    public Link() {}
-
-    public String getUrl() {
-      return url;
-    }
-
-    public String getUri() throws MalformedURLException {
-      return DataUtil.toUri(url);
-    }
-
-    public String getAnchorText() {
-      return anchorText;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (o instanceof Link) {
-        Link other = (Link) o;
-        return url.equals(other.url);
-      }
-      return false;
-    }
-
-    @Override
-    public int hashCode() {
-      return url.hashCode();
-    }
   }
 }

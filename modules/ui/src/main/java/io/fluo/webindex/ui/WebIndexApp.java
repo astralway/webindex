@@ -49,7 +49,7 @@ public class WebIndexApp extends Application<WebIndexConfig> {
     FluoConfiguration fluoConfig = new FluoConfiguration(fluoConfigFile);
 
     Connector conn = AccumuloUtil.getConnector(fluoConfig);
-    final WebIndexResources resource = new WebIndexResources(fluoConfig, conn, dataConfig);
+    final WebIndexResources resource = new WebIndexResources(conn, dataConfig);
     environment.healthChecks().register("fluo", new FluoHealthCheck());
     environment.jersey().register(resource);
   }

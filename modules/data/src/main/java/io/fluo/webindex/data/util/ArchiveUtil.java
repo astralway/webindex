@@ -17,7 +17,9 @@ package io.fluo.webindex.data.util;
 import java.io.IOException;
 import java.text.ParseException;
 
+import io.fluo.webindex.core.models.Link;
 import io.fluo.webindex.core.models.Page;
+import io.fluo.webindex.core.models.URL;
 import org.apache.commons.io.IOUtils;
 import org.archive.io.ArchiveRecord;
 import org.json.JSONArray;
@@ -46,12 +48,17 @@ public class ArchiveUtil {
       } catch (JSONException e) {
         throw new ParseException(e.getMessage(), 0);
       }
-      String pageUrl = archiveRecord.getHeader().getUrl();
-      if (!LinkUtil.isValid(pageUrl)) {
+      String rawPageUrl = archiveRecord.getHeader().getUrl();
+      URL pageUrl;
+      try {
+        pageUrl = DataUrl.from(rawPageUrl);
+      } catch (IllegalArgumentException e) {
+        return Page.EMPTY;
+      } catch (Exception e) {
+        log.error("Unexpected exception while parsing raw page URL: " + rawPageUrl, e);
         return Page.EMPTY;
       }
-      String pageDomain = LinkUtil.getTopPrivate(pageUrl);
-      Page page = new Page(archiveRecord.getHeader().getUrl());
+      Page page = new Page(pageUrl.toPageID());
       page.setCrawlDate(archiveRecord.getHeader().getDate());
       try {
         JSONObject responseMeta =
@@ -70,12 +77,17 @@ public class ArchiveUtil {
                 } else if (link.has("title")) {
                   anchorText = link.getString("title");
                 }
-                String linkUrl = link.getString("url");
-                if (LinkUtil.isValid(linkUrl)) {
-                  String linkDomain = LinkUtil.getTopPrivate(linkUrl);
-                  if (!pageDomain.equalsIgnoreCase(linkDomain)) {
-                    page.addOutboundLink(linkUrl, anchorText);
+                String rawLinkUrl = link.getString("url");
+                URL linkUrl;
+                try {
+                  linkUrl = DataUrl.from(rawLinkUrl);
+                  if (!page.getDomain().equals(linkUrl.getDomain())) {
+                    page.addOutbound(Link.of(linkUrl, anchorText));
                   }
+                } catch (IllegalArgumentException e) {
+                  log.debug("Failed to parse link: " + rawLinkUrl);
+                } catch (Exception e) {
+                  log.error("Unexpected exception while parsing link URL: " + rawLinkUrl, e);
                 }
               }
             }

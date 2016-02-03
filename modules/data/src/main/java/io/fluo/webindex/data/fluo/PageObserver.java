@@ -30,6 +30,7 @@ import io.fluo.recipes.accumulo.export.AccumuloExport;
 import io.fluo.recipes.data.RowHasher;
 import io.fluo.recipes.export.ExportQueue;
 import io.fluo.recipes.map.CollisionFreeMap;
+import io.fluo.webindex.core.models.Link;
 import io.fluo.webindex.core.models.Page;
 import io.fluo.webindex.data.FluoApp;
 import io.fluo.webindex.data.fluo.UriMap.UriInfo;
@@ -72,7 +73,7 @@ public class PageObserver extends AbstractObserver {
     }
 
     Page curPage = Page.fromJson(gson, pages.get(FluoConstants.PAGE_CUR_COL).toString(""));
-    Set<Page.Link> curLinks = curPage.getOutboundLinks();
+    Set<Link> curLinks = curPage.getOutboundLinks();
 
     Map<String, UriInfo> updates = new HashMap<>();
     String pageUri = getPageRowHasher().removeHash(row).toString();
@@ -88,16 +89,16 @@ public class PageObserver extends AbstractObserver {
       }
     }
 
-    Set<Page.Link> nextLinks = nextPage.getOutboundLinks();
+    Set<Link> nextLinks = nextPage.getOutboundLinks();
 
-    Sets.SetView<Page.Link> addLinks = Sets.difference(nextLinks, curLinks);
-    for (Page.Link link : addLinks) {
-      updates.put(link.getUri(), new UriInfo(1, 0));
+    Sets.SetView<Link> addLinks = Sets.difference(nextLinks, curLinks);
+    for (Link link : addLinks) {
+      updates.put(link.getPageID(), new UriInfo(1, 0));
     }
 
-    Sets.SetView<Page.Link> delLinks = Sets.difference(curLinks, nextLinks);
-    for (Page.Link link : delLinks) {
-      updates.put(link.getUri(), new UriInfo(-1, 0));
+    Sets.SetView<Link> delLinks = Sets.difference(curLinks, nextLinks);
+    for (Link link : delLinks) {
+      updates.put(link.getPageID(), new UriInfo(-1, 0));
     }
 
     uriMap.update(tx, updates);

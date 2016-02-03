@@ -24,7 +24,7 @@ public class Links {
   private String next = "";
   private Integer pageNum;
   private Long total;
-  private List<WebLink> links = new ArrayList<>();
+  private List<Link> links = new ArrayList<>();
 
   public Links() {
     // Jackson deserialization
@@ -48,16 +48,12 @@ public class Links {
     return url;
   }
 
-  public List<WebLink> getLinks() {
+  public List<Link> getLinks() {
     return links;
   }
 
-  public void addLink(WebLink link) {
+  public void addLink(Link link) {
     links.add(link);
-  }
-
-  public void addLink(String url, String anchorText) {
-    links.add(new WebLink(url, anchorText));
   }
 
   public String getLinkType() {
@@ -74,24 +70,5 @@ public class Links {
 
   public void setNext(String next) {
     this.next = next;
-  }
-
-  public class WebLink {
-
-    private String url;
-    private String anchorText;
-
-    public WebLink(String url, String anchorText) {
-      this.url = url;
-      this.anchorText = anchorText;
-    }
-
-    public String getUrl() {
-      return url;
-    }
-
-    public String getAnchorText() {
-      return anchorText;
-    }
   }
 }

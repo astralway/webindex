@@ -38,6 +38,7 @@ import io.fluo.recipes.accumulo.ops.TableOperations;
 import io.fluo.recipes.common.Pirtos;
 import io.fluo.webindex.core.DataConfig;
 import io.fluo.webindex.core.models.Page;
+import io.fluo.webindex.core.models.URL;
 import io.fluo.webindex.data.FluoApp;
 import io.fluo.webindex.data.fluo.PageObserver;
 import io.fluo.webindex.data.fluo.UriMap.UriInfo;

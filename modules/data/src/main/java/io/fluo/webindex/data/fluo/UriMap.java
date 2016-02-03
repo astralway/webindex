@@ -15,7 +15,6 @@
 package io.fluo.webindex.data.fluo;
 
 import java.io.Serializable;
-import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -32,10 +31,8 @@ import io.fluo.recipes.map.CollisionFreeMap.Options;
 import io.fluo.recipes.map.Combiner;
 import io.fluo.recipes.map.Update;
 import io.fluo.recipes.map.UpdateObserver;
-import io.fluo.webindex.core.DataUtil;
+import io.fluo.webindex.core.models.URL;
 import io.fluo.webindex.data.FluoApp;
-import io.fluo.webindex.data.util.LinkUtil;
-import org.slf4j.LoggerFactory;
 
 /**
  * This class contains code related to a CollisionFreeMap that keeps track of the count of
@@ -144,28 +141,15 @@ public class UriMap {
         exportQ.add(tx, update.getKey(),
             new UriCountExport(update.getOldValue(), update.getNewValue()));
 
-        String pageDomain = getDomain(update.getKey());
-        if (pageDomain != null) {
-          if (oldVal.equals(UriInfo.ZERO) && !newVal.equals(UriInfo.ZERO)) {
-            domainUpdates.merge(pageDomain, 1l, (o, n) -> o + n);
-          } else if (newVal.equals(UriInfo.ZERO) && !oldVal.equals(UriInfo.ZERO)) {
-            domainUpdates.merge(pageDomain, -1l, (o, n) -> o + n);
-          }
+        String pageDomain = URL.fromPageID(update.getKey()).getReverseDomain();
+        if (oldVal.equals(UriInfo.ZERO) && !newVal.equals(UriInfo.ZERO)) {
+          domainUpdates.merge(pageDomain, 1l, (o, n) -> o + n);
+        } else if (newVal.equals(UriInfo.ZERO) && !oldVal.equals(UriInfo.ZERO)) {
+          domainUpdates.merge(pageDomain, -1l, (o, n) -> o + n);
         }
       }
 
       domainMap.update(tx, domainUpdates);
-    }
-
-    private String getDomain(String uri) {
-      try {
-        return LinkUtil.getReverseTopPrivate(DataUtil.toUrl(uri));
-      } catch (ParseException e) {
-        LoggerFactory.getLogger(getClass()).warn(
-            "Unable to get domain for " + uri + " " + e.getMessage());
-      }
-
-      return null;
     }
   }
 

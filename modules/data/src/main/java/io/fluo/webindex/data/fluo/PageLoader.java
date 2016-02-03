@@ -22,8 +22,8 @@ import io.fluo.api.client.Loader;
 import io.fluo.api.client.TransactionBase;
 import io.fluo.api.types.TypedTransactionBase;
 import io.fluo.recipes.data.RowHasher;
-import io.fluo.webindex.core.DataUtil;
 import io.fluo.webindex.core.models.Page;
+import io.fluo.webindex.core.models.URL;
 import io.fluo.webindex.data.util.FluoConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +33,7 @@ public class PageLoader implements Loader {
   private static final Logger log = LoggerFactory.getLogger(PageLoader.class);
   private Action action;
   private Page page;
-  private String delUri;
+  private URL delUrl;
 
   private PageLoader() {}
 
@@ -45,15 +45,13 @@ public class PageLoader implements Loader {
     return update;
   }
 
-  public static PageLoader deletePage(String url) throws MalformedURLException {
-    Preconditions.checkArgument(!url.isEmpty(), "Url cannot be empty");
+  public static PageLoader deletePage(URL url) throws MalformedURLException {
+    Preconditions.checkNotNull(url, "Url cannot be null");
     PageLoader update = new PageLoader();
     update.action = Action.DELETE;
-    update.delUri = DataUtil.toUri(url);
+    update.delUrl = url;
     return update;
   }
-
-
 
   @Override
   public void load(TransactionBase tx, Context context) throws Exception {
@@ -65,12 +63,12 @@ public class PageLoader implements Loader {
 
     switch (action) {
       case DELETE:
-        ttx.mutate().row(rowHasher.addHash(delUri)).col(FluoConstants.PAGE_NEW_COL)
+        ttx.mutate().row(rowHasher.addHash(delUrl.toPageID())).col(FluoConstants.PAGE_NEW_COL)
             .set(Page.DELETE_JSON);
         break;
       case UPDATE:
         String newJson = gson.toJson(page);
-        ttx.mutate().row(rowHasher.addHash(page.getUri())).col(FluoConstants.PAGE_NEW_COL)
+        ttx.mutate().row(rowHasher.addHash(page.getPageID())).col(FluoConstants.PAGE_NEW_COL)
             .set(newJson);
         break;
       default:

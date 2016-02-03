@@ -33,9 +33,9 @@ import io.fluo.recipes.map.CollisionFreeMap;
 import io.fluo.recipes.map.CollisionFreeMap.Initializer;
 import io.fluo.recipes.serialization.KryoSimplerSerializer;
 import io.fluo.webindex.core.Constants;
-import io.fluo.webindex.core.DataUtil;
+import io.fluo.webindex.core.models.Link;
 import io.fluo.webindex.core.models.Page;
-import io.fluo.webindex.core.models.Page.Link;
+import io.fluo.webindex.core.models.URL;
 import io.fluo.webindex.data.fluo.DomainMap;
 import io.fluo.webindex.data.fluo.PageObserver;
 import io.fluo.webindex.data.fluo.UriCountExport;
@@ -43,7 +43,6 @@ import io.fluo.webindex.data.fluo.UriMap;
 import io.fluo.webindex.data.fluo.UriMap.UriInfo;
 import io.fluo.webindex.data.util.ArchiveUtil;
 import io.fluo.webindex.data.util.FluoConstants;
-import io.fluo.webindex.data.util.LinkUtil;
 import io.fluo.webindex.serialization.WebindexKryoFactory;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.mapreduce.AccumuloFileOutputFormat;
@@ -92,10 +91,10 @@ public class IndexUtil {
       List<Tuple2<String, UriInfo>> ret = new ArrayList<>();
 
       if (!page.isEmpty()) {
-        ret.add(new Tuple2<>(page.getUri(), new UriInfo(0, 1)));
+        ret.add(new Tuple2<>(page.getPageID(), new UriInfo(0, 1)));
 
         for (Link link : page.getOutboundLinks()) {
-          ret.add(new Tuple2<>(link.getUri(), new UriInfo(1, 0)));
+          ret.add(new Tuple2<>(link.getPageID(), new UriInfo(1, 0)));
         }
       }
       return ret;
@@ -108,10 +107,9 @@ public class IndexUtil {
 
   public static JavaPairRDD<String, Long> createDomainMap(JavaPairRDD<String, UriInfo> uriMap) {
 
-    JavaPairRDD<String, Long> domainMap = uriMap.mapToPair(t -> {
-      String domain = LinkUtil.getReverseTopPrivate(DataUtil.toUrl(t._1()));
-      return new Tuple2<>(domain, 1l);
-    }).reduceByKey(Long::sum);
+    JavaPairRDD<String, Long> domainMap =
+        uriMap.mapToPair(t -> new Tuple2<>(URL.fromPageID(t._1()).getReverseDomain(), 1L))
+            .reduceByKey(Long::sum);
 
     domainMap.persist(StorageLevel.DISK_ONLY());
 
@@ -124,26 +122,27 @@ public class IndexUtil {
   public static JavaPairRDD<RowColumn, Bytes> createAccumuloIndex(IndexStats stats,
       JavaRDD<Page> pages, JavaPairRDD<String, UriInfo> uriMap, JavaPairRDD<String, Long> domainMap) {
 
-    JavaPairRDD<RowColumn, Bytes> accumuloIndex = pages.flatMapToPair(page -> {
-      if (page.isEmpty()) {
-        stats.addEmpty(1);
-        return new ArrayList<>();
-      }
-      stats.addPage(1);
-      Set<Page.Link> links1 = page.getOutboundLinks();
-      stats.addExternalLinks(links1.size());
+    JavaPairRDD<RowColumn, Bytes> accumuloIndex =
+        pages.flatMapToPair(page -> {
+          if (page.isEmpty()) {
+            stats.addEmpty(1);
+            return new ArrayList<>();
+          }
+          stats.addPage(1);
+          Set<Link> links1 = page.getOutboundLinks();
+          stats.addExternalLinks(links1.size());
 
-      List<Tuple2<RowColumn, Bytes>> ret = new ArrayList<>();
-      String pageUri = page.getUri();
-      if (links1.size() > 0) {
-        addRCV(ret, "p:" + pageUri, new Column(Constants.PAGE, Constants.CUR), gson.toJson(page));
-      }
-      for (Page.Link link : links1) {
-        String linkUri = link.getUri();
-        addRCV(ret, "p:" + linkUri, new Column(Constants.INLINKS, pageUri), link.getAnchorText());
-      }
-      return ret;
-    });
+          List<Tuple2<RowColumn, Bytes>> ret = new ArrayList<>();
+          String pageID = page.getPageID();
+          if (links1.size() > 0) {
+            addRCV(ret, "p:" + pageID, FluoConstants.PAGE_CUR_COL, gson.toJson(page));
+          }
+          for (Link link : links1) {
+            addRCV(ret, "p:" + link.getPageID(), new Column(Constants.INLINKS, pageID),
+                link.getAnchorText());
+          }
+          return ret;
+        });
 
     accumuloIndex =
         accumuloIndex
@@ -153,12 +152,11 @@ public class IndexUtil {
               UriInfo uriInfo = t._2();
               addRCV(ret, "t:" + UriCountExport.revEncodeLong(uriInfo.linksTo) + ":" + uri,
                   Column.EMPTY, uriInfo.linksTo);
-              String domain = LinkUtil.getReverseTopPrivate(DataUtil.toUrl(t._1()));
+              String domain = URL.fromPageID(t._1()).getReverseDomain();
               addRCV(ret, "d:" + domain,
                   new Column(Constants.RANK, UriCountExport.revEncodeLong(uriInfo.linksTo) + ":"
                       + uri), uriInfo.linksTo);
               addRCV(ret, "p:" + uri, FluoConstants.PAGE_INCOUNT_COL, uriInfo.linksTo);
-
               return ret;
             }));
 
@@ -184,11 +182,11 @@ public class IndexUtil {
 
         return new ArrayList<>();
       }
-      Set<Page.Link> links1 = page.getOutboundLinks();
+      Set<Link> links1 = page.getOutboundLinks();
       List<Tuple2<RowColumn, Bytes>> ret = new ArrayList<>();
-      String pageUri = page.getUri();
+      String pageID = page.getPageID();
       if (links1.size() > 0) {
-        String hashedRow = PageObserver.getPageRowHasher().addHash(pageUri).toString();
+        String hashedRow = PageObserver.getPageRowHasher().addHash(pageID).toString();
         addRCV(ret, hashedRow, new Column(Constants.PAGE, Constants.CUR), gson.toJson(page));
       }
       return ret;

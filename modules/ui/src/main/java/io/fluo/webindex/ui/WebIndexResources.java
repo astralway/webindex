@@ -14,7 +14,6 @@
 
 package io.fluo.webindex.ui;
 
-import java.net.MalformedURLException;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -27,17 +26,17 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import com.google.gson.Gson;
-import io.fluo.api.config.FluoConfiguration;
 import io.fluo.webindex.core.Constants;
 import io.fluo.webindex.core.DataConfig;
-import io.fluo.webindex.core.DataUtil;
 import io.fluo.webindex.core.models.DomainStats;
+import io.fluo.webindex.core.models.Link;
 import io.fluo.webindex.core.models.Links;
 import io.fluo.webindex.core.models.Page;
 import io.fluo.webindex.core.models.Pages;
 import io.fluo.webindex.core.models.TopResults;
+import io.fluo.webindex.core.models.URL;
 import io.fluo.webindex.ui.util.Pager;
-import io.fluo.webindex.ui.util.WebUtil;
+import io.fluo.webindex.ui.util.WebUrl;
 import io.fluo.webindex.ui.views.HomeView;
 import io.fluo.webindex.ui.views.LinksView;
 import io.fluo.webindex.ui.views.PageView;
@@ -63,7 +62,7 @@ public class WebIndexResources {
   private Connector conn;
   private Gson gson = new Gson();
 
-  public WebIndexResources(FluoConfiguration fluoConfig, Connector conn, DataConfig dataConfig) {
+  public WebIndexResources(Connector conn, DataConfig dataConfig) {
     this.conn = conn;
     this.dataConfig = dataConfig;
   }
@@ -88,7 +87,7 @@ public class WebIndexResources {
     Pages pages = new Pages(domain, pageNum);
     log.info("Setting total to {}", stats.getTotal());
     pages.setTotal(stats.getTotal());
-    String row = "d:" + DataUtil.reverseDomain(domain);
+    String row = "d:" + URL.reverseHost(domain);
     String cf = Constants.RANK;
     try {
       Scanner scanner = conn.createScanner(dataConfig.accumuloIndexTable, Authorizations.EMPTY);
@@ -96,7 +95,8 @@ public class WebIndexResources {
         @Override
         public void foundPageEntry(Map.Entry<Key, Value> entry) {
           String url =
-              DataUtil.toUrl(entry.getKey().getColumnQualifier().toString().split(":", 2)[1]);
+              URL.fromPageID(entry.getKey().getColumnQualifier().toString().split(":", 2)[1])
+                  .toString();
           Long count = Long.parseLong(entry.getValue().toString());
           pages.addPage(url, count);
         }
@@ -124,12 +124,20 @@ public class WebIndexResources {
     return new PageView(getPage(url));
   }
 
-  private Page getPage(String url) {
+  private Page getPage(String rawUrl) {
     Page page = null;
     Long incount = (long) 0;
+    URL url;
+    try {
+      url = WebUrl.from(rawUrl);
+    } catch (Exception e) {
+      log.error("Failed to parse URL {}", rawUrl);
+      return null;
+    }
+
     try {
       Scanner scanner = conn.createScanner(dataConfig.accumuloIndexTable, Authorizations.EMPTY);
-      scanner.setRange(Range.exact("p:" + DataUtil.toUri(url), Constants.PAGE));
+      scanner.setRange(Range.exact("p:" + url.toPageID(), Constants.PAGE));
       Iterator<Map.Entry<Key, Value>> iterator = scanner.iterator();
       while (iterator.hasNext()) {
         Map.Entry<Key, Value> entry = iterator.next();
@@ -146,23 +154,21 @@ public class WebIndexResources {
       }
     } catch (TableNotFoundException e) {
       e.printStackTrace();
-    } catch (MalformedURLException e) {
-      log.error("Failed to parse URL {}", url);
     }
+
     if (page == null) {
-      page = new Page(url);
+      page = new Page(url.toPageID());
     }
     page.setNumInbound(incount);
-    page.setDomain(WebUtil.getDomain(page.getUrl()));
     return page;
   }
 
   private DomainStats getDomainStats(String domain) {
     DomainStats stats = new DomainStats(domain);
-    Scanner scanner = null;
+    Scanner scanner;
     try {
       scanner = conn.createScanner(dataConfig.accumuloIndexTable, Authorizations.EMPTY);
-      scanner.setRange(Range.exact("d:" + DataUtil.reverseDomain(domain), Constants.DOMAIN));
+      scanner.setRange(Range.exact("d:" + URL.reverseHost(domain), Constants.DOMAIN));
       Iterator<Map.Entry<Key, Value>> iterator = scanner.iterator();
       while (iterator.hasNext()) {
         Map.Entry<Key, Value> entry = iterator.next();
@@ -183,28 +189,35 @@ public class WebIndexResources {
   @GET
   @Path("links")
   @Produces({MediaType.TEXT_HTML, MediaType.APPLICATION_JSON})
-  public LinksView getLinks(@NotNull @QueryParam("url") String url,
+  public LinksView getLinks(@NotNull @QueryParam("url") String rawUrl,
       @NotNull @QueryParam("linkType") String linkType,
       @DefaultValue("") @QueryParam("next") String next,
       @DefaultValue("0") @QueryParam("pageNum") Integer pageNum) {
 
-    Links links = new Links(url, linkType, pageNum);
-    log.info("links url {}", links.getUrl());
+    Links links = new Links(rawUrl, linkType, pageNum);
+
+    URL url;
+    try {
+      url = WebUrl.from(rawUrl);
+    } catch (Exception e) {
+      log.error("Failed to parse URL: " + rawUrl);
+      return new LinksView(links);
+    }
 
     try {
       Scanner scanner = conn.createScanner(dataConfig.accumuloIndexTable, Authorizations.EMPTY);
-      String row = "p:" + DataUtil.toUri(url);
+      String row = "p:" + url.toPageID();
       if (linkType.equals("in")) {
-        Page page = getPage(url);
+        Page page = getPage(rawUrl);
         String cf = Constants.INLINKS;
         links.setTotal(page.getNumInbound());
         Pager pager = new Pager(scanner, Range.exact(row, cf), PAGE_SIZE) {
 
           @Override
           public void foundPageEntry(Map.Entry<Key, Value> entry) {
-            String url = DataUtil.toUrl(entry.getKey().getColumnQualifier().toString());
+            String pageID = entry.getKey().getColumnQualifier().toString();
             String anchorText = entry.getValue().toString();
-            links.addLink(url, anchorText);
+            links.addLink(Link.of(pageID, anchorText));
           }
 
           @Override
@@ -225,14 +238,14 @@ public class WebIndexResources {
           links.setTotal(curPage.getNumOutbound());
           int skip = 0;
           int add = 0;
-          for (Page.Link l : curPage.getOutboundLinks()) {
+          for (Link l : curPage.getOutboundLinks()) {
             if (skip < (pageNum * PAGE_SIZE)) {
               skip++;
             } else if (add < PAGE_SIZE) {
-              links.addLink(l.getUrl(), l.getAnchorText());
+              links.addLink(l);
               add++;
             } else {
-              links.setNext(l.getUrl());
+              links.setNext(l.getPageID());
               break;
             }
           }
@@ -240,8 +253,6 @@ public class WebIndexResources {
       }
     } catch (TableNotFoundException e) {
       log.error("Table {} not found", dataConfig.accumuloIndexTable);
-    } catch (MalformedURLException e) {
-      log.error("Failed to parse URL {}", url);
     }
     return new LinksView(links);
   }
@@ -262,7 +273,7 @@ public class WebIndexResources {
         @Override
         public void foundPageEntry(Map.Entry<Key, Value> entry) {
           String row = entry.getKey().getRow().toString();
-          String url = DataUtil.toUrl(row.split(":", 3)[2]);
+          String url = URL.fromPageID(row.split(":", 3)[2]).toString();
           Long num = Long.parseLong(entry.getValue().toString());
           results.addResult(url, num);
         }

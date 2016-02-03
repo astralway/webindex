@@ -12,10 +12,9 @@
  * the License.
  */
 
-package io.fluo.webindex.core;
+package io.fluo.webindex.core.models;
 
 import com.google.gson.Gson;
-import io.fluo.webindex.core.models.Page;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -24,13 +23,15 @@ public class PageTest {
   @Test
   public void testBasic() {
 
-    Page page = new Page("http://example.com");
+    Page page = new Page(URLTest.from("http://example.com").toPageID());
+    Assert.assertEquals("http://example.com/", page.getUrl());
+    Assert.assertEquals("com.example>>o>/", page.getPageID());
     Assert.assertEquals(new Long(0), page.getNumOutbound());
-    page.addOutboundLink("http://test1.com", "test1");
+    Assert.assertTrue(page.addOutbound(Link.of(URLTest.from("http://test1.com"), "test1")));
     Assert.assertEquals(new Long(1), page.getNumOutbound());
-    page.addOutboundLink("http://test2.com", "test2");
+    Assert.assertTrue(page.addOutbound(Link.of(URLTest.from("http://test2.com"), "test2")));
     Assert.assertEquals(new Long(2), page.getNumOutbound());
-    page.addOutboundLink("http://test2.com", "test1234");
+    Assert.assertFalse(page.addOutbound(Link.of(URLTest.from("http://test2.com"), "test1234")));
     Assert.assertEquals(new Long(2), page.getNumOutbound());
 
     Gson gson = new Gson();

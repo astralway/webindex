@@ -20,7 +20,7 @@ import java.util.Optional;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.pool.KryoFactory;
-import io.fluo.webindex.core.models.Page.Link;
+import io.fluo.webindex.core.models.Link;
 import io.fluo.webindex.data.fluo.DomainExport;
 import io.fluo.webindex.data.fluo.PageExport;
 import io.fluo.webindex.data.fluo.UriCountExport;
