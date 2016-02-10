@@ -35,9 +35,12 @@ import io.fluo.api.data.RowColumn;
 import io.fluo.core.util.AccumuloUtil;
 import io.fluo.recipes.accumulo.export.TableInfo;
 import io.fluo.recipes.accumulo.ops.TableOperations;
+import io.fluo.recipes.common.Pirtos;
 import io.fluo.webindex.core.DataConfig;
 import io.fluo.webindex.core.models.Page;
 import io.fluo.webindex.data.FluoApp;
+import io.fluo.webindex.data.fluo.PageObserver;
+import io.fluo.webindex.data.fluo.UriMap.UriInfo;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
@@ -143,10 +146,6 @@ public class IndexEnv {
     return getSplits("accumulo-default.txt");
   }
 
-  public static SortedSet<Text> getFluoDefaultSplits() {
-    return getSplits("fluo-default.txt");
-  }
-
   public static FileSystem getHDFS() throws IOException {
     return getHDFS(getHadoopConfDir());
   }
@@ -203,8 +202,10 @@ public class IndexEnv {
   public void setFluoTableSplits() {
     final String table = fluoConfig.getAccumuloTable();
     try {
-      conn.tableOperations().addSplits(table, IndexEnv.getFluoDefaultSplits());
-      TableOperations.optimizeTable(getFluoConfig());
+      Pirtos tableOptimizations = Pirtos.getConfiguredOptimizations(getFluoConfig());
+      tableOptimizations.merge(PageObserver.getPageRowHasher().getTableOptimizations(
+          FluoApp.NUM_BUCKETS));
+      TableOperations.optimizeTable(getFluoConfig(), tableOptimizations);
     } catch (Exception e) {
       throw new IllegalStateException("Failed to add splits to Fluo's Accumulo table " + table, e);
     }
@@ -219,12 +220,17 @@ public class IndexEnv {
 
   public void initializeIndexes(JavaSparkContext ctx, JavaRDD<Page> pages, IndexStats stats)
       throws Exception {
+
+    JavaPairRDD<String, UriInfo> uriMap = IndexUtil.createUriMap(pages);
+    JavaPairRDD<String, Long> domainMap = IndexUtil.createDomainMap(uriMap);
+
     // Create the Accumulo index from pages RDD
-    JavaPairRDD<RowColumn, Bytes> accumuloIndex = IndexUtil.createAccumuloIndex(stats, pages);
+    JavaPairRDD<RowColumn, Bytes> accumuloIndex =
+        IndexUtil.createAccumuloIndex(stats, pages, uriMap, domainMap);
 
     // Create a Fluo index by filtering a subset of data from Accumulo index
     JavaPairRDD<RowColumn, Bytes> fluoIndex =
-        IndexUtil.createFluoIndex(accumuloIndex, FluoApp.NUM_BUCKETS);
+        IndexUtil.createFluoTable(pages, uriMap, domainMap, FluoApp.NUM_BUCKETS);
 
     // Load the indexes into Fluo and Accumulo
     saveRowColBytesToFluo(ctx, fluoIndex);

@@ -40,6 +40,7 @@ import io.fluo.webindex.core.Constants;
 import io.fluo.webindex.core.models.Page;
 import io.fluo.webindex.data.FluoApp;
 import io.fluo.webindex.data.SparkTestUtil;
+import io.fluo.webindex.data.fluo.UriMap.UriInfo;
 import io.fluo.webindex.data.spark.Hex;
 import io.fluo.webindex.data.spark.IndexEnv;
 import io.fluo.webindex.data.spark.IndexStats;
@@ -156,9 +157,13 @@ public class IndexIT {
 
     // Create expected output using spark
     IndexStats stats = new IndexStats(ctx);
-    JavaPairRDD<RowColumn, Bytes> accumuloIndex = IndexUtil.createAccumuloIndex(stats, pagesRDD);
+
+    JavaPairRDD<String, UriInfo> uriMap = IndexUtil.createUriMap(pagesRDD);
+    JavaPairRDD<String, Long> domainMap = IndexUtil.createDomainMap(uriMap);
+    JavaPairRDD<RowColumn, Bytes> accumuloIndex =
+        IndexUtil.createAccumuloIndex(stats, pagesRDD, uriMap, domainMap).sortByKey();
     JavaPairRDD<RowColumn, Bytes> fluoIndex =
-        IndexUtil.createFluoIndex(accumuloIndex, FluoApp.NUM_BUCKETS);
+        IndexUtil.createFluoTable(pagesRDD, uriMap, domainMap, FluoApp.NUM_BUCKETS).sortByKey();
 
     // Compare against actual
     try (FluoClient client = FluoFactory.newClient(miniFluo.getClientConfiguration())) {

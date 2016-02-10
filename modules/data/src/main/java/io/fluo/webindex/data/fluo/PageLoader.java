@@ -21,6 +21,7 @@ import com.google.gson.Gson;
 import io.fluo.api.client.Loader;
 import io.fluo.api.client.TransactionBase;
 import io.fluo.api.types.TypedTransactionBase;
+import io.fluo.recipes.data.RowHasher;
 import io.fluo.webindex.core.DataUtil;
 import io.fluo.webindex.core.models.Page;
 import io.fluo.webindex.data.util.FluoConstants;
@@ -52,21 +53,25 @@ public class PageLoader implements Loader {
     return update;
   }
 
+
+
   @Override
   public void load(TransactionBase tx, Context context) throws Exception {
 
     TypedTransactionBase ttx = FluoConstants.TYPEL.wrap(tx);
-    String row;
 
     Gson gson = new Gson();
+    RowHasher rowHasher = PageObserver.getPageRowHasher();
 
     switch (action) {
       case DELETE:
-        ttx.mutate().row("p:" + delUri).col(FluoConstants.PAGE_NEW_COL).set(Page.DELETE_JSON);
+        ttx.mutate().row(rowHasher.addHash(delUri)).col(FluoConstants.PAGE_NEW_COL)
+            .set(Page.DELETE_JSON);
         break;
       case UPDATE:
         String newJson = gson.toJson(page);
-        ttx.mutate().row("p:" + page.getUri()).col(FluoConstants.PAGE_NEW_COL).set(newJson);
+        ttx.mutate().row(rowHasher.addHash(page.getUri())).col(FluoConstants.PAGE_NEW_COL)
+            .set(newJson);
         break;
       default:
         log.error("PageUpdate called with no action");

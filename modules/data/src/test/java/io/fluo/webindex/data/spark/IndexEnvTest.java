@@ -29,11 +29,5 @@ public class IndexEnvTest {
     Assert.assertEquals(76, splits.size());
     Assert.assertEquals(new Text("d:com.blogg"), splits.first());
     Assert.assertEquals(new Text("t:fefeff:d"), splits.last());
-
-    splits = IndexEnv.getFluoDefaultSplits();
-
-    Assert.assertEquals(44, splits.size());
-    Assert.assertEquals(new Text("p:c"), splits.first());
-    Assert.assertEquals(new Text("p:~"), splits.last());
   }
 }

@@ -26,6 +26,7 @@ import io.fluo.api.data.Column;
 import io.fluo.api.observer.AbstractObserver;
 import io.fluo.api.types.TypedSnapshotBase.Value;
 import io.fluo.api.types.TypedTransactionBase;
+import io.fluo.recipes.data.RowHasher;
 import io.fluo.recipes.export.ExportQueue;
 import io.fluo.recipes.map.CollisionFreeMap;
 import io.fluo.webindex.core.models.Page;
@@ -43,6 +44,12 @@ public class PageObserver extends AbstractObserver {
 
   private CollisionFreeMap<String, UriInfo> uriMap;
   private ExportQueue<String, Transmutable<String>> exportQ;
+
+  private static final RowHasher PAGE_ROW_HASHER = new RowHasher("p");
+
+  public static RowHasher getPageRowHasher() {
+    return PAGE_ROW_HASHER;
+  }
 
   @Override
   public void init(Context context) throws Exception {
@@ -68,7 +75,7 @@ public class PageObserver extends AbstractObserver {
     Set<Page.Link> curLinks = curPage.getOutboundLinks();
 
     Map<String, UriInfo> updates = new HashMap<>();
-    String pageUri = row.toString().substring(2);
+    String pageUri = getPageRowHasher().removeHash(row).toString();
 
     Page nextPage = Page.fromJson(gson, nextJson);
     if (nextPage.isDelete()) {

@@ -14,6 +14,7 @@
 
 package io.fluo.webindex.data.fluo;
 
+import java.io.Serializable;
 import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -44,7 +45,9 @@ public class UriMap {
 
   public static String URI_MAP_ID = "um";
 
-  public static class UriInfo {
+  public static class UriInfo implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     public static final UriInfo EMPTY = new UriInfo(0, 0);
 
@@ -80,6 +83,13 @@ public class UriMap {
       }
 
       return false;
+    }
+
+    public static UriInfo merge(UriInfo u1, UriInfo u2) {
+      UriInfo total = new UriInfo(0, 0);
+      total.add(u1);
+      total.add(u2);
+      return total;
     }
   }
 

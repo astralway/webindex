@@ -26,6 +26,7 @@ import io.fluo.api.data.RowColumn;
 import io.fluo.webindex.core.models.Page;
 import io.fluo.webindex.data.FluoApp;
 import io.fluo.webindex.data.SparkTestUtil;
+import io.fluo.webindex.data.fluo.UriMap.UriInfo;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -57,12 +58,15 @@ public class IndexUtilTest {
     IndexStats stats = new IndexStats(sc);
 
     // Create an Accumulo index from pages and verify
-    JavaPairRDD<RowColumn, Bytes> accumuloIndex = IndexUtil.createAccumuloIndex(stats, pages);
+    JavaPairRDD<String, UriInfo> uriMap = IndexUtil.createUriMap(pages);
+    JavaPairRDD<String, Long> domainMap = IndexUtil.createDomainMap(uriMap);
+    JavaPairRDD<RowColumn, Bytes> accumuloIndex =
+        IndexUtil.createAccumuloIndex(stats, pages, uriMap, domainMap).sortByKey();
     verifyRDD("data/set1/accumulo-data.txt", accumuloIndex);
 
     // Use Accumulo index to create Fluo index and verify
     JavaPairRDD<RowColumn, Bytes> fluoIndex =
-        IndexUtil.createFluoIndex(accumuloIndex, FluoApp.NUM_BUCKETS);
+        IndexUtil.createFluoTable(pages, uriMap, domainMap, FluoApp.NUM_BUCKETS).sortByKey();
     verifyRDD("data/set1/fluo-data.txt", fluoIndex);
 
     // Use Fluo index to create Accumulo index and verify

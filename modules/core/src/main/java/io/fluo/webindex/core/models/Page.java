@@ -47,7 +47,7 @@ public class Page implements Serializable {
   }
 
   public Page(String url) {
-    this.url = url;
+    this.url = DataUtil.cleanUrl(url);
   }
 
   public String getServer() {
