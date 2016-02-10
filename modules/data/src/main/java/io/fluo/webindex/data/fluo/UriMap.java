@@ -49,7 +49,7 @@ public class UriMap {
 
     private static final long serialVersionUID = 1L;
 
-    public static final UriInfo EMPTY = new UriInfo(0, 0);
+    public static final UriInfo ZERO = new UriInfo(0, 0);
 
     // the numbers of documents that link to this URI
     public long linksTo;
@@ -65,7 +65,7 @@ public class UriMap {
     }
 
     public void add(UriInfo other) {
-      Preconditions.checkArgument(this != EMPTY);
+      Preconditions.checkArgument(this != ZERO);
       this.linksTo += other.linksTo;
       this.docs += other.docs;
     }
@@ -106,7 +106,7 @@ public class UriMap {
         total.add(updates.next());
       }
 
-      if (total.equals(UriInfo.EMPTY)) {
+      if (total.equals(UriInfo.ZERO)) {
         return Optional.absent();
       } else {
         return Optional.of(total);
@@ -138,15 +138,18 @@ public class UriMap {
       while (updates.hasNext()) {
         Update<String, UriInfo> update = updates.next();
 
-        UriInfo oldVal = update.getOldValue().or(UriInfo.EMPTY);
-        UriInfo newVal = update.getNewValue().or(UriInfo.EMPTY);
+        UriInfo oldVal = update.getOldValue().or(UriInfo.ZERO);
+        UriInfo newVal = update.getNewValue().or(UriInfo.ZERO);
 
         exportQ.add(tx, update.getKey(), new UriCountExport(oldVal, newVal));
 
         String pageDomain = getDomain(update.getKey());
         if (pageDomain != null) {
-          long domainDelta = (newVal.linksTo + newVal.docs) - (oldVal.linksTo + oldVal.docs);
-          domainUpdates.merge(pageDomain, domainDelta, (o, n) -> o + n);
+          if (oldVal.equals(UriInfo.ZERO) && !newVal.equals(UriInfo.ZERO)) {
+            domainUpdates.merge(pageDomain, 1l, (o, n) -> o + n);
+          } else if (newVal.equals(UriInfo.ZERO) && !oldVal.equals(UriInfo.ZERO)) {
+            domainUpdates.merge(pageDomain, -1l, (o, n) -> o + n);
+          }
         }
       }
 

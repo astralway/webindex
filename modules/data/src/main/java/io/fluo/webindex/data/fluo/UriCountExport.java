@@ -31,8 +31,8 @@ import org.apache.commons.codec.binary.Hex;
 import org.slf4j.LoggerFactory;
 
 public class UriCountExport implements Transmutable<String> {
-  public UriInfo prevCount = UriInfo.EMPTY;
-  public UriInfo newCount = UriInfo.EMPTY;
+  public UriInfo prevCount = UriInfo.ZERO;
+  public UriInfo newCount = UriInfo.ZERO;
 
   public UriCountExport() {}
 
@@ -87,7 +87,7 @@ public class UriCountExport implements Transmutable<String> {
     }
 
     String cf = String.format("%s:%s", revEncodeLong(curr.linksTo), uri);
-    if (curr.equals(UriInfo.EMPTY)) {
+    if (curr.equals(UriInfo.ZERO)) {
       m.putDelete(Constants.RANK, cf, seq);
     } else {
       m.put(Constants.RANK, cf, seq, "" + curr.linksTo);
@@ -97,7 +97,7 @@ public class UriCountExport implements Transmutable<String> {
 
   private static Mutation createPageUpdate(String uri, long seq, UriInfo curr) {
     Mutation m = new Mutation("p:" + uri);
-    if (curr.equals(UriInfo.EMPTY)) {
+    if (curr.equals(UriInfo.ZERO)) {
       m.putDelete(Constants.PAGE, Constants.INCOUNT, seq);
     } else {
       m.put(Constants.PAGE, Constants.INCOUNT, seq, "" + curr.linksTo);
@@ -122,7 +122,7 @@ public class UriCountExport implements Transmutable<String> {
     }
 
     m = new Mutation(createTotalRow(uri, curr.linksTo));
-    if (curr.equals(UriInfo.EMPTY)) {
+    if (curr.equals(UriInfo.ZERO)) {
       m.putDelete("", "", seq);
     } else {
       m.put("", "", seq, "" + curr.linksTo);

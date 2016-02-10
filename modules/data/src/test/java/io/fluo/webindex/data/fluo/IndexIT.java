@@ -221,7 +221,42 @@ public class IndexIT {
       }
       miniFluo.waitForObservers();
 
+      // create a URL that has an inlink count of 2
+      String updateUrl2 = "http://00assclown.newgrounds.com/";
+      Page updatePage2 = pages.get(updateUrl2);
+      long numLinks2 = updatePage2.getNumOutbound();
+      Assert.assertTrue(updatePage2.addOutboundLink("http://example.com", "Example"));
+      Assert.assertEquals(numLinks2 + 1, (long) updatePage2.getNumOutbound());
+
+      try (LoaderExecutor le = client.newLoaderExecutor()) {
+        le.execute(PageLoader.updatePage(updatePage2));
+      }
+      miniFluo.waitForObservers();
+
       Assert.assertNotNull(pages.put(updateUrl, updatePage));
+      Assert.assertNotNull(pages.put(updateUrl2, updatePage2));
+      assertOutput(pages.values());
+
+
+      // completely remove link that had an inlink count of 2
+      updatePage = pages.get(updateUrl);
+      numLinks = updatePage.getNumOutbound();
+      Assert.assertTrue(updatePage.removeOutboundLink("http://example.com"));
+      Assert.assertEquals(numLinks - 1, (long) updatePage.getNumOutbound());
+
+      updatePage2 = pages.get(updateUrl2);
+      numLinks2 = updatePage2.getNumOutbound();
+      Assert.assertTrue(updatePage2.removeOutboundLink("http://example.com"));
+      Assert.assertEquals(numLinks2 - 1, (long) updatePage2.getNumOutbound());
+
+      try (LoaderExecutor le = client.newLoaderExecutor()) {
+        le.execute(PageLoader.updatePage(updatePage));
+        le.execute(PageLoader.updatePage(updatePage2));
+      }
+      miniFluo.waitForObservers();
+
+      Assert.assertNotNull(pages.put(updateUrl, updatePage));
+      Assert.assertNotNull(pages.put(updateUrl2, updatePage2));
       assertOutput(pages.values());
     }
   }
