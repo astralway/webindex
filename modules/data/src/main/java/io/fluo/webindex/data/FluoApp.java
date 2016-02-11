@@ -16,6 +16,7 @@ package io.fluo.webindex.data;
 
 import io.fluo.api.config.FluoConfiguration;
 import io.fluo.api.config.ObserverConfiguration;
+import io.fluo.recipes.accumulo.export.AccumuloExport;
 import io.fluo.recipes.accumulo.export.AccumuloExporter;
 import io.fluo.recipes.accumulo.export.TableInfo;
 import io.fluo.recipes.export.ExportQueue;
@@ -23,8 +24,6 @@ import io.fluo.recipes.serialization.KryoSimplerSerializer;
 import io.fluo.webindex.data.fluo.DomainMap;
 import io.fluo.webindex.data.fluo.PageObserver;
 import io.fluo.webindex.data.fluo.UriMap;
-import io.fluo.webindex.data.recipes.Transmutable;
-import io.fluo.webindex.data.recipes.TransmutableExporter;
 import io.fluo.webindex.serialization.WebindexKryoFactory;
 
 public class FluoApp {
@@ -44,7 +43,7 @@ public class FluoApp {
     DomainMap.configure(appConfig, numMapBuckets);
 
     ExportQueue.configure(appConfig, new ExportQueue.Options(EXPORT_QUEUE_ID,
-        TransmutableExporter.class.getName(), String.class.getName(), Transmutable.class.getName(),
+        AccumuloExporter.class.getName(), String.class.getName(), AccumuloExport.class.getName(),
         numMapBuckets));
 
     AccumuloExporter.setExportTableInfo(appConfig.getAppConfiguration(), EXPORT_QUEUE_ID,

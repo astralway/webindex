@@ -16,6 +16,7 @@ package io.fluo.webindex.serialization;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Optional;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.pool.KryoFactory;
@@ -42,6 +43,7 @@ public class WebindexKryoFactory implements KryoFactory, Serializable {
     kryo.register(PageExport.class, 12);
     kryo.register(ArrayList.class, 13);
     kryo.register(Link.class, 14);
+    kryo.register(Optional.class, 15);
 
     kryo.setRegistrationRequired(true);
 

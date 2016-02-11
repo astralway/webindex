@@ -26,13 +26,13 @@ import io.fluo.api.data.Column;
 import io.fluo.api.observer.AbstractObserver;
 import io.fluo.api.types.TypedSnapshotBase.Value;
 import io.fluo.api.types.TypedTransactionBase;
+import io.fluo.recipes.accumulo.export.AccumuloExport;
 import io.fluo.recipes.data.RowHasher;
 import io.fluo.recipes.export.ExportQueue;
 import io.fluo.recipes.map.CollisionFreeMap;
 import io.fluo.webindex.core.models.Page;
 import io.fluo.webindex.data.FluoApp;
 import io.fluo.webindex.data.fluo.UriMap.UriInfo;
-import io.fluo.webindex.data.recipes.Transmutable;
 import io.fluo.webindex.data.util.FluoConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,7 +43,7 @@ public class PageObserver extends AbstractObserver {
   private static final Gson gson = new Gson();
 
   private CollisionFreeMap<String, UriInfo> uriMap;
-  private ExportQueue<String, Transmutable<String>> exportQ;
+  private ExportQueue<String, AccumuloExport<String>> exportQ;
 
   private static final RowHasher PAGE_ROW_HASHER = new RowHasher("p");
 

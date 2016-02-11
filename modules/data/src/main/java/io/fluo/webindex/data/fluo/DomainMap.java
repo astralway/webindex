@@ -15,11 +15,12 @@
 package io.fluo.webindex.data.fluo;
 
 import java.util.Iterator;
+import java.util.Optional;
 
-import com.google.common.base.Optional;
 import io.fluo.api.client.TransactionBase;
 import io.fluo.api.config.FluoConfiguration;
 import io.fluo.api.observer.Observer.Context;
+import io.fluo.recipes.accumulo.export.AccumuloExport;
 import io.fluo.recipes.export.ExportQueue;
 import io.fluo.recipes.map.CollisionFreeMap;
 import io.fluo.recipes.map.CollisionFreeMap.Options;
@@ -27,7 +28,6 @@ import io.fluo.recipes.map.Combiner;
 import io.fluo.recipes.map.Update;
 import io.fluo.recipes.map.UpdateObserver;
 import io.fluo.webindex.data.FluoApp;
-import io.fluo.webindex.data.recipes.Transmutable;
 
 public class DomainMap {
   public static final String DOMAIN_MAP_ID = "dm";
@@ -46,7 +46,7 @@ public class DomainMap {
 
       if (l == 0) {
         // returning absent will delete the map entry
-        return Optional.absent();
+        return Optional.empty();
       } else {
         return Optional.of(l);
       }
@@ -58,7 +58,7 @@ public class DomainMap {
    */
   public static class DomainUpdateObserver extends UpdateObserver<String, Long> {
 
-    private ExportQueue<String, Transmutable<String>> exportQ;
+    private ExportQueue<String, AccumuloExport<String>> exportQ;
 
     @Override
     public void init(String mapId, Context observerContext) throws Exception {
@@ -70,7 +70,11 @@ public class DomainMap {
     public void updatingValues(TransactionBase tx, Iterator<Update<String, Long>> updates) {
       while (updates.hasNext()) {
         Update<String, Long> update = updates.next();
-        exportQ.add(tx, update.getKey(), new DomainExport(update.getNewValue().or(0L)));
+        exportQ.add(
+            tx,
+            update.getKey(),
+            new DomainExport(Optional.of(update.getOldValue().orElse(0L)), Optional.of(update
+                .getNewValue().orElse(0L))));
       }
     }
   }

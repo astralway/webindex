@@ -15,44 +15,53 @@
 package io.fluo.webindex.data.fluo;
 
 import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 
+import io.fluo.api.data.Bytes;
+import io.fluo.api.data.Column;
+import io.fluo.api.data.RowColumn;
+import io.fluo.recipes.accumulo.export.DifferenceExport;
 import io.fluo.webindex.core.Constants;
 import io.fluo.webindex.core.DataUtil;
 import io.fluo.webindex.data.fluo.UriMap.UriInfo;
-import io.fluo.webindex.data.recipes.Transmutable;
+import io.fluo.webindex.data.util.FluoConstants;
 import io.fluo.webindex.data.util.LinkUtil;
 import org.apache.accumulo.core.client.lexicoder.Lexicoder;
 import org.apache.accumulo.core.client.lexicoder.ReverseLexicoder;
 import org.apache.accumulo.core.client.lexicoder.ULongLexicoder;
-import org.apache.accumulo.core.data.Mutation;
 import org.apache.commons.codec.binary.Hex;
 import org.slf4j.LoggerFactory;
 
-public class UriCountExport implements Transmutable<String> {
-  public UriInfo prevCount = UriInfo.ZERO;
-  public UriInfo newCount = UriInfo.ZERO;
+public class UriCountExport extends DifferenceExport<String, UriInfo> {
 
   public UriCountExport() {}
 
-  public UriCountExport(UriInfo prevCount, UriInfo newCount) {
-    this.prevCount = prevCount;
-    this.newCount = newCount;
+  public UriCountExport(Optional<UriInfo> oldCount, Optional<UriInfo> newCount) {
+    super(oldCount, newCount);
   }
 
   @Override
-  public Collection<Mutation> toMutations(String uri, long seq) {
-    ArrayList<Mutation> mutations = new ArrayList<>(4);
-
-    createTotalUpdates(mutations, uri, seq, prevCount, newCount);
-    Mutation m = createDomainUpdate(uri, seq, prevCount, newCount);
-    if (m != null) {
-      mutations.add(m);
+  protected Map<RowColumn, Bytes> generateData(String uri, Optional<UriInfo> val) {
+    if (!val.isPresent()) {
+      return Collections.emptyMap();
     }
-    mutations.add(createPageUpdate(uri, seq, newCount));
-
-    return mutations;
+    UriInfo uriInfo = val.get();
+    if (uriInfo.equals(UriInfo.ZERO)) {
+      return Collections.emptyMap();
+    }
+    Map<RowColumn, Bytes> rcMap = new HashMap<>();
+    Bytes linksTo = Bytes.of("" + uriInfo.linksTo);
+    rcMap.put(new RowColumn(createTotalRow(uri, uriInfo.linksTo), Column.EMPTY), linksTo);
+    String domainRow = getDomainRow(uri);
+    if (domainRow != null) {
+      String cq = revEncodeLong(uriInfo.linksTo) + ":" + uri;
+      rcMap.put(new RowColumn(domainRow, new Column(Constants.RANK, cq)), linksTo);
+    }
+    rcMap.put(new RowColumn("p:" + uri, FluoConstants.PAGE_INCOUNT_COL), linksTo);
+    return rcMap;
   }
 
   public static String revEncodeLong(Long num) {
@@ -70,63 +79,10 @@ public class UriCountExport implements Transmutable<String> {
       LoggerFactory.getLogger(UriCountExport.class).warn(
           "Unable to get domain for " + pageUri + " " + e.getMessage());
     }
-
     return null;
   }
 
-  private static Mutation createDomainUpdate(String uri, long seq, UriInfo prev, UriInfo curr) {
-    String domain = getDomainRow(uri);
-    if (domain == null) {
-      return null;
-    }
-    Mutation m = new Mutation(getDomainRow(uri));
-    // TODO screwy case when it does not exists... prev is 0 and initial val could be 0
-    if (prev.linksTo != curr.linksTo) {
-      String cf = String.format("%s:%s", revEncodeLong(prev.linksTo), uri);
-      m.putDelete(Constants.RANK, cf, seq);
-    }
-
-    String cf = String.format("%s:%s", revEncodeLong(curr.linksTo), uri);
-    if (curr.equals(UriInfo.ZERO)) {
-      m.putDelete(Constants.RANK, cf, seq);
-    } else {
-      m.put(Constants.RANK, cf, seq, "" + curr.linksTo);
-    }
-    return m;
-  }
-
-  private static Mutation createPageUpdate(String uri, long seq, UriInfo curr) {
-    Mutation m = new Mutation("p:" + uri);
-    if (curr.equals(UriInfo.ZERO)) {
-      m.putDelete(Constants.PAGE, Constants.INCOUNT, seq);
-    } else {
-      m.put(Constants.PAGE, Constants.INCOUNT, seq, "" + curr.linksTo);
-    }
-
-    return m;
-  }
-
   private static String createTotalRow(String uri, long curr) {
-    return String.format("t:%s:%s", revEncodeLong(curr), uri);
-  }
-
-  private static void createTotalUpdates(ArrayList<Mutation> mutations, String uri, long seq,
-      UriInfo prev, UriInfo curr) {
-    Mutation m;
-
-    // TODO screwy case when it does not exists... prev is 0 and initial val could be 0
-    if (prev.linksTo != curr.linksTo) {
-      m = new Mutation(createTotalRow(uri, prev.linksTo));
-      m.putDelete("", "", seq);
-      mutations.add(m);
-    }
-
-    m = new Mutation(createTotalRow(uri, curr.linksTo));
-    if (curr.equals(UriInfo.ZERO)) {
-      m.putDelete("", "", seq);
-    } else {
-      m.put("", "", seq, "" + curr.linksTo);
-    }
-    mutations.add(m);
+    return "t:" + revEncodeLong(curr) + ":" + uri;
   }
 }
