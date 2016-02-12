@@ -70,11 +70,8 @@ public class DomainMap {
     public void updatingValues(TransactionBase tx, Iterator<Update<String, Long>> updates) {
       while (updates.hasNext()) {
         Update<String, Long> update = updates.next();
-        exportQ.add(
-            tx,
-            update.getKey(),
-            new DomainExport(Optional.of(update.getOldValue().orElse(0L)), Optional.of(update
-                .getNewValue().orElse(0L))));
+        exportQ.add(tx, update.getKey(),
+            new DomainExport(update.getOldValue(), update.getNewValue()));
       }
     }
   }

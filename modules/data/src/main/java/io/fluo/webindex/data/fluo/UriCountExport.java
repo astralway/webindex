@@ -45,13 +45,12 @@ public class UriCountExport extends DifferenceExport<String, UriInfo> {
 
   @Override
   protected Map<RowColumn, Bytes> generateData(String uri, Optional<UriInfo> val) {
-    if (!val.isPresent()) {
+    if (val.orElse(UriInfo.ZERO).equals(UriInfo.ZERO)) {
       return Collections.emptyMap();
     }
+
     UriInfo uriInfo = val.get();
-    if (uriInfo.equals(UriInfo.ZERO)) {
-      return Collections.emptyMap();
-    }
+
     Map<RowColumn, Bytes> rcMap = new HashMap<>();
     Bytes linksTo = Bytes.of("" + uriInfo.linksTo);
     rcMap.put(new RowColumn(createTotalRow(uri, uriInfo.linksTo), Column.EMPTY), linksTo);
