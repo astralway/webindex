@@ -142,7 +142,7 @@ public class UriMap {
         UriInfo newVal = update.getNewValue().orElse(UriInfo.ZERO);
 
         exportQ.add(tx, update.getKey(),
-            new UriCountExport(Optional.of(oldVal), Optional.of(newVal)));
+            new UriCountExport(update.getOldValue(), update.getNewValue()));
 
         String pageDomain = getDomain(update.getKey());
         if (pageDomain != null) {
