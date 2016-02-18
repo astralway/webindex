@@ -19,15 +19,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import io.fluo.api.client.FluoClient;
-import io.fluo.api.client.FluoFactory;
-import io.fluo.api.client.LoaderExecutor;
-import io.fluo.api.config.FluoConfiguration;
-import io.fluo.webindex.core.DataConfig;
-import io.fluo.webindex.core.models.Page;
-import io.fluo.webindex.data.fluo.PageLoader;
-import io.fluo.webindex.data.spark.IndexEnv;
-import io.fluo.webindex.data.util.ArchiveUtil;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocatedFileStatus;
@@ -41,6 +32,16 @@ import org.archive.io.ArchiveRecord;
 import org.archive.io.warc.WARCReaderFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.fluo.api.client.FluoClient;
+import io.fluo.api.client.FluoFactory;
+import io.fluo.api.client.LoaderExecutor;
+import io.fluo.api.config.FluoConfiguration;
+import io.fluo.webindex.core.DataConfig;
+import io.fluo.webindex.core.models.Page;
+import io.fluo.webindex.data.fluo.PageLoader;
+import io.fluo.webindex.data.spark.IndexEnv;
+import io.fluo.webindex.data.util.ArchiveUtil;
 
 public class LoadHdfs {
 
@@ -56,7 +57,7 @@ public class LoadHdfs {
     IndexEnv.validateDataDir(dataDir);
 
     final String hadoopConfDir = IndexEnv.getHadoopConfDir();
-    DataConfig dataConfig = DataConfig.load();
+    DataConfig.load();
 
     List<String> loadPaths = new ArrayList<>();
     FileSystem hdfs = IndexEnv.getHDFS();
@@ -71,37 +72,38 @@ public class LoadHdfs {
     log.info("Loading {} files into Fluo from {}", loadPaths.size(), dataDir);
 
     SparkConf sparkConf = new SparkConf().setAppName("webindex-load-hdfs");
-    JavaSparkContext ctx = new JavaSparkContext(sparkConf);
+    try (JavaSparkContext ctx = new JavaSparkContext(sparkConf)) {
 
-    JavaRDD<String> paths = ctx.parallelize(loadPaths, loadPaths.size());
+      JavaRDD<String> paths = ctx.parallelize(loadPaths, loadPaths.size());
 
-    paths.foreachPartition(iter -> {
-      final FluoConfiguration fluoConfig = new FluoConfiguration(new File("fluo.properties"));
-      FileSystem fs = IndexEnv.getHDFS(hadoopConfDir);
-      try (FluoClient client = FluoFactory.newClient(fluoConfig);
-          LoaderExecutor le = client.newLoaderExecutor()) {
-        iter.forEachRemaining(path -> {
-          Path filePath = new Path(path);
-          try {
-            if (fs.exists(filePath)) {
-              FSDataInputStream fsin = fs.open(filePath);
-              ArchiveReader reader = WARCReaderFactory.get(filePath.getName(), fsin, true);
-              for (ArchiveRecord record : reader) {
-                Page page = ArchiveUtil.buildPageIgnoreErrors(record);
-                if (page.getOutboundLinks().size() > 0) {
-                  log.info("Loading page {} with {} links", page.getUrl(), page.getOutboundLinks()
-                      .size());
-                  le.execute(PageLoader.updatePage(page));
+      paths.foreachPartition(iter -> {
+        final FluoConfiguration fluoConfig = new FluoConfiguration(new File("fluo.properties"));
+        FileSystem fs = IndexEnv.getHDFS(hadoopConfDir);
+        try (FluoClient client = FluoFactory.newClient(fluoConfig);
+            LoaderExecutor le = client.newLoaderExecutor()) {
+          iter.forEachRemaining(path -> {
+            Path filePath = new Path(path);
+            try {
+              if (fs.exists(filePath)) {
+                FSDataInputStream fsin = fs.open(filePath);
+                ArchiveReader reader = WARCReaderFactory.get(filePath.getName(), fsin, true);
+                for (ArchiveRecord record : reader) {
+                  Page page = ArchiveUtil.buildPageIgnoreErrors(record);
+                  if (page.getOutboundLinks().size() > 0) {
+                    log.info("Loading page {} with {} links", page.getUrl(), page
+                        .getOutboundLinks().size());
+                    le.execute(PageLoader.updatePage(page));
+                  }
                 }
               }
+            } catch (IOException e) {
+              log.error("Exception while processing {}", path, e);
             }
-          } catch (IOException e) {
-            log.error("Exception while processing {}", path, e);
-          }
-        });
-      }
-    });
+          });
+        }
+      });
 
-    ctx.stop();
+      ctx.stop();
+    }
   }
 }

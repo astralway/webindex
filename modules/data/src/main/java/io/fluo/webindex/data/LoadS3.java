@@ -18,6 +18,15 @@ import java.io.File;
 import java.net.URL;
 import java.util.List;
 
+import org.apache.spark.SparkConf;
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.JavaSparkContext;
+import org.archive.io.ArchiveReader;
+import org.archive.io.ArchiveRecord;
+import org.archive.io.warc.WARCReaderFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.fluo.api.client.FluoClient;
 import io.fluo.api.client.FluoFactory;
 import io.fluo.api.client.LoaderExecutor;
@@ -27,14 +36,6 @@ import io.fluo.webindex.core.models.Page;
 import io.fluo.webindex.data.fluo.PageLoader;
 import io.fluo.webindex.data.spark.IndexEnv;
 import io.fluo.webindex.data.util.ArchiveUtil;
-import org.apache.spark.SparkConf;
-import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.JavaSparkContext;
-import org.archive.io.ArchiveReader;
-import org.archive.io.ArchiveRecord;
-import org.archive.io.warc.WARCReaderFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class LoadS3 {
 
@@ -52,41 +53,42 @@ public class LoadS3 {
       System.exit(1);
     }
 
-    DataConfig dataConfig = DataConfig.load();
+    DataConfig.load();
 
     SparkConf sparkConf = new SparkConf().setAppName("webindex-load-s3");
-    JavaSparkContext ctx = new JavaSparkContext(sparkConf);
+    try (JavaSparkContext ctx = new JavaSparkContext(sparkConf)) {
 
-    log.info("Loading {} files (Range {} of paths file {}) from AWS", loadList.size(), args[1],
-        args[0]);
+      log.info("Loading {} files (Range {} of paths file {}) from AWS", loadList.size(), args[1],
+          args[0]);
 
-    JavaRDD<String> loadRDD = ctx.parallelize(loadList, loadList.size());
+      JavaRDD<String> loadRDD = ctx.parallelize(loadList, loadList.size());
 
-    final String prefix = DataConfig.CC_URL_PREFIX;
+      final String prefix = DataConfig.CC_URL_PREFIX;
 
-    loadRDD.foreachPartition(iter -> {
-      final FluoConfiguration fluoConfig = new FluoConfiguration(new File("fluo.properties"));
-      try (FluoClient client = FluoFactory.newClient(fluoConfig);
-          LoaderExecutor le = client.newLoaderExecutor()) {
-        iter.forEachRemaining(path -> {
-          String urlToCopy = prefix + path;
-          log.info("Loading {} to Fluo", urlToCopy);
-          try {
-            ArchiveReader reader = WARCReaderFactory.get(new URL(urlToCopy), 0);
-            for (ArchiveRecord record : reader) {
-              Page page = ArchiveUtil.buildPageIgnoreErrors(record);
-              if (page.getOutboundLinks().size() > 0) {
-                log.info("Loading page {} with {} links", page.getUrl(), page.getOutboundLinks()
-                    .size());
-                le.execute(PageLoader.updatePage(page));
+      loadRDD.foreachPartition(iter -> {
+        final FluoConfiguration fluoConfig = new FluoConfiguration(new File("fluo.properties"));
+        try (FluoClient client = FluoFactory.newClient(fluoConfig);
+            LoaderExecutor le = client.newLoaderExecutor()) {
+          iter.forEachRemaining(path -> {
+            String urlToCopy = prefix + path;
+            log.info("Loading {} to Fluo", urlToCopy);
+            try {
+              ArchiveReader reader = WARCReaderFactory.get(new URL(urlToCopy), 0);
+              for (ArchiveRecord record : reader) {
+                Page page = ArchiveUtil.buildPageIgnoreErrors(record);
+                if (page.getOutboundLinks().size() > 0) {
+                  log.info("Loading page {} with {} links", page.getUrl(), page.getOutboundLinks()
+                      .size());
+                  le.execute(PageLoader.updatePage(page));
+                }
               }
+            } catch (Exception e) {
+              log.error("Exception while processing {}", path, e);
             }
-          } catch (Exception e) {
-            log.error("Exception while processing {}", path, e);
-          }
-        });
-      }
-    });
-    ctx.stop();
+          });
+        }
+      });
+      ctx.stop();
+    }
   }
 }

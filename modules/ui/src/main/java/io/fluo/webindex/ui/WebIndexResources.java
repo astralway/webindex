@@ -26,7 +26,18 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.gson.Gson;
+
 import io.fluo.api.config.FluoConfiguration;
 import io.fluo.webindex.core.Constants;
 import io.fluo.webindex.core.DataConfig;
@@ -43,15 +54,6 @@ import io.fluo.webindex.ui.views.LinksView;
 import io.fluo.webindex.ui.views.PageView;
 import io.fluo.webindex.ui.views.PagesView;
 import io.fluo.webindex.ui.views.TopView;
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.Authorizations;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Path("/")
 public class WebIndexResources {
@@ -59,19 +61,13 @@ public class WebIndexResources {
   private static final Logger log = LoggerFactory.getLogger(WebIndexResources.class);
   private static final int PAGE_SIZE = 25;
 
-  private FluoConfiguration fluoConfig;
   private DataConfig dataConfig;
   private Connector conn;
   private Gson gson = new Gson();
 
   public WebIndexResources(FluoConfiguration fluoConfig, Connector conn, DataConfig dataConfig) {
-    this.fluoConfig = fluoConfig;
     this.conn = conn;
     this.dataConfig = dataConfig;
-  }
-
-  private static Integer getIntValue(Map.Entry<Key, Value> entry) {
-    return Integer.parseInt(entry.getValue().toString());
   }
 
   private static Long getLongValue(Map.Entry<Key, Value> entry) {

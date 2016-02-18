@@ -20,8 +20,6 @@ import java.io.OutputStream;
 import java.net.URL;
 import java.util.List;
 
-import io.fluo.webindex.core.DataConfig;
-import io.fluo.webindex.data.spark.IndexEnv;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -30,6 +28,9 @@ import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.fluo.webindex.core.DataConfig;
+import io.fluo.webindex.data.spark.IndexEnv;
 
 public class Copy {
 
@@ -59,44 +60,47 @@ public class Copy {
     DataConfig dataConfig = DataConfig.load();
 
     SparkConf sparkConf = new SparkConf().setAppName("webindex-copy");
-    JavaSparkContext ctx = new JavaSparkContext(sparkConf);
+    try (JavaSparkContext ctx = new JavaSparkContext(sparkConf)) {
 
-    FileSystem hdfs = FileSystem.get(ctx.hadoopConfiguration());
-    Path destPath = new Path(args[2]);
-    if (!hdfs.exists(destPath)) {
-      hdfs.mkdirs(destPath);
+      FileSystem hdfs = FileSystem.get(ctx.hadoopConfiguration());
+      Path destPath = new Path(args[2]);
+      if (!hdfs.exists(destPath)) {
+        hdfs.mkdirs(destPath);
+      }
+
+      log.info("Copying {} files (Range {} of paths file {}) from AWS to HDFS {}", copyList.size(),
+          args[1], args[0], destPath.toString());
+
+      JavaRDD<String> copyRDD = ctx.parallelize(copyList, dataConfig.getNumExecutorInstances());
+
+      final String prefix = DataConfig.CC_URL_PREFIX;
+      final String destDir = destPath.toString();
+
+      copyRDD
+          .foreachPartition(iter -> {
+            FileSystem fs = IndexEnv.getHDFS(hadoopConfDir);
+            iter.forEachRemaining(ccPath -> {
+              try {
+                Path dfsPath = new Path(destDir + "/" + getFilename(ccPath));
+                if (fs.exists(dfsPath)) {
+                  log.error("File {} exists in HDFS and should have been previously filtered",
+                      dfsPath.getName());
+                } else {
+                  String urlToCopy = prefix + ccPath;
+                  log.info("Starting copy of {} to {}", urlToCopy, destDir);
+                  try (OutputStream out = fs.create(dfsPath);
+                      BufferedInputStream in =
+                          new BufferedInputStream(new URL(urlToCopy).openStream())) {
+                    IOUtils.copy(in, out);
+                  }
+                  log.info("Created {}", dfsPath.getName());
+                }
+              } catch (IOException e) {
+                log.error("Exception while copying {}", ccPath, e);
+              }
+            });
+          });
+      ctx.stop();
     }
-
-    log.info("Copying {} files (Range {} of paths file {}) from AWS to HDFS {}", copyList.size(),
-        args[1], args[0], destPath.toString());
-
-    JavaRDD<String> copyRDD = ctx.parallelize(copyList, dataConfig.getNumExecutorInstances());
-
-    final String prefix = DataConfig.CC_URL_PREFIX;
-    final String destDir = destPath.toString();
-
-    copyRDD.foreachPartition(iter -> {
-      FileSystem fs = IndexEnv.getHDFS(hadoopConfDir);
-      iter.forEachRemaining(ccPath -> {
-        try {
-          Path dfsPath = new Path(destDir + "/" + getFilename(ccPath));
-          if (fs.exists(dfsPath)) {
-            log.error("File {} exists in HDFS and should have been previously filtered",
-                dfsPath.getName());
-          } else {
-            String urlToCopy = prefix + ccPath;
-            log.info("Starting copy of {} to {}", urlToCopy, destDir);
-            try (OutputStream out = fs.create(dfsPath);
-                BufferedInputStream in = new BufferedInputStream(new URL(urlToCopy).openStream())) {
-              IOUtils.copy(in, out);
-            }
-            log.info("Created {}", dfsPath.getName());
-          }
-        } catch (IOException e) {
-          log.error("Exception while copying {}", ccPath, e);
-        }
-      });
-    });
-    ctx.stop();
   }
 }

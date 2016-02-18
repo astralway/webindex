@@ -16,14 +16,15 @@ package io.fluo.webindex.ui;
 
 import java.io.File;
 
+import org.apache.accumulo.core.client.Connector;
+
 import io.dropwizard.Application;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import io.dropwizard.views.ViewBundle;
 import io.fluo.api.config.FluoConfiguration;
-import io.fluo.webindex.core.DataConfig;
 import io.fluo.core.util.AccumuloUtil;
-import org.apache.accumulo.core.client.Connector;
+import io.fluo.webindex.core.DataConfig;
 
 public class WebIndexApp extends Application<WebIndexConfig> {
 
@@ -44,7 +45,7 @@ public class WebIndexApp extends Application<WebIndexConfig> {
   @Override
   public void run(WebIndexConfig config, Environment environment) {
 
-    DataConfig dataConfig = config.getDataConfig();
+    DataConfig dataConfig = WebIndexConfig.getDataConfig();
     File fluoConfigFile = new File(dataConfig.getFluoPropsPath());
     FluoConfiguration fluoConfig = new FluoConfiguration(fluoConfigFile);
 
