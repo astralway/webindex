@@ -20,6 +20,8 @@ import java.io.OutputStream;
 import java.net.URL;
 import java.util.List;
 
+import io.fluo.webindex.core.DataConfig;
+import io.fluo.webindex.data.spark.IndexEnv;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -28,9 +30,6 @@ import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import io.fluo.webindex.core.DataConfig;
-import io.fluo.webindex.data.spark.IndexEnv;
 
 public class Copy {
 
@@ -100,7 +99,6 @@ public class Copy {
               }
             });
           });
-      ctx.stop();
     }
   }
 }

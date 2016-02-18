@@ -19,6 +19,15 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.fluo.api.client.FluoClient;
+import io.fluo.api.client.FluoFactory;
+import io.fluo.api.client.LoaderExecutor;
+import io.fluo.api.config.FluoConfiguration;
+import io.fluo.webindex.core.DataConfig;
+import io.fluo.webindex.core.models.Page;
+import io.fluo.webindex.data.fluo.PageLoader;
+import io.fluo.webindex.data.spark.IndexEnv;
+import io.fluo.webindex.data.util.ArchiveUtil;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocatedFileStatus;
@@ -32,16 +41,6 @@ import org.archive.io.ArchiveRecord;
 import org.archive.io.warc.WARCReaderFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import io.fluo.api.client.FluoClient;
-import io.fluo.api.client.FluoFactory;
-import io.fluo.api.client.LoaderExecutor;
-import io.fluo.api.config.FluoConfiguration;
-import io.fluo.webindex.core.DataConfig;
-import io.fluo.webindex.core.models.Page;
-import io.fluo.webindex.data.fluo.PageLoader;
-import io.fluo.webindex.data.spark.IndexEnv;
-import io.fluo.webindex.data.util.ArchiveUtil;
 
 public class LoadHdfs {
 
@@ -102,8 +101,6 @@ public class LoadHdfs {
           });
         }
       });
-
-      ctx.stop();
     }
   }
 }

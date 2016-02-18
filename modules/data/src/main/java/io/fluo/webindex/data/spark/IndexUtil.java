@@ -87,7 +87,6 @@ public class IndexUtil {
         .persist(StorageLevel.DISK_ONLY_2());
   }
 
-
   public static JavaPairRDD<String, UriInfo> createUriMap(JavaRDD<Page> pages) {
     JavaPairRDD<String, UriInfo> uriMap = pages.flatMapToPair(page -> {
       List<Tuple2<String, UriInfo>> ret = new ArrayList<>();
@@ -102,7 +101,6 @@ public class IndexUtil {
       return ret;
     }).reduceByKey(UriInfo::merge);
 
-
     uriMap.persist(StorageLevel.DISK_ONLY());
 
     return uriMap;
@@ -112,7 +110,7 @@ public class IndexUtil {
 
     JavaPairRDD<String, Long> domainMap = uriMap.mapToPair(t -> {
       String domain = LinkUtil.getReverseTopPrivate(DataUtil.toUrl(t._1()));
-      return new Tuple2<String, Long>(domain, 1l);
+      return new Tuple2<>(domain, 1l);
     }).reduceByKey(Long::sum);
 
     domainMap.persist(StorageLevel.DISK_ONLY());
@@ -165,9 +163,8 @@ public class IndexUtil {
             }));
 
     accumuloIndex =
-        accumuloIndex.union(domainMap.mapToPair(t -> new Tuple2<RowColumn, Bytes>(new RowColumn(
-            "d:" + t._1(), new Column(Constants.DOMAIN, Constants.PAGECOUNT)),
-            Bytes.of(t._2() + ""))));
+        accumuloIndex.union(domainMap.mapToPair(t -> new Tuple2<>(new RowColumn("d:" + t._1(),
+            new Column(Constants.DOMAIN, Constants.PAGECOUNT)), Bytes.of(t._2() + ""))));
 
     accumuloIndex.persist(StorageLevel.DISK_ONLY());
 
@@ -200,23 +197,18 @@ public class IndexUtil {
     Initializer<String, UriInfo> uriMapInitializer =
         CollisionFreeMap.getInitializer(UriMap.URI_MAP_ID, numBuckets, serializer);
 
-    fluoIndex =
-        fluoIndex.union(uriMap.mapToPair(t -> {
-          RowColumnValue rcv = uriMapInitializer.convert(t._1(), t._2());
-          return new Tuple2<RowColumn, Bytes>(new RowColumn(rcv.getRow(), rcv.getColumn()), rcv
-              .getValue());
-        }));
-
+    fluoIndex = fluoIndex.union(uriMap.mapToPair(t -> {
+      RowColumnValue rcv = uriMapInitializer.convert(t._1(), t._2());
+      return new Tuple2<>(new RowColumn(rcv.getRow(), rcv.getColumn()), rcv.getValue());
+    }));
 
     Initializer<String, Long> domainMapInitializer =
         CollisionFreeMap.getInitializer(DomainMap.DOMAIN_MAP_ID, numBuckets, serializer);
 
-    fluoIndex =
-        fluoIndex.union(domainMap.mapToPair(t -> {
-          RowColumnValue rcv = domainMapInitializer.convert(t._1(), t._2());
-          return new Tuple2<RowColumn, Bytes>(new RowColumn(rcv.getRow(), rcv.getColumn()), rcv
-              .getValue());
-        }));
+    fluoIndex = fluoIndex.union(domainMap.mapToPair(t -> {
+      RowColumnValue rcv = domainMapInitializer.convert(t._1(), t._2());
+      return new Tuple2<>(new RowColumn(rcv.getRow(), rcv.getColumn()), rcv.getValue());
+    }));
 
     fluoIndex.persist(StorageLevel.DISK_ONLY());
 

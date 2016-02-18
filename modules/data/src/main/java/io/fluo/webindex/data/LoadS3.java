@@ -18,15 +18,6 @@ import java.io.File;
 import java.net.URL;
 import java.util.List;
 
-import org.apache.spark.SparkConf;
-import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.JavaSparkContext;
-import org.archive.io.ArchiveReader;
-import org.archive.io.ArchiveRecord;
-import org.archive.io.warc.WARCReaderFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.fluo.api.client.FluoClient;
 import io.fluo.api.client.FluoFactory;
 import io.fluo.api.client.LoaderExecutor;
@@ -36,6 +27,14 @@ import io.fluo.webindex.core.models.Page;
 import io.fluo.webindex.data.fluo.PageLoader;
 import io.fluo.webindex.data.spark.IndexEnv;
 import io.fluo.webindex.data.util.ArchiveUtil;
+import org.apache.spark.SparkConf;
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.JavaSparkContext;
+import org.archive.io.ArchiveReader;
+import org.archive.io.ArchiveRecord;
+import org.archive.io.warc.WARCReaderFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class LoadS3 {
 
@@ -88,7 +87,6 @@ public class LoadS3 {
           });
         }
       });
-      ctx.stop();
     }
   }
 }

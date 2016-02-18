@@ -47,7 +47,7 @@ public class IndexUtilTest {
 
   @After
   public void tearDown() {
-    sc.stop();
+    sc.close();
     sc = null;
   }
 

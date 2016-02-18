@@ -47,24 +47,23 @@ public class CalcSplits {
     IndexEnv.validateDataDir(dataDir);
 
     SparkConf sparkConf = new SparkConf().setAppName("webindex-calcsplits");
-    JavaSparkContext ctx = new JavaSparkContext(sparkConf);
+    try (JavaSparkContext ctx = new JavaSparkContext(sparkConf)) {
 
-    IndexStats stats = new IndexStats(ctx);
+      IndexStats stats = new IndexStats(ctx);
 
-    final JavaPairRDD<Text, ArchiveReader> archives =
-        ctx.newAPIHadoopFile(dataDir, WARCFileInputFormat.class, Text.class, ArchiveReader.class,
-            new Configuration());
+      final JavaPairRDD<Text, ArchiveReader> archives =
+          ctx.newAPIHadoopFile(dataDir, WARCFileInputFormat.class, Text.class, ArchiveReader.class,
+              new Configuration());
 
-    JavaRDD<Page> pages = IndexUtil.createPages(archives);
+      JavaRDD<Page> pages = IndexUtil.createPages(archives);
 
-    JavaPairRDD<String, UriInfo> uriMap = IndexUtil.createUriMap(pages);
-    JavaPairRDD<String, Long> domainMap = IndexUtil.createDomainMap(uriMap);
-    JavaPairRDD<RowColumn, Bytes> accumuloIndex =
-        IndexUtil.createAccumuloIndex(stats, pages, uriMap, domainMap);
-    SortedSet<Text> splits = IndexUtil.calculateSplits(accumuloIndex, 100);
-    log.info("Accumulo splits:");
-    splits.forEach(System.out::println);
-
-    ctx.stop();
+      JavaPairRDD<String, UriInfo> uriMap = IndexUtil.createUriMap(pages);
+      JavaPairRDD<String, Long> domainMap = IndexUtil.createDomainMap(uriMap);
+      JavaPairRDD<RowColumn, Bytes> accumuloIndex =
+          IndexUtil.createAccumuloIndex(stats, pages, uriMap, domainMap);
+      SortedSet<Text> splits = IndexUtil.calculateSplits(accumuloIndex, 100);
+      log.info("Accumulo splits:");
+      splits.forEach(System.out::println);
+    }
   }
 }
