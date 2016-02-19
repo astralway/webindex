@@ -19,6 +19,7 @@ import java.util.SortedSet;
 import io.fluo.api.data.Bytes;
 import io.fluo.api.data.RowColumn;
 import io.fluo.webindex.core.models.Page;
+import io.fluo.webindex.core.models.URL;
 import io.fluo.webindex.data.fluo.UriMap.UriInfo;
 import io.fluo.webindex.data.spark.IndexEnv;
 import io.fluo.webindex.data.spark.IndexStats;

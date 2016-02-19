@@ -37,7 +37,9 @@ import io.fluo.api.iterator.ColumnIterator;
 import io.fluo.api.iterator.RowIterator;
 import io.fluo.api.mini.MiniFluo;
 import io.fluo.webindex.core.Constants;
+import io.fluo.webindex.core.models.Link;
 import io.fluo.webindex.core.models.Page;
+import io.fluo.webindex.core.models.URL;
 import io.fluo.webindex.data.FluoApp;
 import io.fluo.webindex.data.SparkTestUtil;
 import io.fluo.webindex.data.fluo.UriMap.UriInfo;
@@ -46,6 +48,7 @@ import io.fluo.webindex.data.spark.IndexEnv;
 import io.fluo.webindex.data.spark.IndexStats;
 import io.fluo.webindex.data.spark.IndexUtil;
 import io.fluo.webindex.data.util.ArchiveUtil;
+import io.fluo.webindex.data.util.DataUrl;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -137,15 +140,15 @@ public class IndexIT {
     }
   }
 
-  public static Map<String, Page> readPages(File input) throws Exception {
-    Map<String, Page> pageMap = new HashMap<>();
+  public static Map<URL, Page> readPages(File input) throws Exception {
+    Map<URL, Page> pageMap = new HashMap<>();
     ArchiveReader ar = WARCReaderFactory.get(input);
     for (ArchiveRecord r : ar) {
       Page p = ArchiveUtil.buildPage(r);
       if (p.isEmpty() || p.getOutboundLinks().isEmpty()) {
         continue;
       }
-      pageMap.put(p.getUrl(), p);
+      pageMap.put(URL.fromPageID(p.getPageID()), p);
     }
     ar.close();
     return pageMap;
@@ -179,10 +182,18 @@ public class IndexIT {
     }
   }
 
+  public static Link newLink(String url) {
+    return Link.of(DataUrl.from(url));
+  }
+
+  public static Link newLink(String url, String anchorText) {
+    return Link.of(DataUrl.from(url), anchorText);
+  }
+
   @Test
   public void testFluoIndexing() throws Exception {
 
-    Map<String, Page> pages = readPages(new File("src/test/resources/wat-18.warc"));
+    Map<URL, Page> pages = readPages(new File("src/test/resources/wat-18.warc"));
 
     try (FluoClient client = FluoFactory.newClient(miniFluo.getClientConfiguration())) {
 
@@ -196,7 +207,7 @@ public class IndexIT {
       miniFluo.waitForObservers();
       assertOutput(pages.values());
 
-      String deleteUrl = "http://1000games.me/games/gametion/";
+      URL deleteUrl = DataUrl.from("http://1000games.me/games/gametion/");
       log.info("Deleting page {}", deleteUrl);
       try (LoaderExecutor le = client.newLoaderExecutor()) {
         le.execute(PageLoader.deletePage(deleteUrl));
@@ -208,12 +219,12 @@ public class IndexIT {
       Assert.assertEquals(numPages - 1, pages.size());
       assertOutput(pages.values());
 
-      String updateUrl = "http://100zone.blogspot.com/2013/03/please-memp3-4shared.html";
+      URL updateUrl = DataUrl.from("http://100zone.blogspot.com/2013/03/please-memp3-4shared.html");
       Page updatePage = pages.get(updateUrl);
       long numLinks = updatePage.getNumOutbound();
-      Assert.assertTrue(updatePage.addOutboundLink("http://example.com", "Example"));
+      Assert.assertTrue(updatePage.addOutbound(newLink("http://example.com", "Example")));
       Assert.assertEquals(numLinks + 1, (long) updatePage.getNumOutbound());
-      Assert.assertTrue(updatePage.removeOutboundLink("http://www.blogger.com"));
+      Assert.assertTrue(updatePage.removeOutbound(newLink("http://www.blogger.com")));
       Assert.assertEquals(numLinks, (long) updatePage.getNumOutbound());
 
       try (LoaderExecutor le = client.newLoaderExecutor()) {
@@ -222,10 +233,10 @@ public class IndexIT {
       miniFluo.waitForObservers();
 
       // create a URL that has an inlink count of 2
-      String updateUrl2 = "http://00assclown.newgrounds.com/";
+      URL updateUrl2 = DataUrl.from("http://00assclown.newgrounds.com/");
       Page updatePage2 = pages.get(updateUrl2);
       long numLinks2 = updatePage2.getNumOutbound();
-      Assert.assertTrue(updatePage2.addOutboundLink("http://example.com", "Example"));
+      Assert.assertTrue(updatePage2.addOutbound(newLink("http://example.com", "Example")));
       Assert.assertEquals(numLinks2 + 1, (long) updatePage2.getNumOutbound());
 
       try (LoaderExecutor le = client.newLoaderExecutor()) {
@@ -240,12 +251,12 @@ public class IndexIT {
       // completely remove link that had an inlink count of 2
       updatePage = pages.get(updateUrl);
       numLinks = updatePage.getNumOutbound();
-      Assert.assertTrue(updatePage.removeOutboundLink("http://example.com"));
+      Assert.assertTrue(updatePage.removeOutbound(newLink("http://example.com")));
       Assert.assertEquals(numLinks - 1, (long) updatePage.getNumOutbound());
 
       updatePage2 = pages.get(updateUrl2);
       numLinks2 = updatePage2.getNumOutbound();
-      Assert.assertTrue(updatePage2.removeOutboundLink("http://example.com"));
+      Assert.assertTrue(updatePage2.removeOutbound(newLink("http://example.com")));
       Assert.assertEquals(numLinks2 - 1, (long) updatePage2.getNumOutbound());
 
       try (LoaderExecutor le = client.newLoaderExecutor()) {
@@ -263,7 +274,7 @@ public class IndexIT {
   @Test
   public void testSparkThenFluoIndexing() throws Exception {
 
-    Map<String, Page> pageMap = readPages(new File("src/test/resources/wat-18.warc"));
+    Map<URL, Page> pageMap = readPages(new File("src/test/resources/wat-18.warc"));
     List<Page> pages = new ArrayList<>(pageMap.values());
 
     env.initializeIndexes(ctx, ctx.parallelize(pages.subList(0, 2)), new IndexStats(ctx));

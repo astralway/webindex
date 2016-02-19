@@ -149,6 +149,21 @@ load-s3)
     ${COMMAND}
   fi
   ;;
+test-parser)
+  if [ "$#" -lt 3 -o "$#" -gt 4 ]; then
+    echo "Usage: webindex test-parser <DATE> <RANGE> [-fg]"
+    exit 1
+  fi
+  . $BIN_DIR/impl/base.sh
+  COMMAND="$SPARK_SUBMIT --class io.fluo.webindex.data.TestParser $COMMON_SPARK_OPTS \
+    $WI_DATA_DEP_JAR $WI_HOME/paths/"$2".wat.paths $3"
+  if [ "$4" != "-fg" ]; then
+    nohup ${COMMAND} &> $COMMAND_LOGFILE &
+    echo "Started data-verify.  Logs are being output to $COMMAND_LOGFILE"
+  else
+    ${COMMAND}
+  fi
+  ;;
 ui)
   pkill -9 -f webindex-ui
   WI_UI_JAR=$WI_HOME/modules/ui/target/webindex-ui-0.0.1-SNAPSHOT.jar
@@ -262,6 +277,7 @@ kill)
   echo "                                -s <SRC>    Source (i.e. hdfs, s3) to use when loading data. If not set, defaults to 's3'"
   echo "                                -e <NUM>    Number of Spark executors to run in all Spark jobs" 
   echo "                                -m <MEM>    Amount of memory (i.e 512m, 1g) to provide to each Spark executor"
+  echo "  test-parser <DATE> <RANGE>  Tests parser on data loaded from S3.  Data is selected using a paths file <DATE> and file <RANGE> (i.e 5-7)"
   echo " "
   echo "NOTE: All commands except getpaths will run in background and output to a log by default.  Add -fg to end of these commands"
   echo "to run them in the foreground."

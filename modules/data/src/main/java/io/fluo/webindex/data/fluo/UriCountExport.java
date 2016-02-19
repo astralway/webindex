@@ -14,7 +14,6 @@
 
 package io.fluo.webindex.data.fluo;
 
-import java.text.ParseException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -25,15 +24,13 @@ import io.fluo.api.data.Column;
 import io.fluo.api.data.RowColumn;
 import io.fluo.recipes.accumulo.export.DifferenceExport;
 import io.fluo.webindex.core.Constants;
-import io.fluo.webindex.core.DataUtil;
+import io.fluo.webindex.core.models.URL;
 import io.fluo.webindex.data.fluo.UriMap.UriInfo;
 import io.fluo.webindex.data.util.FluoConstants;
-import io.fluo.webindex.data.util.LinkUtil;
 import org.apache.accumulo.core.client.lexicoder.Lexicoder;
 import org.apache.accumulo.core.client.lexicoder.ReverseLexicoder;
 import org.apache.accumulo.core.client.lexicoder.ULongLexicoder;
 import org.apache.commons.codec.binary.Hex;
-import org.slf4j.LoggerFactory;
 
 public class UriCountExport extends DifferenceExport<String, UriInfo> {
 
@@ -44,7 +41,7 @@ public class UriCountExport extends DifferenceExport<String, UriInfo> {
   }
 
   @Override
-  protected Map<RowColumn, Bytes> generateData(String uri, Optional<UriInfo> val) {
+  protected Map<RowColumn, Bytes> generateData(String pageID, Optional<UriInfo> val) {
     if (val.orElse(UriInfo.ZERO).equals(UriInfo.ZERO)) {
       return Collections.emptyMap();
     }
@@ -53,32 +50,17 @@ public class UriCountExport extends DifferenceExport<String, UriInfo> {
 
     Map<RowColumn, Bytes> rcMap = new HashMap<>();
     Bytes linksTo = Bytes.of("" + uriInfo.linksTo);
-    rcMap.put(new RowColumn(createTotalRow(uri, uriInfo.linksTo), Column.EMPTY), linksTo);
-    String domainRow = getDomainRow(uri);
-    if (domainRow != null) {
-      String cq = revEncodeLong(uriInfo.linksTo) + ":" + uri;
-      rcMap.put(new RowColumn(domainRow, new Column(Constants.RANK, cq)), linksTo);
-    }
-    rcMap.put(new RowColumn("p:" + uri, FluoConstants.PAGE_INCOUNT_COL), linksTo);
+    rcMap.put(new RowColumn(createTotalRow(pageID, uriInfo.linksTo), Column.EMPTY), linksTo);
+    String domain = URL.fromPageID(pageID).getReverseDomain();
+    String cq = revEncodeLong(uriInfo.linksTo) + ":" + pageID;
+    rcMap.put(new RowColumn("d:" + domain, new Column(Constants.RANK, cq)), linksTo);
+    rcMap.put(new RowColumn("p:" + pageID, FluoConstants.PAGE_INCOUNT_COL), linksTo);
     return rcMap;
   }
 
   public static String revEncodeLong(Long num) {
     Lexicoder<Long> lexicoder = new ReverseLexicoder<>(new ULongLexicoder());
     return Hex.encodeHexString(lexicoder.encode(num));
-  }
-
-  // TODO maybe move code for mutating index table to central place.
-  private static String getDomainRow(String pageUri) {
-    String pageDomain;
-    try {
-      pageDomain = LinkUtil.getReverseTopPrivate(DataUtil.toUrl(pageUri));
-      return "d:" + pageDomain;
-    } catch (ParseException e) {
-      LoggerFactory.getLogger(UriCountExport.class).warn(
-          "Unable to get domain for " + pageUri + " " + e.getMessage());
-    }
-    return null;
   }
 
   private static String createTotalRow(String uri, long curr) {

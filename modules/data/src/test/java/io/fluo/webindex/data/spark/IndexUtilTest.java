@@ -23,10 +23,13 @@ import java.util.List;
 
 import io.fluo.api.data.Bytes;
 import io.fluo.api.data.RowColumn;
+import io.fluo.webindex.core.models.Link;
 import io.fluo.webindex.core.models.Page;
+import io.fluo.webindex.core.models.URL;
 import io.fluo.webindex.data.FluoApp;
 import io.fluo.webindex.data.SparkTestUtil;
 import io.fluo.webindex.data.fluo.UriMap.UriInfo;
+import io.fluo.webindex.data.util.DataUrl;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -105,14 +108,14 @@ public class IndexUtilTest {
 
   private List<Page> getPagesSet1() {
     List<Page> pages = new ArrayList<>();
-    Page pageA = new Page("http://a.com/1");
-    pageA.addOutboundLink("http://b.com/1", "b1");
-    pageA.addOutboundLink("http://b.com/3", "b3");
-    pageA.addOutboundLink("http://c.com/1", "c1");
-    Page pageB = new Page("http://b.com");
-    pageB.addOutboundLink("http://c.com/1", "c1");
-    pageB.addOutboundLink("http://b.com/2", "b2");
-    pageB.addOutboundLink("http://b.com/3", "b3");
+    Page pageA = new Page(DataUrl.from("http://a.com/1").toPageID());
+    pageA.addOutbound(Link.of(DataUrl.from("http://b.com/1"), "b1"));
+    pageA.addOutbound(Link.of(DataUrl.from("http://b.com/3"), "b3"));
+    pageA.addOutbound(Link.of(DataUrl.from("http://c.com/1"), "c1"));
+    Page pageB = new Page(DataUrl.from("http://b.com").toPageID());
+    pageB.addOutbound(Link.of(DataUrl.from("http://c.com/1"), "c1"));
+    pageB.addOutbound(Link.of(DataUrl.from("http://b.com/2"), "b2"));
+    pageB.addOutbound(Link.of(DataUrl.from("http://b.com/3"), "b3"));
     pages.add(pageA);
     pages.add(pageB);
     return pages;

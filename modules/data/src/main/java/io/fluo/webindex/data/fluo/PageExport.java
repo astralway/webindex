@@ -14,7 +14,6 @@
 
 package io.fluo.webindex.data.fluo;
 
-import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -22,31 +21,22 @@ import java.util.List;
 import com.google.common.collect.Sets.SetView;
 import io.fluo.recipes.accumulo.export.AccumuloExport;
 import io.fluo.webindex.core.Constants;
+import io.fluo.webindex.core.models.Link;
 import io.fluo.webindex.core.models.Page;
-import io.fluo.webindex.core.models.Page.Link;
 import org.apache.accumulo.core.data.Mutation;
 
 public class PageExport implements AccumuloExport<String> {
 
   private String json;
-  private List<Page.Link> addedLinks;
-  private List<Page.Link> deletedLinks;
+  private List<Link> addedLinks;
+  private List<Link> deletedLinks;
 
   public PageExport() {}
 
-  public PageExport(String json, SetView<Page.Link> addedLinks, SetView<Page.Link> deletedLinks) {
+  public PageExport(String json, SetView<Link> addedLinks, SetView<Link> deletedLinks) {
     this.json = json;
     this.addedLinks = new ArrayList<>(addedLinks);
     this.deletedLinks = new ArrayList<>(deletedLinks);
-  }
-
-  private String getUri(Page.Link link) {
-    try {
-      // TODO does this need to throw exception???
-      return link.getUri();
-    } catch (MalformedURLException e) {
-      throw new RuntimeException(e);
-    }
   }
 
   @Override
@@ -64,13 +54,13 @@ public class PageExport implements AccumuloExport<String> {
 
     // invert links on export
     for (Link link : addedLinks) {
-      Mutation m = new Mutation("p:" + getUri(link));
+      Mutation m = new Mutation("p:" + link.getPageID());
       m.put(Constants.INLINKS, referencingUri, seq, link.getAnchorText());
       mutations.add(m);
     }
 
     for (Link link : deletedLinks) {
-      Mutation m = new Mutation("p:" + getUri(link));
+      Mutation m = new Mutation("p:" + link.getPageID());
       m.putDelete(Constants.INLINKS, referencingUri, seq);
       mutations.add(m);
     }

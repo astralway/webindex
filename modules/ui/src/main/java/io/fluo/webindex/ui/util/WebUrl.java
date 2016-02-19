@@ -14,21 +14,22 @@
 
 package io.fluo.webindex.ui.util;
 
-import java.net.MalformedURLException;
-import java.net.URL;
-
+import com.google.common.net.HostSpecifier;
 import com.google.common.net.InternetDomainName;
+import io.fluo.webindex.core.models.URL;
 
-public class WebUtil {
+public class WebUrl {
 
-  public static String getDomain(String url) {
-    try {
-      URL u = new URL(url);
-      return InternetDomainName.from(u.getHost()).topPrivateDomain().toString();
-    } catch (MalformedURLException e) {
-      e.printStackTrace();
-      return "unknown";
-    }
+  public static String domainFromHost(String host) {
+    return InternetDomainName.from(host).topPrivateDomain().toString();
   }
 
+  public static boolean isValidHost(String host) {
+    return HostSpecifier.isValid(host) && InternetDomainName.isValid(host)
+        && InternetDomainName.from(host).isUnderPublicSuffix();
+  }
+
+  public static URL from(String rawUrl) {
+    return URL.from(rawUrl, WebUrl::domainFromHost, WebUrl::isValidHost);
+  }
 }
