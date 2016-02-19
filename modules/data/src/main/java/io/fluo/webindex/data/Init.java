@@ -51,19 +51,19 @@ public class Init {
       IndexEnv.validateDataDir(dataDir);
 
       SparkConf sparkConf = new SparkConf().setAppName("webindex-init");
-      JavaSparkContext ctx = new JavaSparkContext(sparkConf);
-      IndexStats stats = new IndexStats(ctx);
+      try (JavaSparkContext ctx = new JavaSparkContext(sparkConf)) {
+        IndexStats stats = new IndexStats(ctx);
 
-      final JavaPairRDD<Text, ArchiveReader> archives =
-          ctx.newAPIHadoopFile(dataDir, WARCFileInputFormat.class, Text.class, ArchiveReader.class,
-              new Configuration());
+        final JavaPairRDD<Text, ArchiveReader> archives =
+            ctx.newAPIHadoopFile(dataDir, WARCFileInputFormat.class, Text.class,
+                ArchiveReader.class, new Configuration());
 
-      JavaRDD<Page> pages = IndexUtil.createPages(archives);
+        JavaRDD<Page> pages = IndexUtil.createPages(archives);
 
-      env.initializeIndexes(ctx, pages, stats);
+        env.initializeIndexes(ctx, pages, stats);
 
-      stats.print();
-      ctx.stop();
+        stats.print();
+      }
     } else {
       log.info("An init data dir was not specified");
     }

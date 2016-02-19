@@ -45,7 +45,7 @@ public abstract class Pager {
     if (pageNum > 0) {
       long skip = 0;
       while (skip < (pageNum * pageSize)) {
-        Map.Entry<Key, Value> entry = iterator.next();
+        iterator.next();
         skip++;
       }
     }

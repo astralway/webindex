@@ -23,6 +23,10 @@ public class DomainStats {
     this.domain = domain;
   }
 
+  public String getDomain() {
+    return domain;
+  }
+
   public Long getTotal() {
     return total;
   }

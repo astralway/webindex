@@ -59,19 +59,13 @@ public class WebIndexResources {
   private static final Logger log = LoggerFactory.getLogger(WebIndexResources.class);
   private static final int PAGE_SIZE = 25;
 
-  private FluoConfiguration fluoConfig;
   private DataConfig dataConfig;
   private Connector conn;
   private Gson gson = new Gson();
 
   public WebIndexResources(FluoConfiguration fluoConfig, Connector conn, DataConfig dataConfig) {
-    this.fluoConfig = fluoConfig;
     this.conn = conn;
     this.dataConfig = dataConfig;
-  }
-
-  private static Integer getIntValue(Map.Entry<Key, Value> entry) {
-    return Integer.parseInt(entry.getValue().toString());
   }
 
   private static Long getLongValue(Map.Entry<Key, Value> entry) {

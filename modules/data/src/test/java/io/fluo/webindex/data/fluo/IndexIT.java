@@ -130,7 +130,7 @@ public class IndexIT {
 
   @After
   public void tearDownFluo() throws Exception {
-    ctx.stop();
+    ctx.close();
     ctx = null;
     if (miniFluo != null) {
       miniFluo.close();
@@ -236,7 +236,6 @@ public class IndexIT {
       Assert.assertNotNull(pages.put(updateUrl, updatePage));
       Assert.assertNotNull(pages.put(updateUrl2, updatePage2));
       assertOutput(pages.values());
-
 
       // completely remove link that had an inlink count of 2
       updatePage = pages.get(updateUrl);
