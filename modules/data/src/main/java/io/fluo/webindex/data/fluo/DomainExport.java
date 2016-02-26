@@ -34,7 +34,7 @@ public class DomainExport extends DifferenceExport<String, Long> {
 
   @Override
   protected Map<RowColumn, Bytes> generateData(String domain, Optional<Long> count) {
-    if (count.orElse(0l) == 0) {
+    if (count.orElse(0L) == 0) {
       return Collections.emptyMap();
     }
     return Collections.singletonMap(new RowColumn("d:" + domain, PAGECOUNT_COL),

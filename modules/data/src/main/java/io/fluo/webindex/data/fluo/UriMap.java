@@ -40,7 +40,7 @@ import io.fluo.webindex.data.FluoApp;
  */
 public class UriMap {
 
-  public static String URI_MAP_ID = "um";
+  public static final String URI_MAP_ID = "um";
 
   public static class UriInfo implements Serializable {
 
@@ -80,6 +80,11 @@ public class UriMap {
       }
 
       return false;
+    }
+
+    @Override
+    public int hashCode() {
+      return docs + (int) linksTo;
     }
 
     public static UriInfo merge(UriInfo u1, UriInfo u2) {
@@ -143,9 +148,9 @@ public class UriMap {
 
         String pageDomain = URL.fromPageID(update.getKey()).getReverseDomain();
         if (oldVal.equals(UriInfo.ZERO) && !newVal.equals(UriInfo.ZERO)) {
-          domainUpdates.merge(pageDomain, 1l, (o, n) -> o + n);
+          domainUpdates.merge(pageDomain, 1L, (o, n) -> o + n);
         } else if (newVal.equals(UriInfo.ZERO) && !oldVal.equals(UriInfo.ZERO)) {
-          domainUpdates.merge(pageDomain, -1l, (o, n) -> o + n);
+          domainUpdates.merge(pageDomain, -1L, (o, n) -> o + n);
         }
       }
 

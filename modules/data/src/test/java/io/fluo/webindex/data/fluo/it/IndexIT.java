@@ -12,7 +12,7 @@
  * the License.
  */
 
-package io.fluo.webindex.data.fluo;
+package io.fluo.webindex.data.fluo.it;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -42,6 +42,7 @@ import io.fluo.webindex.core.models.Page;
 import io.fluo.webindex.core.models.URL;
 import io.fluo.webindex.data.FluoApp;
 import io.fluo.webindex.data.SparkTestUtil;
+import io.fluo.webindex.data.fluo.PageLoader;
 import io.fluo.webindex.data.fluo.UriMap.UriInfo;
 import io.fluo.webindex.data.spark.Hex;
 import io.fluo.webindex.data.spark.IndexEnv;
@@ -78,7 +79,7 @@ public class IndexIT {
 
   private static final Logger log = LoggerFactory.getLogger(IndexIT.class);
 
-  public static TemporaryFolder folder = new TemporaryFolder();
+  public static final TemporaryFolder folder = new TemporaryFolder();
   public static MiniAccumuloCluster cluster;
   private static MiniFluo miniFluo;
   private static final PasswordToken password = new PasswordToken("secret");

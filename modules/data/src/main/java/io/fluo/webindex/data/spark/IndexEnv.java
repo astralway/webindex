@@ -38,7 +38,6 @@ import io.fluo.recipes.accumulo.ops.TableOperations;
 import io.fluo.recipes.common.Pirtos;
 import io.fluo.webindex.core.DataConfig;
 import io.fluo.webindex.core.models.Page;
-import io.fluo.webindex.core.models.URL;
 import io.fluo.webindex.data.FluoApp;
 import io.fluo.webindex.data.fluo.PageObserver;
 import io.fluo.webindex.data.fluo.UriMap.UriInfo;
@@ -65,8 +64,8 @@ public class IndexEnv {
 
   private static final Logger log = LoggerFactory.getLogger(IndexEnv.class);
 
+  private final String accumuloTable;
   private Connector conn;
-  final private String accumuloTable;
   private FluoConfiguration fluoConfig;
   private FileSystem hdfs;
   private Path failuresDir;
@@ -126,6 +125,10 @@ public class IndexEnv {
     return new FluoConfiguration(new File(dataConfig.getFluoPropsPath()));
   }
 
+  public FluoConfiguration getFluoConfig() {
+    return fluoConfig;
+  }
+
   private static SortedSet<Text> getSplits(String filename) {
     SortedSet<Text> splits = new TreeSet<>();
     InputStream is = IndexEnv.class.getClassLoader().getResourceAsStream("splits/" + filename);
@@ -151,6 +154,12 @@ public class IndexEnv {
     return getHDFS(getHadoopConfDir());
   }
 
+  public static FileSystem getHDFS(String hadoopConfDir) throws IOException {
+    Configuration config = new Configuration();
+    config.addResource(hadoopConfDir);
+    return FileSystem.get(config);
+  }
+
   public static void validateDataDir(String dataDir) {
     try {
       FileSystem hdfs = getHDFS();
@@ -171,12 +180,6 @@ public class IndexEnv {
     } catch (IOException e) {
       throw new IllegalStateException(e);
     }
-  }
-
-  public static FileSystem getHDFS(String hadoopConfDir) throws IOException {
-    Configuration config = new Configuration();
-    config.addResource(hadoopConfDir);
-    return FileSystem.get(config);
   }
 
   public void initAccumuloIndexTable() {
@@ -281,10 +284,6 @@ public class IndexEnv {
 
   public Connector getAccumuloConnector() {
     return conn;
-  }
-
-  public FluoConfiguration getFluoConfig() {
-    return fluoConfig;
   }
 
   public static List<String> getPathsRange(String ccPaths, String range) {

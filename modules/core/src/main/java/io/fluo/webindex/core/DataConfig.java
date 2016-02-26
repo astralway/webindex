@@ -22,7 +22,7 @@ import com.esotericsoftware.yamlbeans.YamlReader;
 public class DataConfig {
 
   public static String CC_URL_PREFIX = "https://aws-publicdatasets.s3.amazonaws.com/";
-  public static String WI_EXECUTOR_INSTANCES = "WI_EXECUTOR_INSTANCES";
+  public static final String WI_EXECUTOR_INSTANCES = "WI_EXECUTOR_INSTANCES";
 
   public String fluoHome;
   public String hadoopConfDir;

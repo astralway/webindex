@@ -25,7 +25,6 @@ import io.fluo.api.data.Bytes;
 import io.fluo.api.data.RowColumn;
 import io.fluo.webindex.core.models.Link;
 import io.fluo.webindex.core.models.Page;
-import io.fluo.webindex.core.models.URL;
 import io.fluo.webindex.data.FluoApp;
 import io.fluo.webindex.data.SparkTestUtil;
 import io.fluo.webindex.data.fluo.UriMap.UriInfo;

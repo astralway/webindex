@@ -31,7 +31,7 @@ public class URL implements Serializable {
   private static final String HTTP_PROTO = "http://";
   private static final String HTTPS_PROTO = "https://";
   private static final String PAGE_ID_SEP = ">";
-  public static InetAddressValidator validator = InetAddressValidator.getInstance();
+  public static final InetAddressValidator validator = InetAddressValidator.getInstance();
 
   private static final long serialVersionUID = 1L;
 
@@ -169,8 +169,9 @@ public class URL implements Serializable {
   }
 
   public String getReverseHost() {
-    if (hasIPHost())
+    if (hasIPHost()) {
       return host;
+    }
     return reverseHost(host);
   }
 
