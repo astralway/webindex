@@ -17,12 +17,8 @@ package io.fluo.webindex.data.util;
 import com.google.common.net.HostSpecifier;
 import com.google.common.net.InternetDomainName;
 import io.fluo.webindex.core.models.URL;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class DataUrl {
-
-  private static final Logger log = LoggerFactory.getLogger(DataUrl.class);
 
   public static String domainFromHost(String host) {
     return InternetDomainName.from(host).topPrivateDomain().name();

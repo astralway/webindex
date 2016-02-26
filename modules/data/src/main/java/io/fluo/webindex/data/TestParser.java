@@ -45,32 +45,32 @@ public class TestParser {
       System.exit(1);
     }
 
-    DataConfig dataConfig = DataConfig.load();
+    DataConfig.load();
 
     SparkConf sparkConf = new SparkConf().setAppName("webindex-test-parser");
-    JavaSparkContext ctx = new JavaSparkContext(sparkConf);
+    try (JavaSparkContext ctx = new JavaSparkContext(sparkConf)) {
 
-    log.info("Parsing {} files (Range {} of paths file {}) from AWS", loadList.size(), args[1],
-        args[0]);
+      log.info("Parsing {} files (Range {} of paths file {}) from AWS", loadList.size(), args[1],
+          args[0]);
 
-    JavaRDD<String> loadRDD = ctx.parallelize(loadList, loadList.size());
+      JavaRDD<String> loadRDD = ctx.parallelize(loadList, loadList.size());
 
-    final String prefix = DataConfig.CC_URL_PREFIX;
+      final String prefix = DataConfig.CC_URL_PREFIX;
 
-    loadRDD.foreachPartition(iter -> {
-      iter.forEachRemaining(path -> {
-        String urlToCopy = prefix + path;
-        log.info("Parsing {}", urlToCopy);
-        try {
-          ArchiveReader reader = WARCReaderFactory.get(new URL(urlToCopy), 0);
-          for (ArchiveRecord record : reader) {
-            ArchiveUtil.buildPageIgnoreErrors(record);
+      loadRDD.foreachPartition(iter -> {
+        iter.forEachRemaining(path -> {
+          String urlToCopy = prefix + path;
+          log.info("Parsing {}", urlToCopy);
+          try {
+            ArchiveReader reader = WARCReaderFactory.get(new URL(urlToCopy), 0);
+            for (ArchiveRecord record : reader) {
+              ArchiveUtil.buildPageIgnoreErrors(record);
+            }
+          } catch (Exception e) {
+            log.error("Exception while processing {}", path, e);
           }
-        } catch (Exception e) {
-          log.error("Exception while processing {}", path, e);
-        }
+        });
       });
-    });
-    ctx.stop();
+    }
   }
 }

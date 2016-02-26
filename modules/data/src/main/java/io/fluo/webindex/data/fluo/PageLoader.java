@@ -15,6 +15,7 @@
 package io.fluo.webindex.data.fluo;
 
 import java.net.MalformedURLException;
+import java.util.Objects;
 
 import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
@@ -46,7 +47,7 @@ public class PageLoader implements Loader {
   }
 
   public static PageLoader deletePage(URL url) throws MalformedURLException {
-    Preconditions.checkNotNull(url, "Url cannot be null");
+    Objects.requireNonNull(url, "Url cannot be null");
     PageLoader update = new PageLoader();
     update.action = Action.DELETE;
     update.delUrl = url;

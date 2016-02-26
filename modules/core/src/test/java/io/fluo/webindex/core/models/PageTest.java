@@ -26,13 +26,13 @@ public class PageTest {
     Page page = new Page(URLTest.from("http://example.com").toPageID());
     Assert.assertEquals("http://example.com/", page.getUrl());
     Assert.assertEquals("com.example>>o>/", page.getPageID());
-    Assert.assertEquals(new Long(0), page.getNumOutbound());
+    Assert.assertEquals(Long.valueOf(0), page.getNumOutbound());
     Assert.assertTrue(page.addOutbound(Link.of(URLTest.from("http://test1.com"), "test1")));
-    Assert.assertEquals(new Long(1), page.getNumOutbound());
+    Assert.assertEquals(Long.valueOf(1), page.getNumOutbound());
     Assert.assertTrue(page.addOutbound(Link.of(URLTest.from("http://test2.com"), "test2")));
-    Assert.assertEquals(new Long(2), page.getNumOutbound());
+    Assert.assertEquals(Long.valueOf(2), page.getNumOutbound());
     Assert.assertFalse(page.addOutbound(Link.of(URLTest.from("http://test2.com"), "test1234")));
-    Assert.assertEquals(new Long(2), page.getNumOutbound());
+    Assert.assertEquals(Long.valueOf(2), page.getNumOutbound());
 
     Gson gson = new Gson();
     String json = gson.toJson(page);
