@@ -15,9 +15,9 @@
 package io.fluo.webindex.core.models;
 
 import java.io.Serializable;
-import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeSet;
 
 import com.google.gson.Gson;
 
@@ -36,7 +36,9 @@ public class Page implements Serializable {
   private String crawlDate;
   private String server;
   private String title;
-  private Set<Link> outboundLinks = new HashSet<>();
+  // This is a tree set so that json serializes consistently. Wanted to use hashset and sort on
+  // serialization, but could not figure out how to do that.
+  private Set<Link> outboundLinks = new TreeSet<>();
   private transient boolean isDelete = false;
 
   private Page() {}
