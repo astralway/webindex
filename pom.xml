@@ -33,7 +33,7 @@
     <module>modules/ui</module>
   </modules>
   <properties>
-    <accumulo.version>1.6.4</accumulo.version>
+    <accumulo.version>1.7.1</accumulo.version>
     <checkstyle.skip>true</checkstyle.skip>
     <dropwizard.version>0.8.2</dropwizard.version>
     <fluo-recipes.version>1.0.0-beta-2-SNAPSHOT</fluo-recipes.version>
@@ -104,6 +104,16 @@
       <dependency>
         <groupId>io.fluo</groupId>
         <artifactId>fluo-recipes-core</artifactId>
+        <version>${fluo-recipes.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.fluo</groupId>
+        <artifactId>fluo-recipes-spark</artifactId>
+        <version>${fluo-recipes.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.fluo</groupId>
+        <artifactId>fluo-recipes-test</artifactId>
         <version>${fluo-recipes.version}</version>
       </dependency>
       <dependency>

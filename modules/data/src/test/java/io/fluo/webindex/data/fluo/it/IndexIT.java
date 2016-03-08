@@ -18,25 +18,19 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 
-import io.fluo.api.client.FluoAdmin;
+import com.google.common.collect.Lists;
 import io.fluo.api.client.FluoClient;
 import io.fluo.api.client.FluoFactory;
 import io.fluo.api.client.LoaderExecutor;
-import io.fluo.api.client.Snapshot;
 import io.fluo.api.config.FluoConfiguration;
-import io.fluo.api.config.ScannerConfiguration;
 import io.fluo.api.data.Bytes;
-import io.fluo.api.data.Column;
 import io.fluo.api.data.RowColumn;
-import io.fluo.api.iterator.ColumnIterator;
-import io.fluo.api.iterator.RowIterator;
-import io.fluo.api.mini.MiniFluo;
-import io.fluo.webindex.core.Constants;
+import io.fluo.api.data.RowColumnValue;
+import io.fluo.recipes.test.AccumuloExportITBase;
+import io.fluo.recipes.test.FluoITHelper;
 import io.fluo.webindex.core.models.Link;
 import io.fluo.webindex.core.models.Page;
 import io.fluo.webindex.core.models.URL;
@@ -50,14 +44,6 @@ import io.fluo.webindex.data.spark.IndexStats;
 import io.fluo.webindex.data.spark.IndexUtil;
 import io.fluo.webindex.data.util.ArchiveUtil;
 import io.fluo.webindex.data.util.DataUrl;
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.minicluster.MiniAccumuloCluster;
-import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -65,55 +51,24 @@ import org.archive.io.ArchiveReader;
 import org.archive.io.ArchiveRecord;
 import org.archive.io.warc.WARCReaderFactory;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Tuple2;
 
-public class IndexIT {
+public class IndexIT extends AccumuloExportITBase {
 
   private static final Logger log = LoggerFactory.getLogger(IndexIT.class);
-
-  public static final TemporaryFolder folder = new TemporaryFolder();
-  public static MiniAccumuloCluster cluster;
-  private static MiniFluo miniFluo;
-  private static final PasswordToken password = new PasswordToken("secret");
-  private static AtomicInteger tableCounter = new AtomicInteger(1);
-  private String exportTable;
   private transient JavaSparkContext ctx;
   private IndexEnv env;
+  private String exportTable;
 
-  @BeforeClass
-  public static void setUpBeforeClass() throws Exception {
-    folder.create();
-    MiniAccumuloConfig cfg =
-        new MiniAccumuloConfig(folder.newFolder("miniAccumulo"), new String(password.getPassword()));
-    cluster = new MiniAccumuloCluster(cfg);
-    cluster.start();
-  }
 
-  @AfterClass
-  public static void tearDownAfterClass() throws Exception {
-    cluster.stop();
-    folder.delete();
-  }
-
-  @Before
-  public void setUp() throws Exception {
-    FluoConfiguration config = new FluoConfiguration();
-    config.setMiniStartAccumulo(false);
+  @Override
+  protected void preFluoInitHook() throws Exception {
+    FluoConfiguration config = getFluoConfiguration();
     config.setApplicationName("lit");
-    config.setAccumuloInstance(cluster.getInstanceName());
-    config.setAccumuloUser("root");
-    config.setAccumuloPassword("secret");
-    config.setInstanceZookeepers(cluster.getZooKeepers() + "/fluo");
-    config.setAccumuloZookeepers(cluster.getZooKeepers());
-    config.setAccumuloTable("data" + tableCounter.getAndIncrement());
     config.setWorkerThreads(5);
 
     // create and configure export table
@@ -123,22 +78,17 @@ public class IndexIT {
     env = new IndexEnv(config, exportTable, ctx.hadoopConfiguration(), "/tmp");
     env.initAccumuloIndexTable();
     env.configureApplication(config);
+  }
 
-    FluoFactory.newAdmin(config).initialize(
-        new FluoAdmin.InitOpts().setClearTable(true).setClearZookeeper(true));
-
+  @Override
+  protected void postFluoInitHook() throws Exception {
     env.setFluoTableSplits();
-
-    miniFluo = FluoFactory.newMiniFluo(config);
   }
 
   @After
-  public void tearDownFluo() throws Exception {
+  public void tearCloseContext() throws Exception {
     ctx.close();
     ctx = null;
-    if (miniFluo != null) {
-      miniFluo.close();
-    }
   }
 
   public static Map<URL, Page> readPages(File input) throws Exception {
@@ -170,12 +120,14 @@ public class IndexIT {
         IndexUtil.createFluoTable(pagesRDD, uriMap, domainMap, FluoApp.NUM_BUCKETS).sortByKey();
 
     // Compare against actual
-    try (FluoClient client = FluoFactory.newClient(miniFluo.getClientConfiguration())) {
-      boolean foundDiff = diffAccumuloTable(accumuloIndex.collect());
-      foundDiff |= diffFluoTable(client, fluoIndex.collect());
+    try (FluoClient client = FluoFactory.newClient(getMiniFluo().getClientConfiguration())) {
+      boolean foundDiff =
+          !FluoITHelper.verifyAccumuloTable(getAccumuloConnector(), exportTable,
+              tuples2rcv(accumuloIndex.collect()));
+      foundDiff |= !FluoITHelper.verifyFluoTable(client, tuples2rcv(fluoIndex.collect()));
       if (foundDiff) {
-        printFluoTable(client);
-        printAccumuloTable();
+        FluoITHelper.printFluoTable(client);
+        FluoITHelper.printAccumuloTable(getAccumuloConnector(), exportTable);
         printRDD(accumuloIndex.collect());
         printRDD(fluoIndex.collect());
       }
@@ -196,7 +148,7 @@ public class IndexIT {
 
     Map<URL, Page> pages = readPages(new File("src/test/resources/wat-18.warc"));
 
-    try (FluoClient client = FluoFactory.newClient(miniFluo.getClientConfiguration())) {
+    try (FluoClient client = FluoFactory.newClient(getMiniFluo().getClientConfiguration())) {
 
       try (LoaderExecutor le = client.newLoaderExecutor()) {
         for (Page page : pages.values()) {
@@ -205,7 +157,7 @@ public class IndexIT {
         }
       }
 
-      miniFluo.waitForObservers();
+      getMiniFluo().waitForObservers();
       assertOutput(pages.values());
 
       URL deleteUrl = DataUrl.from("http://1000games.me/games/gametion/");
@@ -213,7 +165,7 @@ public class IndexIT {
       try (LoaderExecutor le = client.newLoaderExecutor()) {
         le.execute(PageLoader.deletePage(deleteUrl));
       }
-      miniFluo.waitForObservers();
+      getMiniFluo().waitForObservers();
 
       int numPages = pages.size();
       Assert.assertNotNull(pages.remove(deleteUrl));
@@ -231,7 +183,7 @@ public class IndexIT {
       try (LoaderExecutor le = client.newLoaderExecutor()) {
         le.execute(PageLoader.updatePage(updatePage));
       }
-      miniFluo.waitForObservers();
+      getMiniFluo().waitForObservers();
 
       // create a URL that has an inlink count of 2
       URL updateUrl2 = DataUrl.from("http://00assclown.newgrounds.com/");
@@ -243,7 +195,7 @@ public class IndexIT {
       try (LoaderExecutor le = client.newLoaderExecutor()) {
         le.execute(PageLoader.updatePage(updatePage2));
       }
-      miniFluo.waitForObservers();
+      getMiniFluo().waitForObservers();
 
       Assert.assertNotNull(pages.put(updateUrl, updatePage));
       Assert.assertNotNull(pages.put(updateUrl2, updatePage2));
@@ -264,7 +216,7 @@ public class IndexIT {
         le.execute(PageLoader.updatePage(updatePage));
         le.execute(PageLoader.updatePage(updatePage2));
       }
-      miniFluo.waitForObservers();
+      getMiniFluo().waitForObservers();
 
       Assert.assertNotNull(pages.put(updateUrl, updatePage));
       Assert.assertNotNull(pages.put(updateUrl2, updatePage2));
@@ -282,7 +234,7 @@ public class IndexIT {
 
     assertOutput(pages.subList(0, 2));
 
-    try (FluoClient client = FluoFactory.newClient(miniFluo.getClientConfiguration());
+    try (FluoClient client = FluoFactory.newClient(getMiniFluo().getClientConfiguration());
         LoaderExecutor le = client.newLoaderExecutor()) {
       for (Page page : pages.subList(2, pages.size())) {
         log.info("Loading page {} with {} links {}", page.getUrl(), page.getOutboundLinks().size(),
@@ -290,7 +242,7 @@ public class IndexIT {
         le.execute(PageLoader.updatePage(page));
       }
     }
-    miniFluo.waitForObservers();
+    getMiniFluo().waitForObservers();
 
     assertOutput(pages);
   }
@@ -301,143 +253,8 @@ public class IndexIT {
     System.out.println("== RDD end ==");
   }
 
-  private void printFluoTable(FluoClient client) throws Exception {
-    try (Snapshot s = client.newSnapshot()) {
-      RowIterator iter = s.get(new ScannerConfiguration());
-
-      System.out.println("== fluo start ==");
-      while (iter.hasNext()) {
-        Map.Entry<Bytes, ColumnIterator> rowEntry = iter.next();
-        ColumnIterator citer = rowEntry.getValue();
-        while (citer.hasNext()) {
-          Map.Entry<Column, Bytes> colEntry = citer.next();
-
-          StringBuilder sb = new StringBuilder();
-          Hex.encNonAscii(sb, rowEntry.getKey());
-          sb.append(" ");
-          Hex.encNonAscii(sb, colEntry.getKey(), " ");
-          sb.append("\t");
-          Hex.encNonAscii(sb, colEntry.getValue());
-
-          System.out.println(sb.toString());
-        }
-      }
-      System.out.println("=== fluo end ===");
-    }
-  }
-
-  private boolean diffFluoTable(FluoClient client, List<Tuple2<RowColumn, Bytes>> linkIndex)
-      throws Exception {
-    try (Snapshot s = client.newSnapshot()) {
-      RowIterator iter = s.get(new ScannerConfiguration());
-      Iterator<Tuple2<RowColumn, Bytes>> indexIter = linkIndex.iterator();
-
-      while (iter.hasNext()) {
-        Map.Entry<Bytes, ColumnIterator> rowEntry = iter.next();
-        ColumnIterator citer = rowEntry.getValue();
-        while (citer.hasNext() && indexIter.hasNext()) {
-          Map.Entry<Column, Bytes> colEntry = citer.next();
-          Tuple2<RowColumn, Bytes> indexEntry = indexIter.next();
-          RowColumn rc = indexEntry._1();
-          Column col = colEntry.getKey();
-
-          boolean retval = diff("fluo row", rc.getRow(), rowEntry.getKey());
-          retval |= diff("fluo fam", rc.getColumn().getFamily(), col.getFamily());
-          retval |= diff("fluo qual", rc.getColumn().getQualifier(), col.getQualifier());
-          if (!col.getQualifier().toString().equals(Constants.CUR)) {
-            retval |= diff("fluo val", indexEntry._2(), colEntry.getValue());
-          }
-
-          if (retval) {
-            log.error("Difference found - row {} cf {} cq {} val {}", rc.getRow().toString(), rc
-                .getColumn().getFamily().toString(), rc.getColumn().getQualifier().toString(),
-                indexEntry._2().toString());
-            return true;
-          }
-
-          log.debug("Verified {}", Hex.encNonAscii(indexEntry, " "));
-        }
-        if (citer.hasNext()) {
-          log.error("An column iterator still has more data");
-          return true;
-        }
-      }
-      if (iter.hasNext() || indexIter.hasNext()) {
-        log.error("An iterator still has more data");
-        return true;
-      }
-      log.debug("No difference found");
-      return false;
-    }
-  }
-
-  private void printAccumuloTable() throws Exception {
-    Connector conn = cluster.getConnector("root", "secret");
-    Scanner scanner = conn.createScanner(exportTable, Authorizations.EMPTY);
-    Iterator<Map.Entry<Key, Value>> iterator = scanner.iterator();
-
-    System.out.println("== accumulo start ==");
-    while (iterator.hasNext()) {
-      Map.Entry<Key, Value> entry = iterator.next();
-      System.out.println(entry.getKey() + " " + entry.getValue());
-    }
-    System.out.println("== accumulo end ==");
-  }
-
-  private boolean diff(String dataType, String expected, String actual) {
-    if (!expected.equals(actual)) {
-      log.error("Difference found in {} - expected {} actual {}", dataType, expected, actual);
-      return true;
-    }
-    return false;
-  }
-
-  private boolean diff(String dataType, Bytes expected, Bytes actual) {
-    if (!expected.equals(actual)) {
-      log.error("Difference found in {} - expected {} actual {}", dataType,
-          Hex.encNonAscii(expected), Hex.encNonAscii(actual));
-      return true;
-    }
-    return false;
-  }
-
-  private boolean diffAccumuloTable(List<Tuple2<RowColumn, Bytes>> linkIndex) throws Exception {
-    Connector conn = cluster.getConnector("root", "secret");
-    Scanner scanner = conn.createScanner(exportTable, Authorizations.EMPTY);
-    Iterator<Map.Entry<Key, Value>> exportIter = scanner.iterator();
-    Iterator<Tuple2<RowColumn, Bytes>> indexIter = linkIndex.iterator();
-
-    while (exportIter.hasNext() && indexIter.hasNext()) {
-      Tuple2<RowColumn, Bytes> indexEntry = indexIter.next();
-      Map.Entry<Key, Value> exportEntry = exportIter.next();
-      Key key = exportEntry.getKey();
-      RowColumn rc = indexEntry._1();
-      Column col = rc.getColumn();
-
-      boolean retval = diff("row", rc.getRow().toString(), key.getRow().toString());
-      retval |= diff("fam", col.getFamily().toString(), key.getColumnFamily().toString());
-      retval |= diff("qual", col.getQualifier().toString(), key.getColumnQualifier().toString());
-      if (!col.getQualifier().toString().equals(Constants.CUR)) {
-        retval |= diff("val", indexEntry._2().toString(), exportEntry.getValue().toString());
-      }
-
-      if (retval) {
-        log.error("Difference found - row {} cf {} cq {} val {}", rc.getRow().toString(), rc
-            .getColumn().getFamily().toString(), rc.getColumn().getQualifier().toString(),
-            indexEntry._2().toString());
-        return true;
-      }
-      log.debug("Verified row {} cf {} cq {} val {}", rc.getRow().toString(), rc.getColumn()
-          .getFamily().toString(), rc.getColumn().getQualifier().toString(), indexEntry._2()
-          .toString());
-    }
-
-    if (exportIter.hasNext() || indexIter.hasNext()) {
-      log.error("An iterator still has more data");
-      return true;
-    }
-
-    log.debug("No difference found");
-    return false;
+  private static List<RowColumnValue> tuples2rcv(List<Tuple2<RowColumn, Bytes>> linkIndex) {
+    return Lists.transform(linkIndex, t -> new RowColumnValue(t._1().getRow(), t._1().getColumn(),
+        t._2()));
   }
 }

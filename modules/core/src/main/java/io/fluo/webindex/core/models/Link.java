@@ -17,7 +17,7 @@ package io.fluo.webindex.core.models;
 import java.io.Serializable;
 import java.util.Objects;
 
-public class Link implements Serializable {
+public class Link implements Serializable, Comparable<Link> {
 
   private static final long serialVersionUID = 1L;
 
@@ -78,5 +78,15 @@ public class Link implements Serializable {
     int result = url.hashCode();
     result = 31 * result + pageID.hashCode();
     return result;
+  }
+
+  @Override
+  public int compareTo(Link o) {
+    int c = pageID.compareTo(o.pageID);
+    if (c == 0) {
+      c = url.compareTo(o.url);
+    }
+
+    return c;
   }
 }

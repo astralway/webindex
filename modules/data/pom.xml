@@ -65,6 +65,10 @@
     </dependency>
     <dependency>
       <groupId>io.fluo</groupId>
+      <artifactId>fluo-recipes-spark</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.fluo</groupId>
       <artifactId>webindex-core</artifactId>
     </dependency>
     <dependency>
@@ -127,6 +131,11 @@
           <artifactId>servlet-api</artifactId>
         </exclusion>
       </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>io.fluo</groupId>
+      <artifactId>fluo-recipes-test</artifactId>
+      <scope>test</scope>
     </dependency>
     <!-- Test Dependencies -->
     <dependency>

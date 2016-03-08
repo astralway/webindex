@@ -36,6 +36,8 @@ import io.fluo.core.util.AccumuloUtil;
 import io.fluo.recipes.accumulo.export.TableInfo;
 import io.fluo.recipes.accumulo.ops.TableOperations;
 import io.fluo.recipes.common.Pirtos;
+import io.fluo.recipes.spark.FluoSparkHelper;
+import io.fluo.recipes.spark.FluoSparkHelper.BulkImportOptions;
 import io.fluo.webindex.core.DataConfig;
 import io.fluo.webindex.core.models.Page;
 import io.fluo.webindex.data.FluoApp;
@@ -46,8 +48,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocatedFileStatus;
@@ -243,23 +243,15 @@ public class IndexEnv {
 
   public void saveRowColBytesToFluo(JavaSparkContext ctx, JavaPairRDD<RowColumn, Bytes> data)
       throws Exception {
-    IndexUtil.saveRowColBytesToFluo(data, ctx, conn, fluoConfig, fluoTempDir, failuresDir);
-  }
-
-  public void saveKeyValueToFluo(JavaSparkContext ctx, JavaPairRDD<Key, Value> data)
-      throws Exception {
-    IndexUtil.saveKeyValueToFluo(data, ctx, conn, fluoConfig, fluoTempDir, failuresDir);
+    new FluoSparkHelper(fluoConfig, ctx.hadoopConfiguration(), fluoTempDir).bulkImportRcvToFluo(
+        data, new BulkImportOptions().setAccumuloConnector(conn));
   }
 
   public void saveRowColBytesToAccumulo(JavaSparkContext ctx, JavaPairRDD<RowColumn, Bytes> data)
       throws Exception {
-    IndexUtil.saveRowColBytesToAccumulo(data, ctx, conn, accumuloTempDir, failuresDir,
-        accumuloTable);
-  }
-
-  public void saveKeyValueToAccumulo(JavaSparkContext ctx, JavaPairRDD<Key, Value> data)
-      throws Exception {
-    IndexUtil.saveKeyValueToAccumulo(data, ctx, conn, accumuloTempDir, failuresDir, accumuloTable);
+    new FluoSparkHelper(fluoConfig, ctx.hadoopConfiguration(), accumuloTempDir)
+        .bulkImportRcvToAccumulo(data, accumuloTable,
+            new BulkImportOptions().setAccumuloConnector(conn));
   }
 
   public FileSystem getHdfs() {
