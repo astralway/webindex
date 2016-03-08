@@ -57,20 +57,18 @@ public class TestParser {
 
       final String prefix = DataConfig.CC_URL_PREFIX;
 
-      loadRDD.foreachPartition(iter -> {
-        iter.forEachRemaining(path -> {
-          String urlToCopy = prefix + path;
-          log.info("Parsing {}", urlToCopy);
-          try {
-            ArchiveReader reader = WARCReaderFactory.get(new URL(urlToCopy), 0);
-            for (ArchiveRecord record : reader) {
-              ArchiveUtil.buildPageIgnoreErrors(record);
-            }
-          } catch (Exception e) {
-            log.error("Exception while processing {}", path, e);
+      loadRDD.foreachPartition(iter -> iter.forEachRemaining(path -> {
+        String urlToCopy = prefix + path;
+        log.info("Parsing {}", urlToCopy);
+        try {
+          ArchiveReader reader = WARCReaderFactory.get(new URL(urlToCopy), 0);
+          for (ArchiveRecord record : reader) {
+            ArchiveUtil.buildPageIgnoreErrors(record);
           }
-        });
-      });
+        } catch (Exception e) {
+          log.error("Exception while processing {}", path, e);
+        }
+      }));
     }
   }
 }

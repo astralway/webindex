@@ -26,13 +26,5 @@ public class FluoConstants {
   public static final Column PAGE_NEW_COL = new Column(Constants.PAGE, Constants.NEW);
   public static final Column PAGE_CUR_COL = new Column(Constants.PAGE, Constants.CUR);
   public static final Column PAGE_INCOUNT_COL = new Column(Constants.PAGE, Constants.INCOUNT);
-
   public static final Column PAGECOUNT_COL = new Column(Constants.DOMAIN, Constants.PAGECOUNT);
-
-  public static final String INLINKS_UPDATE = "inlinks-update";
-  public static final String INLINKS_CHANGE = "inlinks-change";
-
-  public static final Column INLINKS_CHG_NTFY = new Column(FluoConstants.INLINKS_CHANGE, "ntfy");
-
-
 }

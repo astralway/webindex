@@ -67,35 +67,18 @@ public class IndexEnv {
   private final String accumuloTable;
   private Connector conn;
   private FluoConfiguration fluoConfig;
-  private FileSystem hdfs;
-  private Path failuresDir;
-  private Path hadoopTempDir;
   private Path accumuloTempDir;
   private Path fluoTempDir;
 
   public IndexEnv(DataConfig dataConfig) {
-    this(getFluoConfig(dataConfig), dataConfig.accumuloIndexTable, getHadoopConfigFromEnv(),
-        dataConfig.hdfsTempDir);
+    this(getFluoConfig(dataConfig), dataConfig.accumuloIndexTable, dataConfig.hdfsTempDir);
   }
 
-  public IndexEnv(DataConfig dataConfig, Configuration hadoopConfig) {
-    this(getFluoConfig(dataConfig), dataConfig.accumuloIndexTable, hadoopConfig,
-        dataConfig.hdfsTempDir);
-  }
-
-  public IndexEnv(FluoConfiguration fluoConfig, String accumuloTable, Configuration hadoopConfig,
-      String hdfsTempDir) {
+  public IndexEnv(FluoConfiguration fluoConfig, String accumuloTable, String hdfsTempDir) {
     this.fluoConfig = fluoConfig;
     this.accumuloTable = accumuloTable;
     conn = AccumuloUtil.getConnector(fluoConfig);
-    try {
-      hdfs = FileSystem.get(hadoopConfig);
-    } catch (IOException e) {
-      throw new IllegalStateException("Unable to get HDFS client from hadoop config", e);
-    }
-    hadoopTempDir = new Path(hdfsTempDir + "/hadoop");
     fluoTempDir = new Path(hdfsTempDir + "/fluo");
-    failuresDir = new Path(hdfsTempDir + "/failures");
     accumuloTempDir = new Path(hdfsTempDir + "/accumulo");
   }
 
@@ -110,13 +93,6 @@ public class IndexEnv {
       System.exit(1);
     }
     return hadoopConfDir;
-  }
-
-  private static Configuration getHadoopConfigFromEnv() {
-    String hadoopConfDir = getHadoopConfDir();
-    Configuration config = new Configuration();
-    config.addResource(hadoopConfDir);
-    return config;
   }
 
   private static FluoConfiguration getFluoConfig(DataConfig dataConfig) {
@@ -252,30 +228,6 @@ public class IndexEnv {
     new FluoSparkHelper(fluoConfig, ctx.hadoopConfiguration(), accumuloTempDir)
         .bulkImportRcvToAccumulo(data, accumuloTable,
             new BulkImportOptions().setAccumuloConnector(conn));
-  }
-
-  public FileSystem getHdfs() {
-    return hdfs;
-  }
-
-  public Path getFluoTempDir() {
-    return fluoTempDir;
-  }
-
-  public Path getAccumuloTempDir() {
-    return accumuloTempDir;
-  }
-
-  public Path getHadoopTempDir() {
-    return hadoopTempDir;
-  }
-
-  public Path getFailuresDir() {
-    return failuresDir;
-  }
-
-  public Connector getAccumuloConnector() {
-    return conn;
   }
 
   public static List<String> getPathsRange(String ccPaths, String range) {

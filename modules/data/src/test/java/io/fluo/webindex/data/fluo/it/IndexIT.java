@@ -64,7 +64,6 @@ public class IndexIT extends AccumuloExportITBase {
   private IndexEnv env;
   private String exportTable;
 
-
   @Override
   protected void preFluoInitHook() throws Exception {
     FluoConfiguration config = getFluoConfiguration();
@@ -75,7 +74,7 @@ public class IndexIT extends AccumuloExportITBase {
     exportTable = "export" + tableCounter.getAndIncrement();
 
     ctx = SparkTestUtil.getSparkContext(getClass().getSimpleName());
-    env = new IndexEnv(config, exportTable, ctx.hadoopConfiguration(), "/tmp");
+    env = new IndexEnv(config, exportTable, "/tmp");
     env.initAccumuloIndexTable();
     env.configureApplication(config);
   }
