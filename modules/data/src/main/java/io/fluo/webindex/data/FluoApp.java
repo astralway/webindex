@@ -20,7 +20,7 @@ import io.fluo.recipes.accumulo.export.AccumuloExport;
 import io.fluo.recipes.accumulo.export.AccumuloExporter;
 import io.fluo.recipes.accumulo.export.TableInfo;
 import io.fluo.recipes.export.ExportQueue;
-import io.fluo.recipes.serialization.KryoSimplerSerializer;
+import io.fluo.recipes.kryo.KryoSimplerSerializer;
 import io.fluo.webindex.data.fluo.DomainMap;
 import io.fluo.webindex.data.fluo.PageObserver;
 import io.fluo.webindex.data.fluo.UriMap;
@@ -46,8 +46,7 @@ public class FluoApp {
         AccumuloExporter.class.getName(), String.class.getName(), AccumuloExport.class.getName(),
         numMapBuckets));
 
-    AccumuloExporter.setExportTableInfo(appConfig.getAppConfiguration(), EXPORT_QUEUE_ID,
-        exportTable);
+    AccumuloExporter.setExportTableInfo(appConfig, EXPORT_QUEUE_ID, exportTable);
   }
 
 }
