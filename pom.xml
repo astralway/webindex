@@ -19,7 +19,7 @@
   <parent>
     <groupId>io.fluo</groupId>
     <artifactId>fluo-io-parent</artifactId>
-    <version>1</version>
+    <version>2</version>
   </parent>
   <artifactId>webindex-parent</artifactId>
   <version>0.0.1-SNAPSHOT</version>
@@ -34,7 +34,6 @@
   </modules>
   <properties>
     <accumulo.version>1.7.1</accumulo.version>
-    <checkstyle.skip>true</checkstyle.skip>
     <dropwizard.version>0.8.2</dropwizard.version>
     <fluo-recipes.version>1.0.0-beta-2-SNAPSHOT</fluo-recipes.version>
     <fluo.version>1.0.0-beta-2</fluo.version>
