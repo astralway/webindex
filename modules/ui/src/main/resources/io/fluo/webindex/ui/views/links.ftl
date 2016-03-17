@@ -2,8 +2,11 @@
 <#if links.links?has_content>
 <div class="row">
   <div class="col-md-12">
-    <h3>${links.linkType?cap_first}bound links</h3>
-    <p>URL: <a href="/page?url=${links.url?url}">${links.url?html}</a></p>
+    <#if links.linkType == "in">
+    <h4>Webpages that link to <a href="/page?url=${links.url?url}">${links.url?html}</a></h4>
+    <#else>
+    <h4>Outbound links from <a href="/page?url=${links.url?url}">${links.url?html}</a></h4>
+    </#if>
   </div>
 </div>
 <div class="row">

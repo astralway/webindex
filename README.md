@@ -1,6 +1,6 @@
-# WebIndex
-
-[![Build Status](https://travis-ci.org/fluo-io/webindex.svg?branch=master)](https://travis-ci.org/fluo-io/webindex)
+![Webindex][logo]
+---
+[![Build Status][ti]][tl] [![Apache License][li]][ll]
 
 Webindex is an example Fluo application that uses [Common Crawl][cc] web crawl data to index 
 links to web pages in multiple ways.  It has a simple UI to view the resulting indexes.  If 
@@ -136,3 +136,8 @@ configuration by creating a `dropwizard.yml` in `conf/`.
 [cc]: https://commoncrawl.org/
 [cdata]: https://commoncrawl.org/the-data/get-started/
 [transient]: https://github.com/fluo-io/fluo-recipes/blob/master/docs/transient.md
+[ti]: https://travis-ci.org/fluo-io/webindex.svg?branch=master
+[tl]: https://travis-ci.org/fluo-io/webindex
+[li]: http://img.shields.io/badge/license-ASL-blue.svg
+[ll]: https://github.com/fluo-io/webindex/blob/master/LICENSE
+[logo]: contrib/webindex.png

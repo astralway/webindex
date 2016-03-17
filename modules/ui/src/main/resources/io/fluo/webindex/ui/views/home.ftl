@@ -1,10 +1,15 @@
-<#include "common/header.ftl">
+<html>
+<#include "common/head.ftl">
+<body>
+<div class="container" style="margin-top: 20px">
 <div class="row">
-  <div class="col-md-6 col-md-offset-3" style="margin-top: 150px">
-  <h2>CommonCrawl Link Search</h2>
-  <p>Enter a domain below to view links to/from pages in that domain</p>
+  <div class="col-md-6 col-md-offset-3" style="margin-top: 200px">
+  <img src="/assets/img/webindex.png" alt="WebIndex">
+  <div style="margin-top: 25px;">
+    <h4>Enter a domain to view known webpages in that domain:</h4>
+  </div>
   <form action="pages" method="get">
-    <div class="input-group">
+    <div class="input-group" style="margin-top: 25px">
       <input type="text" class="form-control" name="domain" placeholder="Example: apache.org">
       <span class="input-group-btn">
         <button class="btn btn-default" type="submit">Search</button>
@@ -15,7 +20,7 @@
 </div>
 <div class="row">
   <div class="col-md-6 col-md-offset-3" style="margin-top: 20px">
-    <p><b>View pages with the most <a href="/top">Inbound Links</a></p>
+    <p><b>Or view the webpages with the most inbound links for <a href="/top">all ingested data</a>.</p>
   </div>
 </div>
 <#include "common/footer.ftl">
