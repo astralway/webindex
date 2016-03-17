@@ -2,7 +2,7 @@
 <#if top.results?has_content>
 <div class="row">
   <div class="col-md-12">
-    <h3>Webpages with the most inbound links for <b>all ingested data</b></h3>
+    <h3>Webpages with the most inbound links for <b>all processed data</b></h3>
   </div>
 </div>
 <div class="row">

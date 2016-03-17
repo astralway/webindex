@@ -20,7 +20,7 @@
 </div>
 <div class="row">
   <div class="col-md-6 col-md-offset-3" style="margin-top: 20px">
-    <p><b>Or view the webpages with the most inbound links for <a href="/top">all ingested data</a>.</p>
+    <p><b>Or view the webpages with the most inbound links for <a href="/top">all processed data</a>.</p>
   </div>
 </div>
 <#include "common/footer.ftl">
