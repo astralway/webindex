@@ -17,6 +17,7 @@ package io.fluo.webindex.ui;
 import java.io.File;
 
 import io.dropwizard.Application;
+import io.dropwizard.assets.AssetsBundle;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import io.dropwizard.views.ViewBundle;
@@ -39,6 +40,7 @@ public class WebIndexApp extends Application<WebIndexConfig> {
   @Override
   public void initialize(Bootstrap<WebIndexConfig> bootstrap) {
     bootstrap.addBundle(new ViewBundle<>());
+    bootstrap.addBundle(new AssetsBundle());
   }
 
   @Override

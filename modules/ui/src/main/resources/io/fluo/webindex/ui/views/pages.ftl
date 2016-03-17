@@ -1,15 +1,8 @@
 <#include "common/header.ftl">
 <#if pages.pages?has_content>
 <div class="row">
-  <div class="col-md-6">
-    <form action="pages" method="get">
-    <div class="input-group">
-      <input type="text" class="form-control" name="domain" value="${pages.domain?html}">
-      <span class="input-group-btn">
-        <button class="btn btn-default" type="submit">Search</button>
-       </span>
-    </div>
-    </form>
+  <div class="col-md-12">
+    <h3>Webpages in <b>${pages.domain?html}</b> domain (ordered by number of inbound links)</h3>
   </div>
 </div>
 <div class="row">
@@ -31,8 +24,8 @@
     <thead><th>Inbound Links</th><th>URL</th></thead>
     <#list pages.pages as page>
       <tr>
-        <td>${page.score?html}</td>
-        <td><a href="/page?url=${page.url?url}">${page.url?html}</a></td>
+        <td class="col-md-2">${page.score?html}</td>
+        <td class="col-md-10"><a href="/page?url=${page.url?url}">${page.url?html}</a></td>
       </tr>
     </#list>
     </table>

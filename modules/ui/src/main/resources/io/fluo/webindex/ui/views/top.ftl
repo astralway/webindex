@@ -2,7 +2,7 @@
 <#if top.results?has_content>
 <div class="row">
   <div class="col-md-12">
-    <h3>Pages with the most inbound links</h3>
+    <h3>Webpages with the most inbound links for <b>all ingested data</b></h3>
   </div>
 </div>
 <div class="row">
@@ -21,11 +21,11 @@
 <div class="row">
   <div class="col-md-12">
     <table class="table table-striped">
-      <thead><th>URL</th><th>Inbound Links</th></thead>
+      <thead><th>Inbound Links</th><th>URL</th></thead>
       <#list top.results as result>
         <tr>
-          <td><a href="/page?url=${result.key?url}">${result.key?html}</a></td>
-          <td>${result.value?html}</td>
+          <td class="col-md-2">${result.value?html}</td>
+          <td class="col-md-10"><a href="/page?url=${result.key?url}">${result.key?html}</a></td>
         </tr>
       </#list>
     </table>
