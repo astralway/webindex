@@ -34,7 +34,6 @@ import io.fluo.recipes.test.FluoITHelper;
 import io.fluo.webindex.core.models.Link;
 import io.fluo.webindex.core.models.Page;
 import io.fluo.webindex.core.models.URL;
-import io.fluo.webindex.data.FluoApp;
 import io.fluo.webindex.data.SparkTestUtil;
 import io.fluo.webindex.data.fluo.PageLoader;
 import io.fluo.webindex.data.fluo.UriMap.UriInfo;
@@ -64,6 +63,8 @@ public class IndexIT extends AccumuloExportITBase {
   private IndexEnv env;
   private String exportTable;
 
+  private static final int TEST_SPLITS = 119;
+
   @Override
   protected void preFluoInitHook() throws Exception {
     FluoConfiguration config = getFluoConfiguration();
@@ -74,7 +75,7 @@ public class IndexIT extends AccumuloExportITBase {
     exportTable = "export" + tableCounter.getAndIncrement();
 
     ctx = SparkTestUtil.getSparkContext(getClass().getSimpleName());
-    env = new IndexEnv(config, exportTable, "/tmp");
+    env = new IndexEnv(config, exportTable, "/tmp", TEST_SPLITS);
     env.initAccumuloIndexTable();
     env.configureApplication(config);
   }
@@ -116,7 +117,7 @@ public class IndexIT extends AccumuloExportITBase {
     JavaPairRDD<RowColumn, Bytes> accumuloIndex =
         IndexUtil.createAccumuloIndex(stats, pagesRDD, uriMap, domainMap).sortByKey();
     JavaPairRDD<RowColumn, Bytes> fluoIndex =
-        IndexUtil.createFluoTable(pagesRDD, uriMap, domainMap, FluoApp.NUM_BUCKETS).sortByKey();
+        IndexUtil.createFluoTable(pagesRDD, uriMap, domainMap, TEST_SPLITS).sortByKey();
 
     // Compare against actual
     try (FluoClient client = FluoFactory.newClient(getMiniFluo().getClientConfiguration())) {

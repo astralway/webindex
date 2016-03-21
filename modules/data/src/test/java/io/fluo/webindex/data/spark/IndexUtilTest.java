@@ -25,7 +25,6 @@ import io.fluo.api.data.Bytes;
 import io.fluo.api.data.RowColumn;
 import io.fluo.webindex.core.models.Link;
 import io.fluo.webindex.core.models.Page;
-import io.fluo.webindex.data.FluoApp;
 import io.fluo.webindex.data.SparkTestUtil;
 import io.fluo.webindex.data.fluo.UriMap.UriInfo;
 import io.fluo.webindex.data.util.DataUrl;
@@ -41,6 +40,8 @@ import scala.Tuple2;
 public class IndexUtilTest {
 
   private transient JavaSparkContext sc;
+
+  private static final int TEST_SPLITS = 119;
 
   @Before
   public void setUp() {
@@ -68,7 +69,7 @@ public class IndexUtilTest {
 
     // Use Accumulo index to create Fluo index and verify
     JavaPairRDD<RowColumn, Bytes> fluoIndex =
-        IndexUtil.createFluoTable(pages, uriMap, domainMap, FluoApp.NUM_BUCKETS).sortByKey();
+        IndexUtil.createFluoTable(pages, uriMap, domainMap, TEST_SPLITS).sortByKey();
     verifyRDD("data/set1/fluo-data.txt", fluoIndex);
 
     // Use Fluo index to create Accumulo index and verify

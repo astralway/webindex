@@ -28,6 +28,7 @@ public class DataConfig {
   public String hadoopConfDir;
   public String accumuloIndexTable;
   public String fluoApp;
+  public int fluoSplits = -1;
   public String hdfsTempDir;
 
   public String getFluoPropsPath() {

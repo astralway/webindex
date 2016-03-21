@@ -16,5 +16,10 @@
 accumuloIndexTable: webindex_search
 # Fluo Application Name
 fluoApp: webindex
+#Webindex builds multiple data sets for its computation.  Each of these data
+#sets needs to be spread across the cluster.  The setting below determines how
+#much each dataset will be split up.  Ideally this would be a small multiple of
+#the number of Accumulo tablet servers.
+fluoSplits: 119
 # HDFS temporary directory
 hdfsTempDir: /cc/temp
