@@ -28,8 +28,6 @@ import io.fluo.webindex.serialization.WebindexKryoFactory;
 
 public class FluoApp {
 
-  public static final int NUM_BUCKETS = 119;
-
   public static final String EXPORT_QUEUE_ID = "eq";
 
   public static void configureApplication(FluoConfiguration appConfig, TableInfo exportTable,
