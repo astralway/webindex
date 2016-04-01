@@ -45,9 +45,9 @@ $FLUO_CMD new $FLUO_APP
 
 FLUO_APP_LIB=$FLUO_APP_HOME/lib
 cp $WI_DATA_JAR $FLUO_APP_LIB
-mvn dependency:get -Dartifact=io.fluo:fluo-recipes-core:1.0.0-beta-2-SNAPSHOT:jar -Ddest=$FLUO_APP_LIB
-mvn dependency:get -Dartifact=io.fluo:fluo-recipes-kryo:1.0.0-beta-2-SNAPSHOT:jar -Ddest=$FLUO_APP_LIB
-mvn dependency:get -Dartifact=io.fluo:fluo-recipes-accumulo:1.0.0-beta-2-SNAPSHOT:jar -Ddest=$FLUO_APP_LIB
+mvn dependency:get -Dartifact=io.fluo:fluo-recipes-core:1.0.0-beta-2:jar -Ddest=$FLUO_APP_LIB
+mvn dependency:get -Dartifact=io.fluo:fluo-recipes-kryo:1.0.0-beta-2:jar -Ddest=$FLUO_APP_LIB
+mvn dependency:get -Dartifact=io.fluo:fluo-recipes-accumulo:1.0.0-beta-2:jar -Ddest=$FLUO_APP_LIB
 # Add kryo and its dependencies
 mvn dependency:get -Dartifact=com.esotericsoftware:kryo:3.0.3:jar -Ddest=$FLUO_APP_LIB
 mvn dependency:get -Dartifact=com.esotericsoftware:minlog:1.3.0:jar -Ddest=$FLUO_APP_LIB
@@ -67,3 +67,5 @@ $SPARK_SUBMIT --class io.fluo.webindex.data.Init $COMMON_SPARK_OPTS \
     $WI_DATA_DEP_JAR $1
 
 $FLUO_CMD start $FLUO_APP
+
+echo "Webindex init has completed successfully."
