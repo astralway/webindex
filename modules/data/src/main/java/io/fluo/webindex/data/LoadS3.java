@@ -18,6 +18,7 @@ import java.io.File;
 import java.net.URL;
 import java.util.List;
 
+import com.google.common.util.concurrent.RateLimiter;
 import io.fluo.api.client.FluoClient;
 import io.fluo.api.client.FluoFactory;
 import io.fluo.api.client.LoaderExecutor;
@@ -52,7 +53,7 @@ public class LoadS3 {
       System.exit(1);
     }
 
-    DataConfig.load();
+    final int rateLimit = DataConfig.load().getLoadRateLimit();
 
     SparkConf sparkConf = new SparkConf().setAppName("webindex-load-s3");
     try (JavaSparkContext ctx = new JavaSparkContext(sparkConf)) {
@@ -66,6 +67,7 @@ public class LoadS3 {
 
       loadRDD.foreachPartition(iter -> {
         final FluoConfiguration fluoConfig = new FluoConfiguration(new File("fluo.properties"));
+        final RateLimiter rateLimiter = rateLimit > 0 ? RateLimiter.create(rateLimit) : null;
         try (FluoClient client = FluoFactory.newClient(fluoConfig);
             LoaderExecutor le = client.newLoaderExecutor()) {
           iter.forEachRemaining(path -> {
@@ -78,6 +80,9 @@ public class LoadS3 {
                 if (page.getOutboundLinks().size() > 0) {
                   log.info("Loading page {} with {} links", page.getUrl(), page.getOutboundLinks()
                       .size());
+                  if (rateLimiter != null) {
+                    rateLimiter.acquire();
+                  }
                   le.execute(PageLoader.updatePage(page));
                 }
               }

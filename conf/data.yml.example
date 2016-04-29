@@ -27,5 +27,9 @@ fluoApp: webindex
 numTablets: 20
 #number of buckets for collision free maps and export queue
 numBuckets: 100
+#This determines how fast each Spark load task will load documents.  Set to 0
+#for no limit.  Setting this to 50 and running 10 conucurrent load task would
+#limit the load rate to 500 documents/sec.
+loadRateLimit: 0
 # HDFS temporary directory
 hdfsTempDir: /cc/temp
