@@ -160,9 +160,11 @@ public class UriMap {
 
   /**
    * A helper method for configuring the uri map before initializing Fluo.
+   *
    */
-  public static void configure(FluoConfiguration config, int numBuckets) {
+  public static void configure(FluoConfiguration config, int numBuckets, int numTablets) {
     CollisionFreeMap.configure(config, new Options(URI_MAP_ID, UriCombiner.class,
-        UriUpdateObserver.class, String.class, UriInfo.class, numBuckets));
+        UriUpdateObserver.class, String.class, UriInfo.class, numBuckets)
+        .setBucketsPerTablet(numBuckets / numTablets));
   }
 }

@@ -41,8 +41,6 @@ public class IndexUtilTest {
 
   private transient JavaSparkContext sc;
 
-  private static final int TEST_SPLITS = 119;
-
   @Before
   public void setUp() {
     sc = SparkTestUtil.getSparkContext(getClass().getSimpleName());
@@ -69,7 +67,7 @@ public class IndexUtilTest {
 
     // Use Accumulo index to create Fluo index and verify
     JavaPairRDD<RowColumn, Bytes> fluoIndex =
-        IndexUtil.createFluoTable(pages, uriMap, domainMap, TEST_SPLITS).sortByKey();
+        IndexUtil.createFluoTable(pages, uriMap, domainMap, 119).sortByKey();
     verifyRDD("data/set1/fluo-data.txt", fluoIndex);
 
     // Use Fluo index to create Accumulo index and verify

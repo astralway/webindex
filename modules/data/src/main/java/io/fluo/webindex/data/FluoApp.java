@@ -31,18 +31,18 @@ public class FluoApp {
   public static final String EXPORT_QUEUE_ID = "eq";
 
   public static void configureApplication(FluoConfiguration appConfig, TableInfo exportTable,
-      int numMapBuckets) {
+      int numBuckets, int numTablets) {
 
     appConfig.addObserver(new ObserverConfiguration(PageObserver.class.getName()));
 
     KryoSimplerSerializer.setKryoFactory(appConfig, WebindexKryoFactory.class);
 
-    UriMap.configure(appConfig, numMapBuckets);
-    DomainMap.configure(appConfig, numMapBuckets);
+    UriMap.configure(appConfig, numBuckets, numTablets);
+    DomainMap.configure(appConfig, numBuckets, numTablets);
 
     ExportQueue.configure(appConfig, new ExportQueue.Options(EXPORT_QUEUE_ID,
         AccumuloExporter.class.getName(), String.class.getName(), AccumuloExport.class.getName(),
-        numMapBuckets));
+        numBuckets).setBucketsPerTablet(numBuckets / numTablets));
 
     AccumuloExporter.setExportTableInfo(appConfig, EXPORT_QUEUE_ID, exportTable);
   }

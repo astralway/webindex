@@ -78,9 +78,11 @@ public class DomainMap {
 
   /**
    * A helper method for configuring the domain map before initializing Fluo.
+   *
    */
-  public static void configure(FluoConfiguration config, int numBuckets) {
+  public static void configure(FluoConfiguration config, int numBuckets, int numTablets) {
     CollisionFreeMap.configure(config, new Options(DOMAIN_MAP_ID, DomainCombiner.class,
-        DomainUpdateObserver.class, String.class, Long.class, numBuckets));
+        DomainUpdateObserver.class, String.class, Long.class, numBuckets)
+        .setBucketsPerTablet(numBuckets / numTablets));
   }
 }

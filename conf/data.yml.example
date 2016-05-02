@@ -20,10 +20,10 @@ fluoApp: webindex
 # sets needs to be spread across the cluster.  The setting below determines how
 # much each dataset will be split up.  Ideally this would be a small multiple of
 # the number of Accumulo tablet servers.
-#
-# This setting is used during initialization of the Fluo table and when Spark
-# loads the initial data.  The value of fluoSplits must be the same for these
-# two task.
-fluoSplits: 119
+numTablets: 20
+# Number of buckets for collision free maps and export queue.  This setting is
+# used during initialization of the Fluo table and when Spark loads the initial
+# data.  The value of numBuckets must be the same for these two task.
+numBuckets: 100
 # HDFS temporary directory
 hdfsTempDir: /cc/temp
