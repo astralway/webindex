@@ -25,5 +25,9 @@ numTablets: 20
 # used during initialization of the Fluo table and when Spark loads the initial
 # data.  The value of numBuckets must be the same for these two task.
 numBuckets: 100
+#This determines how fast each Spark load task will load documents.  Set to 0
+#for no limit.  Setting this to 50 and running 10 conucurrent load task would
+#limit the load rate to 500 documents/sec.
+loadRateLimit: 0
 # HDFS temporary directory
 hdfsTempDir: /cc/temp

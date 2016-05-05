@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.google.common.util.concurrent.RateLimiter;
 import io.fluo.api.client.FluoClient;
 import io.fluo.api.client.FluoFactory;
 import io.fluo.api.client.LoaderExecutor;
@@ -56,7 +57,7 @@ public class LoadHdfs {
     IndexEnv.validateDataDir(dataDir);
 
     final String hadoopConfDir = IndexEnv.getHadoopConfDir();
-    DataConfig.load();
+    final int rateLimit = DataConfig.load().getLoadRateLimit();
 
     List<String> loadPaths = new ArrayList<>();
     FileSystem hdfs = IndexEnv.getHDFS();
@@ -77,6 +78,7 @@ public class LoadHdfs {
 
       paths.foreachPartition(iter -> {
         final FluoConfiguration fluoConfig = new FluoConfiguration(new File("fluo.properties"));
+        final RateLimiter rateLimiter = rateLimit > 0 ? RateLimiter.create(rateLimit) : null;
         FileSystem fs = IndexEnv.getHDFS(hadoopConfDir);
         try (FluoClient client = FluoFactory.newClient(fluoConfig);
             LoaderExecutor le = client.newLoaderExecutor()) {
@@ -91,6 +93,9 @@ public class LoadHdfs {
                   if (page.getOutboundLinks().size() > 0) {
                     log.info("Loading page {} with {} links", page.getUrl(), page
                         .getOutboundLinks().size());
+                    if (rateLimiter != null) {
+                      rateLimiter.acquire();
+                    }
                     le.execute(PageLoader.updatePage(page));
                   }
                 }

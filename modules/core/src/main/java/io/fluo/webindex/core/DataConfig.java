@@ -31,6 +31,7 @@ public class DataConfig {
   public int numTablets = -1;
   public int numBuckets = -1;
   public String hdfsTempDir;
+  public int loadRateLimit = 0;
 
   public String getFluoPropsPath() {
     return addSlash(fluoHome) + "apps/" + fluoApp + "/conf/fluo.properties";
@@ -44,6 +45,10 @@ public class DataConfig {
       throw new IllegalStateException("Failed to parse value of " + numInstances + " for "
           + WI_EXECUTOR_INSTANCES);
     }
+  }
+
+  public int getLoadRateLimit() {
+    return loadRateLimit;
   }
 
   public static String getEnv(String name) {
