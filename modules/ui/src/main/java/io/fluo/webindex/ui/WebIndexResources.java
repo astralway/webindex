@@ -91,25 +91,26 @@ public class WebIndexResources {
     String cf = Constants.RANK;
     try {
       Scanner scanner = conn.createScanner(dataConfig.accumuloIndexTable, Authorizations.EMPTY);
-      Pager pager = new Pager(scanner, Range.exact(row, cf), PAGE_SIZE) {
+      Pager pager = new Pager(scanner, Range.prefix(row + ":"), PAGE_SIZE) {
         @Override
         public void foundPageEntry(Map.Entry<Key, Value> entry) {
+
           String url =
-              URL.fromPageID(entry.getKey().getColumnQualifier().toString().split(":", 2)[1])
-                  .toString();
+              URL.fromPageID(entry.getKey().getRowData().toString().split(":", 4)[3]).toString();
           Long count = Long.parseLong(entry.getValue().toString());
           pages.addPage(url, count);
         }
 
         @Override
         public void foundNextEntry(Map.Entry<Key, Value> entry) {
-          pages.setNext(entry.getKey().getColumnQualifier().toString());
+          pages.setNext(entry.getKey().getRowData().toString().split(":", 3)[2]);
         }
       };
       if (next.isEmpty()) {
         pager.getPage(pageNum);
       } else {
-        pager.getPage(new Key(row, cf, next));
+        pager.getPage(new Key(row + ":" + next, cf, ""));
+
       }
     } catch (TableNotFoundException e) {
       log.error("Table {} not found", dataConfig.accumuloIndexTable);

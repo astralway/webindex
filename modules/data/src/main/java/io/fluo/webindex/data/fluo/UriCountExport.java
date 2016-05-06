@@ -52,8 +52,8 @@ public class UriCountExport extends DifferenceExport<String, UriInfo> {
     Bytes linksTo = Bytes.of("" + uriInfo.linksTo);
     rcMap.put(new RowColumn(createTotalRow(pageID, uriInfo.linksTo), Column.EMPTY), linksTo);
     String domain = URL.fromPageID(pageID).getReverseDomain();
-    String cq = revEncodeLong(uriInfo.linksTo) + ":" + pageID;
-    rcMap.put(new RowColumn("d:" + domain, new Column(Constants.RANK, cq)), linksTo);
+    String domainRow = encodeDomainRankPageId(domain, uriInfo.linksTo, pageID);
+    rcMap.put(new RowColumn(domainRow, new Column(Constants.RANK, "")), linksTo);
     rcMap.put(new RowColumn("p:" + pageID, FluoConstants.PAGE_INCOUNT_COL), linksTo);
     return rcMap;
   }
@@ -61,6 +61,10 @@ public class UriCountExport extends DifferenceExport<String, UriInfo> {
   public static String revEncodeLong(Long num) {
     Lexicoder<Long> lexicoder = new ReverseLexicoder<>(new ULongLexicoder());
     return Hex.encodeHexString(lexicoder.encode(num));
+  }
+
+  public static String encodeDomainRankPageId(String domain, long linksTo, String pageId) {
+    return "d:" + domain + ":" + revEncodeLong(linksTo) + ":" + pageId;
   }
 
   private static String createTotalRow(String uri, long curr) {
