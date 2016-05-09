@@ -129,20 +129,18 @@ public class IndexUtil {
         });
 
     accumuloIndex =
-        accumuloIndex
-            .union(uriMap.flatMapToPair(t -> {
-              List<Tuple2<RowColumn, Bytes>> ret = new ArrayList<>();
-              String uri = t._1();
-              UriInfo uriInfo = t._2();
-              addRCV(ret, "t:" + UriCountExport.revEncodeLong(uriInfo.linksTo) + ":" + uri,
-                  Column.EMPTY, uriInfo.linksTo);
-              String domain = URL.fromPageID(t._1()).getReverseDomain();
-              addRCV(ret, "d:" + domain,
-                  new Column(Constants.RANK, UriCountExport.revEncodeLong(uriInfo.linksTo) + ":"
-                      + uri), uriInfo.linksTo);
-              addRCV(ret, "p:" + uri, FluoConstants.PAGE_INCOUNT_COL, uriInfo.linksTo);
-              return ret;
-            }));
+        accumuloIndex.union(uriMap.flatMapToPair(t -> {
+          List<Tuple2<RowColumn, Bytes>> ret = new ArrayList<>();
+          String uri = t._1();
+          UriInfo uriInfo = t._2();
+          addRCV(ret, "t:" + UriCountExport.revEncodeLong(uriInfo.linksTo) + ":" + uri,
+              Column.EMPTY, uriInfo.linksTo);
+          String domain = URL.fromPageID(t._1()).getReverseDomain();
+          String domainRow = UriCountExport.encodeDomainRankPageId(domain, uriInfo.linksTo, uri);
+          addRCV(ret, domainRow, new Column(Constants.RANK, ""), uriInfo.linksTo);
+          addRCV(ret, "p:" + uri, FluoConstants.PAGE_INCOUNT_COL, uriInfo.linksTo);
+          return ret;
+        }));
 
     accumuloIndex =
         accumuloIndex.union(domainMap.mapToPair(t -> new Tuple2<>(new RowColumn("d:" + t._1(),
