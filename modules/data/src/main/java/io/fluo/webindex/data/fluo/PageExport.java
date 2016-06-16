@@ -19,11 +19,11 @@ import java.util.Collection;
 import java.util.List;
 
 import com.google.common.collect.Sets.SetView;
-import io.fluo.recipes.accumulo.export.AccumuloExport;
 import io.fluo.webindex.core.Constants;
 import io.fluo.webindex.core.models.Link;
 import io.fluo.webindex.core.models.Page;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.fluo.recipes.accumulo.export.AccumuloExport;
 
 public class PageExport implements AccumuloExport<String> {
 

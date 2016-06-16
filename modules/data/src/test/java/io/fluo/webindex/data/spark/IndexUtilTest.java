@@ -21,13 +21,13 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import io.fluo.api.data.Bytes;
-import io.fluo.api.data.RowColumn;
 import io.fluo.webindex.core.models.Link;
 import io.fluo.webindex.core.models.Page;
 import io.fluo.webindex.data.SparkTestUtil;
 import io.fluo.webindex.data.fluo.UriMap.UriInfo;
 import io.fluo.webindex.data.util.DataUrl;
+import org.apache.fluo.api.data.Bytes;
+import org.apache.fluo.api.data.RowColumn;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
