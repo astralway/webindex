@@ -110,7 +110,7 @@ For long runs, this example has [transient ranges][transient] that need to be
 periodically compacted.  This can be accomplished with the following command.
 
 ```bash
-nohup fluo exec webindex io.fluo.recipes.accumulo.cmds.CompactTransient 600 &> your_log_file.log &
+nohup fluo exec webindex org.apache.fluo.recipes.accumulo.cmds.CompactTransient 600 &> your_log_file.log &
 ```
 
 As long as this command is running, it will initiate a compaction of all transient 
@@ -135,7 +135,7 @@ configuration by creating a `dropwizard.yml` in `conf/`.
 [dropwizard]: http://dropwizard.io/
 [cc]: https://commoncrawl.org/
 [cdata]: https://commoncrawl.org/the-data/get-started/
-[transient]: https://github.com/fluo-io/fluo-recipes/blob/master/docs/transient.md
+[transient]: https://github.com/apache/fluo-recipes/blob/master/docs/transient.md
 [ti]: https://travis-ci.org/fluo-io/webindex.svg?branch=master
 [tl]: https://travis-ci.org/fluo-io/webindex
 [li]: http://img.shields.io/badge/license-ASL-blue.svg
