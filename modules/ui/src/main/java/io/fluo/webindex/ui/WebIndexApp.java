@@ -21,10 +21,10 @@ import io.dropwizard.assets.AssetsBundle;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import io.dropwizard.views.ViewBundle;
-import io.fluo.api.config.FluoConfiguration;
-import io.fluo.core.util.AccumuloUtil;
 import io.fluo.webindex.core.DataConfig;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.fluo.api.config.FluoConfiguration;
+import org.apache.fluo.core.util.AccumuloUtil;
 
 public class WebIndexApp extends Application<WebIndexConfig> {
 

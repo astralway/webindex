@@ -19,10 +19,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-import io.fluo.api.data.Bytes;
-import io.fluo.api.data.Column;
-import io.fluo.api.data.RowColumn;
-import io.fluo.recipes.accumulo.export.DifferenceExport;
 import io.fluo.webindex.core.Constants;
 import io.fluo.webindex.core.models.URL;
 import io.fluo.webindex.data.fluo.UriMap.UriInfo;
@@ -31,6 +27,10 @@ import org.apache.accumulo.core.client.lexicoder.Lexicoder;
 import org.apache.accumulo.core.client.lexicoder.ReverseLexicoder;
 import org.apache.accumulo.core.client.lexicoder.ULongLexicoder;
 import org.apache.commons.codec.binary.Hex;
+import org.apache.fluo.api.data.Bytes;
+import org.apache.fluo.api.data.Column;
+import org.apache.fluo.api.data.RowColumn;
+import org.apache.fluo.recipes.accumulo.export.DifferenceExport;
 
 public class UriCountExport extends DifferenceExport<String, UriInfo> {
 

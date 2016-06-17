@@ -16,14 +16,14 @@ package io.fluo.webindex.data;
 
 import java.util.SortedSet;
 
-import io.fluo.api.data.Bytes;
-import io.fluo.api.data.RowColumn;
 import io.fluo.webindex.core.models.Page;
 import io.fluo.webindex.data.fluo.UriMap.UriInfo;
 import io.fluo.webindex.data.spark.IndexEnv;
 import io.fluo.webindex.data.spark.IndexStats;
 import io.fluo.webindex.data.spark.IndexUtil;
 import io.fluo.webindex.data.util.WARCFileInputFormat;
+import org.apache.fluo.api.data.Bytes;
+import org.apache.fluo.api.data.RowColumn;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.spark.SparkConf;
