@@ -18,9 +18,9 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 
-import io.fluo.api.data.Bytes;
-import io.fluo.api.data.RowColumn;
-import io.fluo.recipes.accumulo.export.DifferenceExport;
+import org.apache.fluo.api.data.Bytes;
+import org.apache.fluo.api.data.RowColumn;
+import org.apache.fluo.recipes.accumulo.export.DifferenceExport;
 
 import static io.fluo.webindex.data.util.FluoConstants.PAGECOUNT_COL;
 

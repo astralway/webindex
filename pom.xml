@@ -36,7 +36,7 @@
     <accumulo.version>1.7.1</accumulo.version>
     <dropwizard.version>0.8.2</dropwizard.version>
     <fluo-recipes.version>1.0.0-beta-3-SNAPSHOT</fluo-recipes.version>
-    <fluo.version>1.0.0-beta-2</fluo.version>
+    <fluo.version>1.0.0-beta-3-SNAPSHOT</fluo.version>
     <hadoop.version>2.6.3</hadoop.version>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
@@ -76,57 +76,6 @@
       </dependency>
       <dependency>
         <groupId>io.fluo</groupId>
-        <artifactId>fluo-api</artifactId>
-        <version>${fluo.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.fluo</groupId>
-        <artifactId>fluo-core</artifactId>
-        <version>${fluo.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.fluo</groupId>
-        <artifactId>fluo-integration</artifactId>
-        <version>${fluo.version}</version>
-        <type>test-jar</type>
-      </dependency>
-      <dependency>
-        <groupId>io.fluo</groupId>
-        <artifactId>fluo-mapreduce</artifactId>
-        <version>${fluo.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.fluo</groupId>
-        <artifactId>fluo-mini</artifactId>
-        <version>${fluo.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.fluo</groupId>
-        <artifactId>fluo-recipes-accumulo</artifactId>
-        <version>${fluo-recipes.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.fluo</groupId>
-        <artifactId>fluo-recipes-core</artifactId>
-        <version>${fluo-recipes.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.fluo</groupId>
-        <artifactId>fluo-recipes-kryo</artifactId>
-        <version>${fluo-recipes.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.fluo</groupId>
-        <artifactId>fluo-recipes-spark</artifactId>
-        <version>${fluo-recipes.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.fluo</groupId>
-        <artifactId>fluo-recipes-test</artifactId>
-        <version>${fluo-recipes.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.fluo</groupId>
         <artifactId>webindex-core</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -159,6 +108,57 @@
         <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-test</artifactId>
         <version>${accumulo.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.fluo</groupId>
+        <artifactId>fluo-api</artifactId>
+        <version>${fluo.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.fluo</groupId>
+        <artifactId>fluo-core</artifactId>
+        <version>${fluo.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.fluo</groupId>
+        <artifactId>fluo-integration</artifactId>
+        <version>${fluo.version}</version>
+        <type>test-jar</type>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.fluo</groupId>
+        <artifactId>fluo-mapreduce</artifactId>
+        <version>${fluo.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.fluo</groupId>
+        <artifactId>fluo-mini</artifactId>
+        <version>${fluo.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.fluo</groupId>
+        <artifactId>fluo-recipes-accumulo</artifactId>
+        <version>${fluo-recipes.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.fluo</groupId>
+        <artifactId>fluo-recipes-core</artifactId>
+        <version>${fluo-recipes.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.fluo</groupId>
+        <artifactId>fluo-recipes-kryo</artifactId>
+        <version>${fluo-recipes.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.fluo</groupId>
+        <artifactId>fluo-recipes-spark</artifactId>
+        <version>${fluo-recipes.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.fluo</groupId>
+        <artifactId>fluo-recipes-test</artifactId>
+        <version>${fluo-recipes.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.hadoop</groupId>

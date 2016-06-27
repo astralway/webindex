@@ -14,10 +14,10 @@
 
 package io.fluo.webindex.data.util;
 
-import io.fluo.api.data.Column;
-import io.fluo.api.types.StringEncoder;
-import io.fluo.api.types.TypeLayer;
 import io.fluo.webindex.core.Constants;
+import org.apache.fluo.api.data.Column;
+import org.apache.fluo.api.types.StringEncoder;
+import org.apache.fluo.api.types.TypeLayer;
 
 public class FluoConstants {
 

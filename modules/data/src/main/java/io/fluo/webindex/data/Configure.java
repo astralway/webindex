@@ -19,9 +19,9 @@ import java.io.FileWriter;
 import java.io.PrintWriter;
 import java.util.Iterator;
 
-import io.fluo.api.config.FluoConfiguration;
 import io.fluo.webindex.core.DataConfig;
 import io.fluo.webindex.data.spark.IndexEnv;
+import org.apache.fluo.api.config.FluoConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

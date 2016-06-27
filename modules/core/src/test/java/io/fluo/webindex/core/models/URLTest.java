@@ -16,7 +16,6 @@ package io.fluo.webindex.core.models;
 
 import java.text.ParseException;
 
-import io.fluo.webindex.core.models.URL;
 import org.junit.Assert;
 import org.junit.Test;
 

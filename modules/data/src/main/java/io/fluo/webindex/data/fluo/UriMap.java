@@ -21,18 +21,18 @@ import java.util.Map;
 import java.util.Optional;
 
 import com.google.common.base.Preconditions;
-import io.fluo.api.client.TransactionBase;
-import io.fluo.api.config.FluoConfiguration;
-import io.fluo.api.observer.Observer.Context;
-import io.fluo.recipes.accumulo.export.AccumuloExport;
-import io.fluo.recipes.export.ExportQueue;
-import io.fluo.recipes.map.CollisionFreeMap;
-import io.fluo.recipes.map.CollisionFreeMap.Options;
-import io.fluo.recipes.map.Combiner;
-import io.fluo.recipes.map.Update;
-import io.fluo.recipes.map.UpdateObserver;
 import io.fluo.webindex.core.models.URL;
 import io.fluo.webindex.data.FluoApp;
+import org.apache.fluo.api.client.TransactionBase;
+import org.apache.fluo.api.config.FluoConfiguration;
+import org.apache.fluo.api.observer.Observer.Context;
+import org.apache.fluo.recipes.accumulo.export.AccumuloExport;
+import org.apache.fluo.recipes.export.ExportQueue;
+import org.apache.fluo.recipes.map.CollisionFreeMap;
+import org.apache.fluo.recipes.map.CollisionFreeMap.Options;
+import org.apache.fluo.recipes.map.Combiner;
+import org.apache.fluo.recipes.map.Update;
+import org.apache.fluo.recipes.map.UpdateObserver;
 
 /**
  * This class contains code related to a CollisionFreeMap that keeps track of the count of
