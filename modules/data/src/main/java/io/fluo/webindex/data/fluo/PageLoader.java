@@ -19,13 +19,13 @@ import java.util.Objects;
 
 import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
-import io.fluo.api.client.Loader;
-import io.fluo.api.client.TransactionBase;
-import io.fluo.api.types.TypedTransactionBase;
-import io.fluo.recipes.data.RowHasher;
 import io.fluo.webindex.core.models.Page;
 import io.fluo.webindex.core.models.URL;
 import io.fluo.webindex.data.util.FluoConstants;
+import org.apache.fluo.api.client.Loader;
+import org.apache.fluo.api.client.TransactionBase;
+import org.apache.fluo.api.types.TypedTransactionBase;
+import org.apache.fluo.recipes.data.RowHasher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

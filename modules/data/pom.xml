@@ -45,34 +45,6 @@
     </dependency>
     <dependency>
       <groupId>io.fluo</groupId>
-      <artifactId>fluo-api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.fluo</groupId>
-      <artifactId>fluo-core</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.fluo</groupId>
-      <artifactId>fluo-mapreduce</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.fluo</groupId>
-      <artifactId>fluo-recipes-accumulo</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.fluo</groupId>
-      <artifactId>fluo-recipes-core</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.fluo</groupId>
-      <artifactId>fluo-recipes-kryo</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.fluo</groupId>
-      <artifactId>fluo-recipes-spark</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.fluo</groupId>
       <artifactId>webindex-core</artifactId>
     </dependency>
     <dependency>
@@ -84,6 +56,34 @@
           <artifactId>zookeeper</artifactId>
         </exclusion>
       </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.fluo</groupId>
+      <artifactId>fluo-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.fluo</groupId>
+      <artifactId>fluo-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.fluo</groupId>
+      <artifactId>fluo-mapreduce</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.fluo</groupId>
+      <artifactId>fluo-recipes-accumulo</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.fluo</groupId>
+      <artifactId>fluo-recipes-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.fluo</groupId>
+      <artifactId>fluo-recipes-kryo</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.fluo</groupId>
+      <artifactId>fluo-recipes-spark</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.hadoop</groupId>
@@ -125,8 +125,14 @@
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-log4j12</artifactId>
     </dependency>
+    <!-- Test Dependencies -->
     <dependency>
-      <groupId>io.fluo</groupId>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.fluo</groupId>
       <artifactId>fluo-mini</artifactId>
       <scope>test</scope>
       <exclusions>
@@ -137,14 +143,8 @@
       </exclusions>
     </dependency>
     <dependency>
-      <groupId>io.fluo</groupId>
+      <groupId>org.apache.fluo</groupId>
       <artifactId>fluo-recipes-test</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <!-- Test Dependencies -->
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

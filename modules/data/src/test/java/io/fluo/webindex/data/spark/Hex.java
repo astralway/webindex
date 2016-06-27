@@ -16,9 +16,9 @@ package io.fluo.webindex.data.spark;
 
 import java.io.ByteArrayOutputStream;
 
-import io.fluo.api.data.Bytes;
-import io.fluo.api.data.Column;
-import io.fluo.api.data.RowColumn;
+import org.apache.fluo.api.data.Bytes;
+import org.apache.fluo.api.data.Column;
+import org.apache.fluo.api.data.RowColumn;
 import scala.Tuple2;
 
 public class Hex {
