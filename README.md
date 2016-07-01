@@ -2,11 +2,11 @@
 ---
 [![Build Status][ti]][tl] [![Apache License][li]][ll]
 
-Webindex is an example Fluo application that uses [Common Crawl][cc] web crawl data to index 
-links to web pages in multiple ways.  It has a simple UI to view the resulting indexes.  If 
-you are new to Fluo, you may want start with the [fluo-quickstart][qs] or [phrasecount][pc] 
-applications as the webindex application is more complicated.  For more information on how 
-the webindex application works, view the [tables](docs/tables.md) and 
+Webindex is an example [Apache Fluo][fluo] application that uses [Common Crawl][cc] web crawl
+data to index links to web pages in multiple ways.  It has a simple UI to view the resulting
+indexes.  If you are new to Fluo, you may want start with the [fluo-quickstart][qs] or 
+[phrasecount][pc] applications as the webindex application is more complicated.  For more
+information on how the webindex application works, view the [tables](docs/tables.md) and 
 [code](docs/code-guide.md) documentation.
 
 ### Requirements
@@ -129,6 +129,7 @@ configuration by creating a `dropwizard.yml` in `conf/`.
     
     cp conf/dropwizard.yml.example conf/dropwizard.yml
 
+[fluo]: https://fluo.apache.org/
 [qs]: https://github.com/fluo-io/fluo-quickstart
 [pc]: https://github.com/fluo-io/phrasecount
 [fluo-dev]: https://github.com/fluo-io/fluo-dev

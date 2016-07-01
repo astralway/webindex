@@ -18,8 +18,12 @@ import java.io.File;
 import java.io.FileReader;
 
 import com.esotericsoftware.yamlbeans.YamlReader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DataConfig {
+
+  private static final Logger log = LoggerFactory.getLogger(DataConfig.class);
 
   public static String CC_URL_PREFIX = "https://aws-publicdatasets.s3.amazonaws.com/";
   public static final String WI_EXECUTOR_INSTANCES = "WI_EXECUTOR_INSTANCES";
@@ -72,8 +76,10 @@ public class DataConfig {
     final String userPath = homePath + "/conf/data.yml";
     final String defaultPath = homePath + "/conf/data.yml.example";
     if ((new File(userPath).exists())) {
+      log.info("Using user config at {}", userPath);
       return load(userPath);
     } else {
+      log.info("Using default config at {}" + defaultPath);
       return load(defaultPath);
     }
   }
