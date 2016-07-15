@@ -27,12 +27,12 @@ import org.apache.fluo.api.client.TransactionBase;
 import org.apache.fluo.api.config.FluoConfiguration;
 import org.apache.fluo.api.observer.Observer.Context;
 import org.apache.fluo.recipes.accumulo.export.AccumuloExport;
-import org.apache.fluo.recipes.export.ExportQueue;
-import org.apache.fluo.recipes.map.CollisionFreeMap;
-import org.apache.fluo.recipes.map.CollisionFreeMap.Options;
-import org.apache.fluo.recipes.map.Combiner;
-import org.apache.fluo.recipes.map.Update;
-import org.apache.fluo.recipes.map.UpdateObserver;
+import org.apache.fluo.recipes.core.export.ExportQueue;
+import org.apache.fluo.recipes.core.map.CollisionFreeMap;
+import org.apache.fluo.recipes.core.map.CollisionFreeMap.Options;
+import org.apache.fluo.recipes.core.map.Combiner;
+import org.apache.fluo.recipes.core.map.Update;
+import org.apache.fluo.recipes.core.map.UpdateObserver;
 
 /**
  * This class contains code related to a CollisionFreeMap that keeps track of the count of

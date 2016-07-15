@@ -48,7 +48,7 @@ public class Configure {
         new PrintWriter(new BufferedWriter(new FileWriter(dataConfig.getFluoPropsPath(), true)))) {
       while (iter.hasNext()) {
         String key = iter.next();
-        out.println(key + " = " + appConfig.getProperty(key));
+        out.println(key + " = " + appConfig.getRawString(key));
       }
     }
   }
