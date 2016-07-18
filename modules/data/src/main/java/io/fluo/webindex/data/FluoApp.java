@@ -23,7 +23,7 @@ import org.apache.fluo.api.config.ObserverConfiguration;
 import org.apache.fluo.recipes.accumulo.export.AccumuloExport;
 import org.apache.fluo.recipes.accumulo.export.AccumuloExporter;
 import org.apache.fluo.recipes.accumulo.export.TableInfo;
-import org.apache.fluo.recipes.export.ExportQueue;
+import org.apache.fluo.recipes.core.export.ExportQueue;
 import org.apache.fluo.recipes.kryo.KryoSimplerSerializer;
 
 public class FluoApp {

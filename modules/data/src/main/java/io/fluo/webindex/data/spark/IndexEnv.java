@@ -45,7 +45,7 @@ import org.apache.fluo.api.data.RowColumn;
 import org.apache.fluo.core.util.AccumuloUtil;
 import org.apache.fluo.recipes.accumulo.export.TableInfo;
 import org.apache.fluo.recipes.accumulo.ops.TableOperations;
-import org.apache.fluo.recipes.common.Pirtos;
+import org.apache.fluo.recipes.core.common.TableOptimizations;
 import org.apache.fluo.recipes.spark.FluoSparkHelper;
 import org.apache.fluo.recipes.spark.FluoSparkHelper.BulkImportOptions;
 import org.apache.hadoop.conf.Configuration;
@@ -188,7 +188,8 @@ public class IndexEnv {
   public void setFluoTableSplits() {
     final String table = fluoConfig.getAccumuloTable();
     try {
-      Pirtos tableOptimizations = Pirtos.getConfiguredOptimizations(getFluoConfig());
+      TableOptimizations tableOptimizations =
+          TableOptimizations.getConfiguredOptimizations(getFluoConfig());
       tableOptimizations.merge(PageObserver.getPageRowHasher().getTableOptimizations(numTablets));
       TableOperations.optimizeTable(getFluoConfig(), tableOptimizations);
     } catch (Exception e) {

@@ -24,8 +24,8 @@ import io.fluo.webindex.core.models.URL;
 import io.fluo.webindex.data.util.FluoConstants;
 import org.apache.fluo.api.client.Loader;
 import org.apache.fluo.api.client.TransactionBase;
-import org.apache.fluo.api.types.TypedTransactionBase;
-import org.apache.fluo.recipes.data.RowHasher;
+import org.apache.fluo.recipes.core.data.RowHasher;
+import org.apache.fluo.recipes.core.types.TypedTransactionBase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

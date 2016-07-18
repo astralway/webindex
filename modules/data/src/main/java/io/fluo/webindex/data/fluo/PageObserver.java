@@ -29,12 +29,12 @@ import org.apache.fluo.api.client.TransactionBase;
 import org.apache.fluo.api.data.Bytes;
 import org.apache.fluo.api.data.Column;
 import org.apache.fluo.api.observer.AbstractObserver;
-import org.apache.fluo.api.types.TypedSnapshotBase.Value;
-import org.apache.fluo.api.types.TypedTransactionBase;
 import org.apache.fluo.recipes.accumulo.export.AccumuloExport;
-import org.apache.fluo.recipes.data.RowHasher;
-import org.apache.fluo.recipes.export.ExportQueue;
-import org.apache.fluo.recipes.map.CollisionFreeMap;
+import org.apache.fluo.recipes.core.data.RowHasher;
+import org.apache.fluo.recipes.core.export.ExportQueue;
+import org.apache.fluo.recipes.core.map.CollisionFreeMap;
+import org.apache.fluo.recipes.core.types.TypedSnapshotBase.Value;
+import org.apache.fluo.recipes.core.types.TypedTransactionBase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
