@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Copyright 2015 Fluo authors (see AUTHORS)
+  Copyright 2015 Webindex authors (see AUTHORS)
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -21,12 +21,13 @@
     <artifactId>fluo-io-parent</artifactId>
     <version>2</version>
   </parent>
+  <groupId>io.github.astralway</groupId>
   <artifactId>webindex-parent</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>WebIndex Parent</name>
   <description>Example Fluo application that creates web index using CommonCrawl data.</description>
-  <url>https://github.com/fluo-io/webindex</url>
+  <url>https://github.com/astralway/webindex</url>
   <modules>
     <module>modules/core</module>
     <module>modules/data</module>
@@ -40,6 +41,7 @@
     <hadoop.version>2.6.3</hadoop.version>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
+    <spark.version>1.6.2</spark.version>
     <thrift.version>0.9.1</thrift.version>
   </properties>
   <dependencyManagement>
@@ -75,17 +77,17 @@
         <version>${dropwizard.version}</version>
       </dependency>
       <dependency>
-        <groupId>io.fluo</groupId>
+        <groupId>io.github.astralway</groupId>
         <artifactId>webindex-core</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
-        <groupId>io.fluo</groupId>
+        <groupId>io.github.astralway</groupId>
         <artifactId>webindex-data</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
-        <groupId>io.fluo</groupId>
+        <groupId>io.github.astralway</groupId>
         <artifactId>webindex-ui</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -168,7 +170,7 @@
       <dependency>
         <groupId>org.apache.spark</groupId>
         <artifactId>spark-core_2.10</artifactId>
-        <version>1.6.1</version>
+        <version>${spark.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.thrift</groupId>

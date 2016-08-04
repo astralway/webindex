@@ -4,9 +4,9 @@
 
 Webindex is an example [Apache Fluo][fluo] application that uses [Common Crawl][cc] web crawl
 data to index links to web pages in multiple ways.  It has a simple UI to view the resulting
-indexes.  If you are new to Fluo, you may want start with the [fluo-quickstart][qs] or 
+indexes.  If you are new to Fluo, you may want start with the [quickstart][qs] or
 [phrasecount][pc] applications as the webindex application is more complicated.  For more
-information on how the webindex application works, view the [tables](docs/tables.md) and 
+information on how the webindex application works, view the [tables](docs/tables.md) and
 [code](docs/code-guide.md) documentation.
 
 ### Requirements
@@ -18,7 +18,7 @@ machine:
 * Accumulo
 * Fluo
 
-Consider using [fluo-dev] to run these requirements
+Consider using [Uno] to run these requirements
 
 ### Configure your environment
 
@@ -130,15 +130,15 @@ configuration by creating a `dropwizard.yml` in `conf/`.
     cp conf/dropwizard.yml.example conf/dropwizard.yml
 
 [fluo]: https://fluo.apache.org/
-[qs]: https://github.com/fluo-io/fluo-quickstart
-[pc]: https://github.com/fluo-io/phrasecount
-[fluo-dev]: https://github.com/fluo-io/fluo-dev
+[qs]: https://github.com/astralway/quickstart
+[pc]: https://github.com/astralway/phrasecount
+[Uno]: https://github.com/astralway/uno
 [dropwizard]: http://dropwizard.io/
 [cc]: https://commoncrawl.org/
 [cdata]: https://commoncrawl.org/the-data/get-started/
 [transient]: https://github.com/apache/fluo-recipes/blob/master/docs/transient.md
-[ti]: https://travis-ci.org/fluo-io/webindex.svg?branch=master
-[tl]: https://travis-ci.org/fluo-io/webindex
+[ti]: https://travis-ci.org/astralway/webindex.svg?branch=master
+[tl]: https://travis-ci.org/astralway/webindex
 [li]: http://img.shields.io/badge/license-ASL-blue.svg
-[ll]: https://github.com/fluo-io/webindex/blob/master/LICENSE
+[ll]: https://github.com/astralway/webindex/blob/master/LICENSE
 [logo]: contrib/webindex.png

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2015 Fluo authors (see AUTHORS)
+# Copyright 2015 Webindex authors (see AUTHORS)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -45,9 +45,9 @@ $FLUO_CMD new $FLUO_APP
 
 FLUO_APP_LIB=$FLUO_APP_HOME/lib
 cp $WI_DATA_JAR $FLUO_APP_LIB
-mvn dependency:get -Dartifact=org.apache.fluo:fluo-recipes-core:1.0.0-beta-3-SNAPSHOT:jar -Ddest=$FLUO_APP_LIB
-mvn dependency:get -Dartifact=org.apache.fluo:fluo-recipes-kryo:1.0.0-beta-3-SNAPSHOT:jar -Ddest=$FLUO_APP_LIB
-mvn dependency:get -Dartifact=org.apache.fluo:fluo-recipes-accumulo:1.0.0-beta-3-SNAPSHOT:jar -Ddest=$FLUO_APP_LIB
+mvn dependency:get -Dartifact=org.apache.fluo:fluo-recipes-core:1.0.0-incubating-SNAPSHOT:jar -Ddest=$FLUO_APP_LIB
+mvn dependency:get -Dartifact=org.apache.fluo:fluo-recipes-kryo:1.0.0-incubating-SNAPSHOT:jar -Ddest=$FLUO_APP_LIB
+mvn dependency:get -Dartifact=org.apache.fluo:fluo-recipes-accumulo:1.0.0-incubating-SNAPSHOT:jar -Ddest=$FLUO_APP_LIB
 # Add kryo and its dependencies
 mvn dependency:get -Dartifact=com.esotericsoftware:kryo:3.0.3:jar -Ddest=$FLUO_APP_LIB
 mvn dependency:get -Dartifact=com.esotericsoftware:minlog:1.3.0:jar -Ddest=$FLUO_APP_LIB

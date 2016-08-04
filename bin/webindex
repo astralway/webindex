@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-# Copyright 2015 Fluo authors (see AUTHORS)
+# Copyright 2015 Webindex authors (see AUTHORS)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,10 +19,9 @@ export WI_HOME=$( cd "$( dirname "$BIN_DIR" )" && pwd )
 
 if [ -f $WI_HOME/conf/webindex-env.sh ]; then
   . $WI_HOME/conf/webindex-env.sh
+else
+  . $WI_HOME/conf/webindex-env.sh.example
 fi
-
-test -z "$WI_EXECUTOR_INSTANCES" && export WI_EXECUTOR_INSTANCES=1
-test -z "$WI_EXECUTOR_MEMORY" && export WI_EXECUTOR_MEMORY=512m
 
 : ${HADOOP_CONF_DIR?"HADOOP_CONF_DIR must be set in bash env or conf/webindex-env.sh"}
 if [ ! -d $HADOOP_CONF_DIR ]; then

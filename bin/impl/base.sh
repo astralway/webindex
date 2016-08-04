@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2015 Fluo authors (see AUTHORS)
+# Copyright 2015 Webindex authors (see AUTHORS)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -38,5 +38,8 @@ export WI_DATA_DEP_JAR=$WI_HOME/modules/data/target/webindex-data-0.0.1-SNAPSHOT
 if [ ! -f $WI_DATA_DEP_JAR ]; then
   echo "Building $WI_DATA_DEP_JAR"
   cd $WI_HOME
-  mvn clean package -DskipTests
+
+  : ${SPARK_VERSION?"SPARK_VERSION must be set in bash env or conf/webindex-env.sh"}
+  : ${HADOOP_VERSION?"HADOOP_VERSION must be set in bash env or conf/webindex-env.sh"}
+  mvn clean package -DskipTests -Dspark.version=$SPARK_VERSION -Dhadoop.version=$HADOOP_VERSION
 fi
