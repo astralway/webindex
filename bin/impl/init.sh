@@ -57,11 +57,11 @@ mvn dependency:get -Dartifact=org.objenesis:objenesis:2.1:jar -Ddest=$FLUO_APP_L
 cp $WI_HOME/modules/core/target/webindex-core-0.0.1-SNAPSHOT.jar $FLUO_APP_LIB
 mvn dependency:get -Dartifact=commons-validator:commons-validator:1.4.1:jar -Ddest=$FLUO_APP_LIB
 
-java -cp $WI_DATA_DEP_JAR io.fluo.webindex.data.Configure $DATA_CONFIG
+java -cp $WI_DATA_DEP_JAR webindex.data.Configure $DATA_CONFIG
 
 $FLUO_CMD init $FLUO_APP --force
 
-$SPARK_SUBMIT --class io.fluo.webindex.data.Init $COMMON_SPARK_OPTS \
+$SPARK_SUBMIT --class webindex.data.Init $COMMON_SPARK_OPTS \
     --conf spark.shuffle.service.enabled=true \
     --conf spark.executor.extraJavaOptions=-XX:+UseCompressedOops \
     $WI_DATA_DEP_JAR $1

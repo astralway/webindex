@@ -91,13 +91,13 @@ Export changes to the number of URIs referencing a domain to the Query table.
 
 **Code:** [DomainExport.java][DomainExport]
 
-[PageLoader]: ../modules/data/src/main/java/io/fluo/webindex/data/fluo/PageLoader.java
-[PageObserver]: ../modules/data/src/main/java/io/fluo/webindex/data/fluo/PageObserver.java
-[UriMap]: ../modules/data/src/main/java/io/fluo/webindex/data/fluo/UriMap.java
-[DomainMap]: ../modules/data/src/main/java/io/fluo/webindex/data/fluo/DomainMap.java
-[UriCountExport]: ../modules/data/src/main/java/io/fluo/webindex/data/fluo/UriCountExport.java
-[PageExport]: ../modules/data/src/main/java/io/fluo/webindex/data/fluo/PageExport.java
-[DomainExport]: ../modules/data/src/main/java/io/fluo/webindex/data/fluo/DomainExport.java
+[PageLoader]: ../modules/data/src/main/java/webindex/data/fluo/PageLoader.java
+[PageObserver]: ../modules/data/src/main/java/webindex/data/fluo/PageObserver.java
+[UriMap]: ../modules/data/src/main/java/webindex/data/fluo/UriMap.java
+[DomainMap]: ../modules/data/src/main/java/webindex/data/fluo/DomainMap.java
+[UriCountExport]: ../modules/data/src/main/java/webindex/data/fluo/UriCountExport.java
+[PageExport]: ../modules/data/src/main/java/webindex/data/fluo/PageExport.java
+[DomainExport]: ../modules/data/src/main/java/webindex/data/fluo/DomainExport.java
 [qt]: tables.md#query-table-schema
 [tables]: tables.md
 

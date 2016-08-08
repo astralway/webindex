@@ -229,8 +229,8 @@
               <exclude>src/test/resources/*.warc</exclude>
               <exclude>src/test/resources/data/set1/*.txt</exclude>
               <exclude>src/main/resources/splits/*.txt</exclude>
-              <exclude>src/main/resources/io/fluo/webindex/ui/views/*.ftl</exclude>
-              <exclude>src/main/resources/io/fluo/webindex/ui/views/common/*.ftl</exclude>
+              <exclude>src/main/resources/webindex/ui/views/*.ftl</exclude>
+              <exclude>src/main/resources/webindex/ui/views/common/*.ftl</exclude>
               <exclude>logs/*</exclude>
               <exclude>paths/*</exclude>
               <exclude>dependency-reduced-pom.xml</exclude>
@@ -242,8 +242,8 @@
           <artifactId>maven-failsafe-plugin</artifactId>
           <configuration>
             <systemPropertyVariables>
-              <io.fluo.it.instance.name>it-instance-maven</io.fluo.it.instance.name>
-              <io.fluo.it.instance.clear>false</io.fluo.it.instance.clear>
+              <fluo.it.instance.name>it-instance-maven</fluo.it.instance.name>
+              <fluo.it.instance.clear>false</fluo.it.instance.clear>
             </systemPropertyVariables>
           </configuration>
         </plugin>
