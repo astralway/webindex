@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2015 Fluo authors (see AUTHORS)
+# Copyright 2015 Webindex authors (see AUTHORS)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -45,9 +45,9 @@ $FLUO_CMD new $FLUO_APP
 
 FLUO_APP_LIB=$FLUO_APP_HOME/lib
 cp $WI_DATA_JAR $FLUO_APP_LIB
-mvn dependency:get -Dartifact=org.apache.fluo:fluo-recipes-core:1.0.0-beta-3-SNAPSHOT:jar -Ddest=$FLUO_APP_LIB
-mvn dependency:get -Dartifact=org.apache.fluo:fluo-recipes-kryo:1.0.0-beta-3-SNAPSHOT:jar -Ddest=$FLUO_APP_LIB
-mvn dependency:get -Dartifact=org.apache.fluo:fluo-recipes-accumulo:1.0.0-beta-3-SNAPSHOT:jar -Ddest=$FLUO_APP_LIB
+mvn dependency:get -Dartifact=org.apache.fluo:fluo-recipes-core:1.0.0-incubating-SNAPSHOT:jar -Ddest=$FLUO_APP_LIB
+mvn dependency:get -Dartifact=org.apache.fluo:fluo-recipes-kryo:1.0.0-incubating-SNAPSHOT:jar -Ddest=$FLUO_APP_LIB
+mvn dependency:get -Dartifact=org.apache.fluo:fluo-recipes-accumulo:1.0.0-incubating-SNAPSHOT:jar -Ddest=$FLUO_APP_LIB
 # Add kryo and its dependencies
 mvn dependency:get -Dartifact=com.esotericsoftware:kryo:3.0.3:jar -Ddest=$FLUO_APP_LIB
 mvn dependency:get -Dartifact=com.esotericsoftware:minlog:1.3.0:jar -Ddest=$FLUO_APP_LIB
@@ -57,11 +57,11 @@ mvn dependency:get -Dartifact=org.objenesis:objenesis:2.1:jar -Ddest=$FLUO_APP_L
 cp $WI_HOME/modules/core/target/webindex-core-0.0.1-SNAPSHOT.jar $FLUO_APP_LIB
 mvn dependency:get -Dartifact=commons-validator:commons-validator:1.4.1:jar -Ddest=$FLUO_APP_LIB
 
-java -cp $WI_DATA_DEP_JAR io.fluo.webindex.data.Configure $DATA_CONFIG
+java -cp $WI_DATA_DEP_JAR webindex.data.Configure $DATA_CONFIG
 
 $FLUO_CMD init $FLUO_APP --force
 
-$SPARK_SUBMIT --class io.fluo.webindex.data.Init $COMMON_SPARK_OPTS \
+$SPARK_SUBMIT --class webindex.data.Init $COMMON_SPARK_OPTS \
     --conf spark.shuffle.service.enabled=true \
     --conf spark.executor.extraJavaOptions=-XX:+UseCompressedOops \
     $WI_DATA_DEP_JAR $1

@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-# Copyright 2015 Fluo authors (see AUTHORS)
+# Copyright 2015 Webindex authors (see AUTHORS)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,10 +19,9 @@ export WI_HOME=$( cd "$( dirname "$BIN_DIR" )" && pwd )
 
 if [ -f $WI_HOME/conf/webindex-env.sh ]; then
   . $WI_HOME/conf/webindex-env.sh
+else
+  . $WI_HOME/conf/webindex-env.sh.example
 fi
-
-test -z "$WI_EXECUTOR_INSTANCES" && export WI_EXECUTOR_INSTANCES=1
-test -z "$WI_EXECUTOR_MEMORY" && export WI_EXECUTOR_MEMORY=512m
 
 : ${HADOOP_CONF_DIR?"HADOOP_CONF_DIR must be set in bash env or conf/webindex-env.sh"}
 if [ ! -d $HADOOP_CONF_DIR ]; then
@@ -83,7 +82,7 @@ copy)
     exit 1
   fi
   . $BIN_DIR/impl/base.sh
-  COMMAND="$SPARK_SUBMIT --class io.fluo.webindex.data.Copy $COMMON_SPARK_OPTS \
+  COMMAND="$SPARK_SUBMIT --class webindex.data.Copy $COMMON_SPARK_OPTS \
     $WI_DATA_DEP_JAR $WI_HOME/paths/"$2".wat.paths $3 $4"
   if [ "$5" != "-fg" ]; then
     nohup ${COMMAND} &> $COMMAND_LOGFILE &
@@ -120,7 +119,7 @@ load-hdfs)
     echo "Fluo properties file must exist at $FLUO_PROPS"
     exit 1
   fi
-  COMMAND="$SPARK_SUBMIT --class io.fluo.webindex.data.LoadHdfs $COMMON_SPARK_OPTS \
+  COMMAND="$SPARK_SUBMIT --class webindex.data.LoadHdfs $COMMON_SPARK_OPTS \
     --files $FLUO_PROPS $WI_DATA_DEP_JAR $2"
   if [ "$3" != "-fg" ]; then
     nohup ${COMMAND} &> $COMMAND_LOGFILE &
@@ -140,7 +139,7 @@ load-s3)
     echo "Fluo properties file must exist at $FLUO_PROPS"
     exit 1
   fi
-  COMMAND="$SPARK_SUBMIT --class io.fluo.webindex.data.LoadS3 $COMMON_SPARK_OPTS \
+  COMMAND="$SPARK_SUBMIT --class webindex.data.LoadS3 $COMMON_SPARK_OPTS \
     --files $FLUO_PROPS $WI_DATA_DEP_JAR $WI_HOME/paths/"$2".wat.paths $3"
   if [ "$4" != "-fg" ]; then
     nohup ${COMMAND} &> $COMMAND_LOGFILE &
@@ -155,7 +154,7 @@ test-parser)
     exit 1
   fi
   . $BIN_DIR/impl/base.sh
-  COMMAND="$SPARK_SUBMIT --class io.fluo.webindex.data.TestParser $COMMON_SPARK_OPTS \
+  COMMAND="$SPARK_SUBMIT --class webindex.data.TestParser $COMMON_SPARK_OPTS \
     $WI_DATA_DEP_JAR $WI_HOME/paths/"$2".wat.paths $3"
   if [ "$4" != "-fg" ]; then
     nohup ${COMMAND} &> $COMMAND_LOGFILE &
@@ -186,7 +185,7 @@ ui)
   ;;
 splits)
   . $BIN_DIR/impl/base.sh
-  COMMAND="$SPARK_SUBMIT --class io.fluo.webindex.data.CalcSplits \
+  COMMAND="$SPARK_SUBMIT --class webindex.data.CalcSplits \
     $COMMON_SPARK_OPTS \
     --conf spark.shuffle.service.enabled=true \
     $WI_DATA_DEP_JAR $2"

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Copyright 2015 Fluo authors (see AUTHORS)
+  Copyright 2015 Webindex authors (see AUTHORS)
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -21,12 +21,13 @@
     <artifactId>fluo-io-parent</artifactId>
     <version>2</version>
   </parent>
+  <groupId>io.github.astralway</groupId>
   <artifactId>webindex-parent</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>WebIndex Parent</name>
   <description>Example Fluo application that creates web index using CommonCrawl data.</description>
-  <url>https://github.com/fluo-io/webindex</url>
+  <url>https://github.com/astralway/webindex</url>
   <modules>
     <module>modules/core</module>
     <module>modules/data</module>
@@ -40,6 +41,7 @@
     <hadoop.version>2.6.3</hadoop.version>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
+    <spark.version>1.6.2</spark.version>
     <thrift.version>0.9.1</thrift.version>
   </properties>
   <dependencyManagement>
@@ -75,17 +77,17 @@
         <version>${dropwizard.version}</version>
       </dependency>
       <dependency>
-        <groupId>io.fluo</groupId>
+        <groupId>io.github.astralway</groupId>
         <artifactId>webindex-core</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
-        <groupId>io.fluo</groupId>
+        <groupId>io.github.astralway</groupId>
         <artifactId>webindex-data</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
-        <groupId>io.fluo</groupId>
+        <groupId>io.github.astralway</groupId>
         <artifactId>webindex-ui</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -168,7 +170,7 @@
       <dependency>
         <groupId>org.apache.spark</groupId>
         <artifactId>spark-core_2.10</artifactId>
-        <version>1.6.1</version>
+        <version>${spark.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.thrift</groupId>
@@ -227,8 +229,8 @@
               <exclude>src/test/resources/*.warc</exclude>
               <exclude>src/test/resources/data/set1/*.txt</exclude>
               <exclude>src/main/resources/splits/*.txt</exclude>
-              <exclude>src/main/resources/io/fluo/webindex/ui/views/*.ftl</exclude>
-              <exclude>src/main/resources/io/fluo/webindex/ui/views/common/*.ftl</exclude>
+              <exclude>src/main/resources/webindex/ui/views/*.ftl</exclude>
+              <exclude>src/main/resources/webindex/ui/views/common/*.ftl</exclude>
               <exclude>logs/*</exclude>
               <exclude>paths/*</exclude>
               <exclude>dependency-reduced-pom.xml</exclude>
@@ -240,8 +242,8 @@
           <artifactId>maven-failsafe-plugin</artifactId>
           <configuration>
             <systemPropertyVariables>
-              <io.fluo.it.instance.name>it-instance-maven</io.fluo.it.instance.name>
-              <io.fluo.it.instance.clear>false</io.fluo.it.instance.clear>
+              <fluo.it.instance.name>it-instance-maven</fluo.it.instance.name>
+              <fluo.it.instance.clear>false</fluo.it.instance.clear>
             </systemPropertyVariables>
           </configuration>
         </plugin>

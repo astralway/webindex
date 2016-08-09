@@ -1,4 +1,4 @@
-# Copyright 2015 Fluo authors (see AUTHORS)
+# Copyright 2015 Webindex authors (see AUTHORS)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,15 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Set environment variables if they are not already set.  Please modify the 
-# export statement to use the correct directory.  Remove the test statement 
+# Set environment variables if they are not already set.  Please modify the
+# export statement to use the correct directory.  Remove the test statement
 # to override any previously set environment.
 
+# Hadoop
+# ======
 test -z "$HADOOP_PREFIX" && export HADOOP_PREFIX=/path/to/hadoop
 test -z "$HADOOP_CONF_DIR" && export HADOOP_CONF_DIR=/path/to/hadoop/etc/hadoop
+# Set to version of Hadoop installed on system
+export HADOOP_VERSION=2.7.2
+
+# Fluo
+# ====
 test -z "$FLUO_HOME" && export FLUO_HOME=/path/to/fluo
+
+# Spark
+# =====
 test -z "$SPARK_HOME" && export SPARK_HOME=/path/to/spark
+# Set to version of Spark installed on system
+export SPARK_VERSION=1.6.2
 # Number of Spark executor instances
-test -z "$WI_EXECUTOR_INSTANCES" && export WI_EXECUTOR_INSTANCES=1
+export WI_EXECUTOR_INSTANCES=2
 # Amount of memory given to each Spark executor
-test -z "$WI_EXECUTOR_MEMORY" && export WI_EXECUTOR_MEMORY=512m
+export WI_EXECUTOR_MEMORY=512m
