@@ -15,12 +15,27 @@
 # limitations under the License.
 
 : ${WI_HOME?"WI_HOME must be set"}
-: ${DATA_CONFIG?"DATA_CONFIG must be set"}
+: ${WI_CONFIG?"WI_CONFIG must be set"}
 : ${SPARK_HOME?"SPARK_HOME must be set"}
 
 function get_prop {
-  echo "`grep $1 $DATA_CONFIG | cut -d ' ' -f 2`"
+  echo "`grep $1 $WI_CONFIG | cut -d ' ' -f 2`"
 }
+
+: ${HADOOP_CONF_DIR?"HADOOP_CONF_DIR must be set in bash env or conf/webindex-env.sh"}
+if [ ! -d $HADOOP_CONF_DIR ]; then
+  echo "HADOOP_CONF_DIR=$HADOOP_CONF_DIR does not exist"
+  exit 1
+fi
+: ${FLUO_HOME?"FLUO_HOME must be set in bash env or conf/webindex-env.sh"}
+if [ ! -d $FLUO_HOME ]; then
+  echo "FLUO_HOME=$FLUO_HOME does not exist"
+  exit 1
+fi
+
+: ${WI_EXECUTOR_INSTANCES?"WI_EXECUTOR_INSTANCES must be set in bash env or conf/webindex-env.sh"}
+: ${WI_EXECUTOR_MEMORY?"WI_EXECUTOR_MEMORY must be set in bash env or conf/webindex-env.sh"}
+export COMMON_SPARK_OPTS="--master yarn-client --num-executors $WI_EXECUTOR_INSTANCES --executor-memory $WI_EXECUTOR_MEMORY"
 
 export SPARK_SUBMIT=$SPARK_HOME/bin/spark-submit
 if [ ! -f $SPARK_SUBMIT ]; then
@@ -33,13 +48,13 @@ hash mvn 2>/dev/null || { echo >&2 "Maven must be installed & mvn command must b
 # Stop if any command after this fails
 set -e
 
-export WI_DATA_JAR=$WI_HOME/modules/data/target/webindex-data-0.0.1-SNAPSHOT.jar
-export WI_DATA_DEP_JAR=$WI_HOME/modules/data/target/webindex-data-0.0.1-SNAPSHOT-shaded.jar
+export WI_DATA_JAR=$WI_HOME/modules/data/target/webindex-data-$WI_VERSION.jar
+export WI_DATA_DEP_JAR=$WI_HOME/modules/data/target/webindex-data-$WI_VERSION-shaded.jar
 if [ ! -f $WI_DATA_DEP_JAR ]; then
   echo "Building $WI_DATA_DEP_JAR"
   cd $WI_HOME
 
   : ${SPARK_VERSION?"SPARK_VERSION must be set in bash env or conf/webindex-env.sh"}
   : ${HADOOP_VERSION?"HADOOP_VERSION must be set in bash env or conf/webindex-env.sh"}
-  mvn clean package -DskipTests -Dspark.version=$SPARK_VERSION -Dhadoop.version=$HADOOP_VERSION
+  mvn clean package -Pcreate-shade-jar -DskipTests -Dspark.version=$SPARK_VERSION -Dhadoop.version=$HADOOP_VERSION
 fi

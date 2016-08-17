@@ -22,7 +22,7 @@ import java.util.Iterator;
 import org.apache.fluo.api.config.FluoConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import webindex.core.DataConfig;
+import webindex.core.WebIndexConfig;
 import webindex.data.spark.IndexEnv;
 
 public class Configure {
@@ -35,9 +35,9 @@ public class Configure {
       log.error("Usage: Configure");
       System.exit(1);
     }
-    DataConfig dataConfig = DataConfig.load();
+    WebIndexConfig webIndexConfig = WebIndexConfig.load();
 
-    IndexEnv env = new IndexEnv(dataConfig);
+    IndexEnv env = new IndexEnv(webIndexConfig);
     env.initAccumuloIndexTable();
 
     FluoConfiguration appConfig = new FluoConfiguration();
@@ -45,7 +45,7 @@ public class Configure {
 
     Iterator<String> iter = appConfig.getKeys();
     try (PrintWriter out =
-        new PrintWriter(new BufferedWriter(new FileWriter(dataConfig.getFluoPropsPath(), true)))) {
+        new PrintWriter(new BufferedWriter(new FileWriter(webIndexConfig.getFluoPropsPath(), true)))) {
       while (iter.hasNext()) {
         String key = iter.next();
         out.println(key + " = " + appConfig.getRawString(key));

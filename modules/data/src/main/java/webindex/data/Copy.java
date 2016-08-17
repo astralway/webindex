@@ -28,7 +28,7 @@ import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import webindex.core.DataConfig;
+import webindex.core.WebIndexConfig;
 import webindex.data.spark.IndexEnv;
 
 public class Copy {
@@ -56,7 +56,7 @@ public class Copy {
       System.exit(1);
     }
 
-    DataConfig dataConfig = DataConfig.load();
+    WebIndexConfig webIndexConfig = WebIndexConfig.load();
 
     SparkConf sparkConf = new SparkConf().setAppName("webindex-copy");
     try (JavaSparkContext ctx = new JavaSparkContext(sparkConf)) {
@@ -70,9 +70,9 @@ public class Copy {
       log.info("Copying {} files (Range {} of paths file {}) from AWS to HDFS {}", copyList.size(),
           args[1], args[0], destPath.toString());
 
-      JavaRDD<String> copyRDD = ctx.parallelize(copyList, dataConfig.getNumExecutorInstances());
+      JavaRDD<String> copyRDD = ctx.parallelize(copyList, webIndexConfig.getNumExecutorInstances());
 
-      final String prefix = DataConfig.CC_URL_PREFIX;
+      final String prefix = WebIndexConfig.CC_URL_PREFIX;
       final String destDir = destPath.toString();
 
       copyRDD

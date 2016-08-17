@@ -22,31 +22,28 @@ import org.junit.Test;
 public class URLTest {
 
   public static URL from(String rawUrl) {
-    return URL.from(rawUrl, host -> host, host -> true);
+    return URL.from(rawUrl);
   }
 
   public static String toID(String rawUrl) {
     return from(rawUrl).toPageID();
   }
 
-  public static boolean isValid(String rawUrl) {
-    return URL.isValid(rawUrl, host -> host, host -> true);
-  }
 
   public static URL url80(String host, String path) {
-    return new URL(host, host, path, 80, false, URL.isValidIP(host));
+    return new URL(URL.domainFromHost(host), host, path, 80, false, URL.isValidIP(host));
   }
 
   public static URL url443(String host, String path) {
-    return new URL(host, host, path, 443, true, URL.isValidIP(host));
+    return new URL(URL.domainFromHost(host), host, path, 443, true, URL.isValidIP(host));
   }
 
   public static URL urlOpen(String host, String path, int port) {
-    return new URL(host, host, path, port, false, URL.isValidIP(host));
+    return new URL(URL.domainFromHost(host), host, path, port, false, URL.isValidIP(host));
   }
 
   public static URL urlSecure(String host, String path, int port) {
-    return new URL(host, host, path, port, true, URL.isValidIP(host));
+    return new URL(URL.domainFromHost(host), host, path, port, true, URL.isValidIP(host));
   }
 
   @Test
@@ -57,7 +54,7 @@ public class URLTest {
             "http://ab.com#1/2/3", "https://ab.com/", "https://h.d.ab.com/1/2/3"};
 
     for (String rawUrl : validUrls) {
-      Assert.assertTrue(isValid(rawUrl));
+      Assert.assertTrue(URL.isValid(rawUrl));
       Assert.assertEquals(rawUrl, from(rawUrl).toString());
     }
 
@@ -67,7 +64,7 @@ public class URLTest {
             "http://a.com:"};
 
     for (String rawUrl : failureUrls) {
-      Assert.assertFalse(isValid(rawUrl));
+      Assert.assertFalse(URL.isValid(rawUrl));
     }
   }
 
@@ -100,8 +97,8 @@ public class URLTest {
     URL u = from("http://a.b.c.d.com/1/2/3");
     Assert.assertEquals("a.b.c.d.com", u.getHost());
     Assert.assertEquals("com.d.c.b.a", u.getReverseHost());
-    Assert.assertEquals("a.b.c.d.com", u.getDomain());
-    Assert.assertEquals("com.d.c.b.a", u.getReverseDomain());
+    Assert.assertEquals("d.com", u.getDomain());
+    Assert.assertEquals("com.d", u.getReverseDomain());
   }
 
   @Test
@@ -110,8 +107,6 @@ public class URLTest {
     Assert.assertEquals(urlOpen("example.com", "#a&b", 83), from("http://example.com:83#a&b"));
     Assert.assertEquals(url80("a.b.example.com", "/page?1&2"),
         from("http://a.b.example.com/page?1&2"));
-    Assert.assertEquals(url443("1.2.3.4", "/page?1&2"), from("https://1.2.3.4/page?1&2"));
-    Assert.assertEquals(url80("1.2.3.4", "/page?1&2"), from("http://1.2.3.4/page?1&2"));
     Assert.assertEquals(url80("example.com", "/1/2/3?c&d&e"),
         from("http://example.com/1/2/3?c&d&e"));
     Assert.assertEquals(url80("a.b.example.com", "/"), from("http://a.b.example.com"));
@@ -123,7 +118,6 @@ public class URLTest {
     Assert.assertEquals(url443("example.com", "/"), from("https://example.com/"));
     Assert.assertEquals(url80("example.com", "/b?1#2&3#4"), from("http://example.com/b?1#2&3#4"));
     Assert.assertEquals(urlOpen("example.com", "/b", 8080), from("http://example.com:8080/b"));
-    Assert.assertEquals(url80("1.2.3.4", "////c"), from("http://1.2.3.4////c"));
   }
 
   @Test
@@ -131,7 +125,7 @@ public class URLTest {
     URL u1 = urlSecure("a.b.c.com", "/", 8329);
     URL u2 = from("https://a.b.C.com:8329");
     String r1 = u2.toPageID();
-    Assert.assertEquals("com.c.b.a>>s8329>/", r1);
+    Assert.assertEquals("com.c>.b.a>s8329>/", r1);
     URL u3 = URL.fromPageID(r1);
     Assert.assertEquals(u1, u2);
     Assert.assertEquals(u1, u3);
@@ -147,6 +141,75 @@ public class URLTest {
     Assert.assertEquals("1.2.3.4>>o>/a/b/c", id5);
     Assert.assertEquals(u5, URL.fromPageID(id5));
 
-    Assert.assertEquals("com.b.a>>s80>/", from("https://a.b.com:80").toPageID());
+    Assert.assertEquals("com.b>.a>s80>/", from("https://a.b.com:80").toPageID());
+  }
+
+  @Test
+  public void testMore() throws Exception {
+
+    // valid urls
+    Assert.assertTrue(URL.isValid(" \thttp://example.com/ \t\n\r\n"));
+    Assert.assertTrue(URL.isValid("http://1.2.3.4:80/test?a=b&c=d"));
+    Assert.assertTrue(URL.isValid("http://1.2.3.4/"));
+    Assert.assertTrue(URL.isValid("http://a.b.c.d.com/1/2/3/4/5"));
+    Assert.assertTrue(URL.isValid("http://a.b.com:281/1/2"));
+    Assert.assertTrue(URL.isValid("http://A.B.Com:281/a/b"));
+    Assert.assertTrue(URL.isValid("http://A.b.Com:281/A/b"));
+    Assert.assertTrue(URL.isValid("http://a.B.Com?A/b/C"));
+    Assert.assertTrue(URL.isValid("http://A.Be.COM"));
+    Assert.assertTrue(URL.isValid("http://1.2.3.4:281/1/2"));
+
+    // invalid urls
+    Assert.assertFalse(URL.isValid("http://a.com:/test"));
+    Assert.assertFalse(URL.isValid("http://z.com:"));
+    Assert.assertFalse(URL.isValid("http://1.2.3:80/test?a=b&c=d"));
+    Assert.assertFalse(URL.isValid("http://1.2.3/"));
+    Assert.assertFalse(URL.isValid("http://com/"));
+    Assert.assertFalse(URL.isValid("http://a.b.c.com/bad>et"));
+    Assert.assertFalse(URL.isValid("http://test"));
+    Assert.assertFalse(URL.isValid("http://co.uk"));
+    Assert.assertFalse(URL.isValid("http:///example.com/"));
+    Assert.assertFalse(URL.isValid("http:://example.com/"));
+    Assert.assertFalse(URL.isValid("example.com"));
+    Assert.assertFalse(URL.isValid("127.0.0.1"));
+    Assert.assertFalse(URL.isValid("http://ab@example.com"));
+    Assert.assertFalse(URL.isValid("ftp://example.com"));
+
+    Assert.assertEquals("example.com", from("http://example.com:281/1/2").getHost());
+    Assert.assertEquals("a.b.example.com", from("http://a.b.example.com/1/2").getHost());
+    Assert.assertEquals("a.b.example.com", from("http://A.B.Example.Com/1/2").getHost());
+    Assert.assertEquals("1.2.3.4", from("http://1.2.3.4:89/1/2").getHost());
+
+    Assert.assertEquals("/A/b/C", from("http://A.B.Example.Com/A/b/C").getPath());
+    Assert.assertEquals("?D/E/f", from("http://A.B.Example.Com?D/E/f").getPath());
+
+    URL u = from("http://a.b.c.d.com/1/2/3");
+    Assert.assertEquals("a.b.c.d.com", u.getHost());
+    Assert.assertEquals("com.d.c.b.a", u.getReverseHost());
+    Assert.assertEquals("d.com", u.getDomain());
+    Assert.assertEquals("com.d", u.getReverseDomain());
+
+    Assert.assertEquals("com.example", from("http://example.com:281/1").getReverseHost());
+    Assert.assertEquals("com.example.b.a", from("http://a.b.example.com/1/2").getReverseHost());
+    Assert.assertEquals("1.2.3.4", from("http://1.2.3.4:89/1/2").getReverseHost());
+
+    Assert.assertTrue(from("http://a.com/a.jpg").isImage());
+    Assert.assertTrue(from("http://a.com/a.JPEG").isImage());
+    Assert.assertTrue(from("http://a.com/c/b/a.png").isImage());
+
+    Assert.assertEquals("c.com", from("http://a.b.c.com").getDomain());
+    Assert.assertEquals("com.c", from("http://a.b.c.com").getReverseDomain());
+    Assert.assertEquals("c.co.uk", from("http://a.b.c.co.uk").getDomain());
+    Assert.assertEquals("uk.co.c", from("http://a.b.c.co.uk").getReverseDomain());
+    Assert.assertEquals("d.com.au", from("http://www.d.com.au").getDomain());
+    Assert.assertEquals("au.com.d", from("http://www.d.com.au").getReverseDomain());
+
+    u = from("https://www.d.com.au:9443/a/bc");
+    Assert.assertEquals("au.com.d>.www>s9443>/a/bc", u.toPageID());
+    Assert.assertEquals("https://www.d.com.au:9443/a/bc", u.toString());
+    URL u2 = URL.fromPageID(u.toPageID());
+    Assert.assertEquals("https://www.d.com.au:9443/a/bc", u2.toString());
+    Assert.assertEquals("d.com.au", u2.getDomain());
+    Assert.assertEquals("www.d.com.au", u2.getHost());
   }
 }

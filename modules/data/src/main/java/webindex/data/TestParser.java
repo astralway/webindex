@@ -25,7 +25,7 @@ import org.archive.io.ArchiveRecord;
 import org.archive.io.warc.WARCReaderFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import webindex.core.DataConfig;
+import webindex.core.WebIndexConfig;
 import webindex.data.spark.IndexEnv;
 import webindex.data.util.ArchiveUtil;
 
@@ -45,7 +45,7 @@ public class TestParser {
       System.exit(1);
     }
 
-    DataConfig.load();
+    WebIndexConfig.load();
 
     SparkConf sparkConf = new SparkConf().setAppName("webindex-test-parser");
     try (JavaSparkContext ctx = new JavaSparkContext(sparkConf)) {
@@ -55,7 +55,7 @@ public class TestParser {
 
       JavaRDD<String> loadRDD = ctx.parallelize(loadList, loadList.size());
 
-      final String prefix = DataConfig.CC_URL_PREFIX;
+      final String prefix = WebIndexConfig.CC_URL_PREFIX;
 
       loadRDD.foreachPartition(iter -> iter.forEachRemaining(path -> {
         String urlToCopy = prefix + path;

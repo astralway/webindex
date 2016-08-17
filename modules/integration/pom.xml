@@ -22,24 +22,48 @@
     <version>0.0.1-SNAPSHOT</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
-  <artifactId>webindex-ui</artifactId>
-  <name>WebIndex UI</name>
+  <artifactId>webindex-integration</artifactId>
+  <name>WebIndex Integration</name>
   <dependencies>
+    <dependency>
+      <groupId>com.google.code.gson</groupId>
+      <artifactId>gson</artifactId>
+    </dependency>
     <dependency>
       <groupId>com.sparkjava</groupId>
       <artifactId>spark-core</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.sparkjava</groupId>
-      <artifactId>spark-template-freemarker</artifactId>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
     </dependency>
     <dependency>
       <groupId>io.github.astralway</groupId>
       <artifactId>webindex-core</artifactId>
     </dependency>
     <dependency>
+      <groupId>io.github.astralway</groupId>
+      <artifactId>webindex-data</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>asm</groupId>
+          <artifactId>asm</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>io.github.astralway</groupId>
+      <artifactId>webindex-ui</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.apache.accumulo</groupId>
-      <artifactId>accumulo-core</artifactId>
+      <artifactId>accumulo-minicluster</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>org.eclipse.jetty</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.apache.fluo</groupId>
@@ -50,6 +74,24 @@
       <artifactId>fluo-core</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.apache.fluo</groupId>
+      <artifactId>fluo-mini</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.fluo</groupId>
+      <artifactId>fluo-recipes-test</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.netpreserve.commons</groupId>
+      <artifactId>webarchive-commons</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>ch.qos.logback</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
     </dependency>
@@ -57,10 +99,21 @@
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-log4j12</artifactId>
     </dependency>
+    <!-- Test dependencies -->
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jsoup</groupId>
+      <artifactId>jsoup</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
   <profiles>
     <profile>
-      <id>webindex-web-server</id>
+      <id>webindex-dev-server</id>
       <build>
         <plugins>
           <plugin>
@@ -73,7 +126,7 @@
                 </goals>
                 <phase>compile</phase>
                 <configuration>
-                  <mainClass>webindex.ui.WebServer</mainClass>
+                  <mainClass>webindex.integration.DevServer</mainClass>
                 </configuration>
               </execution>
             </executions>

@@ -31,7 +31,7 @@ import org.archive.io.ArchiveRecord;
 import org.archive.io.warc.WARCReaderFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import webindex.core.DataConfig;
+import webindex.core.WebIndexConfig;
 import webindex.core.models.Page;
 import webindex.data.fluo.PageLoader;
 import webindex.data.spark.IndexEnv;
@@ -53,7 +53,7 @@ public class LoadS3 {
       System.exit(1);
     }
 
-    final int rateLimit = DataConfig.load().getLoadRateLimit();
+    final int rateLimit = WebIndexConfig.load().getLoadRateLimit();
 
     SparkConf sparkConf = new SparkConf().setAppName("webindex-load-s3");
     try (JavaSparkContext ctx = new JavaSparkContext(sparkConf)) {
@@ -63,7 +63,7 @@ public class LoadS3 {
 
       JavaRDD<String> loadRDD = ctx.parallelize(loadList, loadList.size());
 
-      final String prefix = DataConfig.CC_URL_PREFIX;
+      final String prefix = WebIndexConfig.CC_URL_PREFIX;
 
       loadRDD.foreachPartition(iter -> {
         final FluoConfiguration fluoConfig = new FluoConfiguration(new File("fluo.properties"));

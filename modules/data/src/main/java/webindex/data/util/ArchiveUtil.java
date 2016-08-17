@@ -51,7 +51,7 @@ public class ArchiveUtil {
       String rawPageUrl = archiveRecord.getHeader().getUrl();
       URL pageUrl;
       try {
-        pageUrl = DataUrl.from(rawPageUrl);
+        pageUrl = URL.from(rawPageUrl);
       } catch (IllegalArgumentException e) {
         return Page.EMPTY;
       } catch (Exception e) {
@@ -80,7 +80,7 @@ public class ArchiveUtil {
                 String rawLinkUrl = link.getString("url");
                 URL linkUrl;
                 try {
-                  linkUrl = DataUrl.from(rawLinkUrl);
+                  linkUrl = URL.from(rawLinkUrl);
                   if (!page.getDomain().equals(linkUrl.getDomain())) {
                     page.addOutbound(Link.of(linkUrl, anchorText));
                   }

@@ -54,7 +54,6 @@ import webindex.data.spark.IndexEnv;
 import webindex.data.spark.IndexStats;
 import webindex.data.spark.IndexUtil;
 import webindex.data.util.ArchiveUtil;
-import webindex.data.util.DataUrl;
 
 public class IndexIT extends AccumuloExportITBase {
 
@@ -136,11 +135,11 @@ public class IndexIT extends AccumuloExportITBase {
   }
 
   public static Link newLink(String url) {
-    return Link.of(DataUrl.from(url));
+    return Link.of(URL.from(url));
   }
 
   public static Link newLink(String url, String anchorText) {
-    return Link.of(DataUrl.from(url), anchorText);
+    return Link.of(URL.from(url), anchorText);
   }
 
   @Test
@@ -160,8 +159,8 @@ public class IndexIT extends AccumuloExportITBase {
       getMiniFluo().waitForObservers();
       assertOutput(pages.values());
 
-      URL deleteUrl = DataUrl.from("http://1000games.me/games/gametion/");
-      log.info("Deleting page {}", deleteUrl);
+      URL deleteUrl = URL.from("http://1000games.me/games/gametion/");
+      log.debug("Deleting page {}", deleteUrl);
       try (LoaderExecutor le = client.newLoaderExecutor()) {
         le.execute(PageLoader.deletePage(deleteUrl));
       }
@@ -172,7 +171,7 @@ public class IndexIT extends AccumuloExportITBase {
       Assert.assertEquals(numPages - 1, pages.size());
       assertOutput(pages.values());
 
-      URL updateUrl = DataUrl.from("http://100zone.blogspot.com/2013/03/please-memp3-4shared.html");
+      URL updateUrl = URL.from("http://100zone.blogspot.com/2013/03/please-memp3-4shared.html");
       Page updatePage = pages.get(updateUrl);
       long numLinks = updatePage.getNumOutbound();
       Assert.assertTrue(updatePage.addOutbound(newLink("http://example.com", "Example")));
@@ -186,7 +185,7 @@ public class IndexIT extends AccumuloExportITBase {
       getMiniFluo().waitForObservers();
 
       // create a URL that has an inlink count of 2
-      URL updateUrl2 = DataUrl.from("http://00assclown.newgrounds.com/");
+      URL updateUrl2 = URL.from("http://00assclown.newgrounds.com/");
       Page updatePage2 = pages.get(updateUrl2);
       long numLinks2 = updatePage2.getNumOutbound();
       Assert.assertTrue(updatePage2.addOutbound(newLink("http://example.com", "Example")));
@@ -237,8 +236,7 @@ public class IndexIT extends AccumuloExportITBase {
     try (FluoClient client = FluoFactory.newClient(getMiniFluo().getClientConfiguration());
         LoaderExecutor le = client.newLoaderExecutor()) {
       for (Page page : pages.subList(2, pages.size())) {
-        log.info("Loading page {} with {} links {}", page.getUrl(), page.getOutboundLinks().size(),
-            page.getOutboundLinks());
+        log.debug("Loading page {} with {} links", page.getUrl(), page.getOutboundLinks().size());
         le.execute(PageLoader.updatePage(page));
       }
     }

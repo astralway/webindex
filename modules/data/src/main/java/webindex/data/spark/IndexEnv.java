@@ -54,7 +54,7 @@ import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import webindex.core.DataConfig;
+import webindex.core.WebIndexConfig;
 import webindex.core.models.Page;
 import webindex.data.FluoApp;
 import webindex.data.fluo.PageObserver;
@@ -72,9 +72,9 @@ public class IndexEnv {
   private int numTablets;
   private int numBuckets;
 
-  public IndexEnv(DataConfig dataConfig) {
-    this(getFluoConfig(dataConfig), dataConfig.accumuloIndexTable, dataConfig.hdfsTempDir,
-        dataConfig.numBuckets, dataConfig.numTablets);
+  public IndexEnv(WebIndexConfig webIndexConfig) {
+    this(getFluoConfig(webIndexConfig), webIndexConfig.accumuloIndexTable,
+        webIndexConfig.hdfsTempDir, webIndexConfig.numBuckets, webIndexConfig.numTablets);
   }
 
   public IndexEnv(FluoConfiguration fluoConfig, String accumuloTable, String hdfsTempDir,
@@ -101,10 +101,10 @@ public class IndexEnv {
     return hadoopConfDir;
   }
 
-  private static FluoConfiguration getFluoConfig(DataConfig dataConfig) {
-    Preconditions.checkArgument(new File(dataConfig.getFluoPropsPath()).exists(),
-        "fluoPropsPath must be set in data.yml and exist");
-    return new FluoConfiguration(new File(dataConfig.getFluoPropsPath()));
+  private static FluoConfiguration getFluoConfig(WebIndexConfig webIndexConfig) {
+    Preconditions.checkArgument(new File(webIndexConfig.getFluoPropsPath()).exists(),
+        "fluoPropsPath must be set in webindex.yml and exist");
+    return new FluoConfiguration(new File(webIndexConfig.getFluoPropsPath()));
   }
 
   public FluoConfiguration getFluoConfig() {

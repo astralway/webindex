@@ -23,7 +23,7 @@ import org.apache.spark.api.java.JavaSparkContext;
 import org.archive.io.ArchiveReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import webindex.core.DataConfig;
+import webindex.core.WebIndexConfig;
 import webindex.core.models.Page;
 import webindex.data.spark.IndexEnv;
 import webindex.data.spark.IndexStats;
@@ -40,9 +40,9 @@ public class Init {
       log.error("Usage: Init [<dataDir>]");
       System.exit(1);
     }
-    DataConfig dataConfig = DataConfig.load();
+    WebIndexConfig webIndexConfig = WebIndexConfig.load();
 
-    IndexEnv env = new IndexEnv(dataConfig);
+    IndexEnv env = new IndexEnv(webIndexConfig);
     env.setFluoTableSplits();
     log.info("Initialized Fluo table splits");
 

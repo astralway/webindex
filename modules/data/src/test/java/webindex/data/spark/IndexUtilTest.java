@@ -33,9 +33,9 @@ import org.junit.Test;
 import scala.Tuple2;
 import webindex.core.models.Link;
 import webindex.core.models.Page;
+import webindex.core.models.URL;
 import webindex.data.SparkTestUtil;
 import webindex.data.fluo.UriMap.UriInfo;
-import webindex.data.util.DataUrl;
 
 public class IndexUtilTest {
 
@@ -106,14 +106,14 @@ public class IndexUtilTest {
 
   private List<Page> getPagesSet1() {
     List<Page> pages = new ArrayList<>();
-    Page pageA = new Page(DataUrl.from("http://a.com/1").toPageID());
-    pageA.addOutbound(Link.of(DataUrl.from("http://b.com/1"), "b1"));
-    pageA.addOutbound(Link.of(DataUrl.from("http://b.com/3"), "b3"));
-    pageA.addOutbound(Link.of(DataUrl.from("http://c.com/1"), "c1"));
-    Page pageB = new Page(DataUrl.from("http://b.com").toPageID());
-    pageB.addOutbound(Link.of(DataUrl.from("http://c.com/1"), "c1"));
-    pageB.addOutbound(Link.of(DataUrl.from("http://b.com/2"), "b2"));
-    pageB.addOutbound(Link.of(DataUrl.from("http://b.com/3"), "b3"));
+    Page pageA = new Page(URL.from("http://a.com/1").toPageID());
+    pageA.addOutbound(Link.of(URL.from("http://b.com/1"), "b1"));
+    pageA.addOutbound(Link.of(URL.from("http://b.com/3"), "b3"));
+    pageA.addOutbound(Link.of(URL.from("http://c.com/1"), "c1"));
+    Page pageB = new Page(URL.from("http://b.com").toPageID());
+    pageB.addOutbound(Link.of(URL.from("http://c.com/1"), "c1"));
+    pageB.addOutbound(Link.of(URL.from("http://b.com/2"), "b2"));
+    pageB.addOutbound(Link.of(URL.from("http://b.com/3"), "b3"));
     pages.add(pageA);
     pages.add(pageB);
     return pages;
