@@ -16,6 +16,7 @@
 
 BIN_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 export WI_HOME=$( cd "$( dirname "$BIN_DIR" )" && pwd )
+export WI_VERSION=0.0.1-SNAPSHOT
 
 if [ -f $WI_HOME/conf/webindex-env.sh ]; then
   . $WI_HOME/conf/webindex-env.sh
@@ -23,57 +24,57 @@ else
   . $WI_HOME/conf/webindex-env.sh.example
 fi
 
-: ${HADOOP_CONF_DIR?"HADOOP_CONF_DIR must be set in bash env or conf/webindex-env.sh"}
-if [ ! -d $HADOOP_CONF_DIR ]; then
-  echo "HADOOP_CONF_DIR=$HADOOP_CONF_DIR does not exist"
-  exit 1
-fi
-: ${FLUO_HOME?"FLUO_HOME must be set in bash env or conf/webindex-env.sh"}
-if [ ! -d $FLUO_HOME ]; then
-  echo "FLUO_HOME=$FLUO_HOME does not exist"
-  exit 1
-fi
-
 mkdir -p $WI_HOME/logs
 
-export DATA_CONFIG=$WI_HOME/conf/data.yml
-if [ ! -f $DATA_CONFIG ]; then
-  export DATA_CONFIG=$WI_HOME/conf/data.yml.example
-  if [ ! -f $DATA_CONFIG ]; then
-    echo "Could not find data.yml or data.yml.example in $WI_HOME/conf"
+export WI_CONFIG=$WI_HOME/conf/webindex.yml
+if [ ! -f $WI_CONFIG ]; then
+  export WI_CONFIG=$WI_HOME/conf/webindex.yml.example
+  if [ ! -f $WI_CONFIG ]; then
+    echo "Could not find webindex.yml or webindex.yml.example in $WI_HOME/conf"
     exit 1
   fi
-  echo "Using default config at $DATA_CONFIG"
+fi
+
+log4j_config=$WI_HOME/conf/log4j.properties
+if [ ! -f $log4j_config ]; then
+  log4j_config=$WI_HOME/conf/log4j.properties.example
+  if [ ! -f $log4j_config ]; then
+    echo "Could not find logj4.properties or log4j.properties.example in $WI_HOME/conf"
+    exit 1
+  fi
 fi
 
 function get_prop {
-  echo "`grep $1 $DATA_CONFIG | cut -d ' ' -f 2`"
+  echo "`grep $1 $WI_CONFIG | cut -d ' ' -f 2`"
 }
 
-: ${WI_EXECUTOR_INSTANCES?"WI_EXECUTOR_INSTANCES must be set in bash env or conf/webindex-env.sh"}
-: ${WI_EXECUTOR_MEMORY?"WI_EXECUTOR_MEMORY must be set in bash env or conf/webindex-env.sh"}
-export COMMON_SPARK_OPTS="--master yarn-client --num-executors $WI_EXECUTOR_INSTANCES --executor-memory $WI_EXECUTOR_MEMORY"
 COMMAND_LOGFILE=$WI_HOME/logs/$1_`date +%s`.log
+DATA_DIR=$WI_HOME/data
+mkdir -p $DATA_DIR
 
 case "$1" in
+dev)
+  pkill -9 -f webindex-dev-server
+  cd $WI_HOME
+  mvn -q compile -P webindex-dev-server -Dlog4j.configuration=file:$log4j_config
+  ;;
 getpaths)
-  PATHS_DIR=$WI_HOME/paths
-  mkdir -p $PATHS_DIR
+  mkdir -p $DATA_DIR
   PATHS_FILE="$2".wat.paths
-  if [ ! -f $PATHS_DIR/$PATHS_FILE ]; then
-    rm -f $PATHS_DIR/wat.paths.gz
+  if [ ! -f $DATA_DIR/$PATHS_FILE ]; then
+    rm -f $DATA_DIR/wat.paths.gz
     PATHS_URL=https://aws-publicdatasets.s3.amazonaws.com/common-crawl/crawl-data/CC-MAIN-$2/wat.paths.gz
     if [[ `wget -S --spider $PATHS_URL 2>&1 | grep 'HTTP/1.1 200 OK'` ]]; then
-      wget -P $PATHS_DIR $PATHS_URL
-      gzip -d $PATHS_DIR/wat.paths.gz
-      mv $PATHS_DIR/wat.paths $PATHS_DIR/$PATHS_FILE
-      echo "Downloaded paths file to $PATHS_DIR/$PATHS_FILE"
+      wget -P $DATA_DIR $PATHS_URL
+      gzip -d $DATA_DIR/wat.paths.gz
+      mv $DATA_DIR/wat.paths $DATA_DIR/$PATHS_FILE
+      echo "Downloaded paths file to $DATA_DIR/$PATHS_FILE"
     else
       echo "Crawl paths file for date $2 does not exist at $PATHS_URL"
       exit 1
     fi
   else
-    echo "Crawl paths file already exists at $PATHS_DIR/$PATHS_FILE"
+    echo "Crawl paths file already exists at $DATA_DIR/$PATHS_FILE"
   fi
   ;;
 copy)
@@ -83,7 +84,7 @@ copy)
   fi
   . $BIN_DIR/impl/base.sh
   COMMAND="$SPARK_SUBMIT --class webindex.data.Copy $COMMON_SPARK_OPTS \
-    $WI_DATA_DEP_JAR $WI_HOME/paths/"$2".wat.paths $3 $4"
+    $WI_DATA_DEP_JAR $DATA_DIR/"$2".wat.paths $3 $4"
   if [ "$5" != "-fg" ]; then
     nohup ${COMMAND} &> $COMMAND_LOGFILE &
     echo "Started copy.  Logs are being output to $COMMAND_LOGFILE"
@@ -140,7 +141,7 @@ load-s3)
     exit 1
   fi
   COMMAND="$SPARK_SUBMIT --class webindex.data.LoadS3 $COMMON_SPARK_OPTS \
-    --files $FLUO_PROPS $WI_DATA_DEP_JAR $WI_HOME/paths/"$2".wat.paths $3"
+    --files $FLUO_PROPS $WI_DATA_DEP_JAR $DATA_DIR/"$2".wat.paths $3"
   if [ "$4" != "-fg" ]; then
     nohup ${COMMAND} &> $COMMAND_LOGFILE &
     echo "Started load-s3.  Logs are being output to $COMMAND_LOGFILE"
@@ -155,7 +156,7 @@ test-parser)
   fi
   . $BIN_DIR/impl/base.sh
   COMMAND="$SPARK_SUBMIT --class webindex.data.TestParser $COMMON_SPARK_OPTS \
-    $WI_DATA_DEP_JAR $WI_HOME/paths/"$2".wat.paths $3"
+    $WI_DATA_DEP_JAR $DATA_DIR/"$2".wat.paths $3"
   if [ "$4" != "-fg" ]; then
     nohup ${COMMAND} &> $COMMAND_LOGFILE &
     echo "Started data-verify.  Logs are being output to $COMMAND_LOGFILE"
@@ -164,18 +165,9 @@ test-parser)
   fi
   ;;
 ui)
-  pkill -9 -f webindex-ui
-  WI_UI_JAR=$WI_HOME/modules/ui/target/webindex-ui-0.0.1-SNAPSHOT.jar
-  if [ ! -f $WI_UI_JAR ]; then
-    cd $WI_HOME/modules/ui
-    mvn clean install -DskipTests
-  fi
-  DROPWIZARD_CONFIG=""
-  if [ -f $WI_HOME/conf/dropwizard.yml ]; then
-    DROPWIZARD_CONFIG=$WI_HOME/conf/dropwizard.yml
-    echo "Running with dropwizard config at $DROPWIZARD_CONFIG"
-  fi
-  COMMAND="java -jar $WI_UI_JAR server $DROPWIZARD_CONFIG"
+  pkill -9 -f webindex-web-server
+  cd $WI_HOME
+  COMMAND="mvn -q compile -P webindex-web-server -Dlog4j.configuration=file:$log4j_config"
   if [ "$2" != "-fg" ]; then
     nohup ${COMMAND} &> $COMMAND_LOGFILE &
     echo "Started UI.  Logs are being output to $COMMAND_LOGFILE"
@@ -242,7 +234,7 @@ kill)
     exit 1
   fi
   echo "Killing the webindex UI web server..."
-  pkill -9 -f webindex-ui
+  pkill -9 -f webindex-web-server
 
   echo "Stopping the $FLUO_APP Fluo application (if running)..."
   $FLUO_CMD stop $FLUO_APP
@@ -254,7 +246,8 @@ kill)
 *)
   echo -e "Usage: webindex <command> (<argument>)\n"
   echo -e "Possible commands:\n"
-  echo "  getpaths <DATE>             Retrieves paths file for given crawl <DATE> (i.e 2015-18) and stores file in the 'paths/' directory"
+  echo "  dev                         Runs WebIndex development server"
+  echo "  getpaths <DATE>             Retrieves paths file for given crawl <DATE> (i.e 2015-18) and stores file in the 'data/' directory"
   echo "                              See https://commoncrawl.org/the-data/get-started/ for possible crawl dates"
   echo "  copy <DATE> <RANGE> <DEST>  Copies CommonCrawl data files from S3 given a <DATE> and <RANGE> (i.e 0-8) into HDFS <DEST> directory"
   echo "  init [<SRC>]                Initializes and starts the WebIndex application. Optionally, a <SRC> HDFS directory can be added to"

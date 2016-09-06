@@ -32,10 +32,10 @@
     <module>modules/core</module>
     <module>modules/data</module>
     <module>modules/ui</module>
+    <module>modules/integration</module>
   </modules>
   <properties>
     <accumulo.version>1.7.1</accumulo.version>
-    <dropwizard.version>0.8.2</dropwizard.version>
     <fluo-recipes.version>1.0.0-incubating-SNAPSHOT</fluo-recipes.version>
     <fluo.version>1.0.0-incubating-SNAPSHOT</fluo.version>
     <hadoop.version>2.6.3</hadoop.version>
@@ -57,24 +57,29 @@
         <version>2.3.1</version>
       </dependency>
       <dependency>
+        <groupId>com.google.guava</groupId>
+        <artifactId>guava</artifactId>
+        <version>14.0.1</version>
+      </dependency>
+      <dependency>
+        <groupId>com.sparkjava</groupId>
+        <artifactId>spark-core</artifactId>
+        <version>2.5</version>
+      </dependency>
+      <dependency>
+        <groupId>com.sparkjava</groupId>
+        <artifactId>spark-template-freemarker</artifactId>
+        <version>2.3</version>
+      </dependency>
+      <dependency>
+        <groupId>commons-io</groupId>
+        <artifactId>commons-io</artifactId>
+        <version>2.4</version>
+      </dependency>
+      <dependency>
         <groupId>commons-lang</groupId>
         <artifactId>commons-lang</artifactId>
         <version>2.6</version>
-      </dependency>
-      <dependency>
-        <groupId>io.dropwizard</groupId>
-        <artifactId>dropwizard-assets</artifactId>
-        <version>${dropwizard.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.dropwizard</groupId>
-        <artifactId>dropwizard-core</artifactId>
-        <version>${dropwizard.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.dropwizard</groupId>
-        <artifactId>dropwizard-views-freemarker</artifactId>
-        <version>${dropwizard.version}</version>
       </dependency>
       <dependency>
         <groupId>io.github.astralway</groupId>
@@ -183,6 +188,11 @@
         <version>3.4.6</version>
       </dependency>
       <dependency>
+        <groupId>org.jsoup</groupId>
+        <artifactId>jsoup</artifactId>
+        <version>1.9.2</version>
+      </dependency>
+      <dependency>
         <groupId>org.netpreserve.commons</groupId>
         <artifactId>webarchive-commons</artifactId>
         <version>1.1.2</version>
@@ -226,13 +236,14 @@
               <exclude>README.md</exclude>
               <exclude>docs/**.md</exclude>
               <exclude>conf/webindex-tests.txt</exclude>
+              <exclude>src/test/resources/5-pages.txt</exclude>
               <exclude>src/test/resources/*.warc</exclude>
               <exclude>src/test/resources/data/set1/*.txt</exclude>
               <exclude>src/main/resources/splits/*.txt</exclude>
-              <exclude>src/main/resources/webindex/ui/views/*.ftl</exclude>
-              <exclude>src/main/resources/webindex/ui/views/common/*.ftl</exclude>
+              <exclude>src/main/resources/spark/template/freemarker/*.ftl</exclude>
+              <exclude>src/main/resources/spark/template/freemarker/common/*.ftl</exclude>
               <exclude>logs/*</exclude>
-              <exclude>paths/*</exclude>
+              <exclude>data/*</exclude>
               <exclude>dependency-reduced-pom.xml</exclude>
             </excludes>
           </configuration>
@@ -246,6 +257,11 @@
               <fluo.it.instance.clear>false</fluo.it.instance.clear>
             </systemPropertyVariables>
           </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>exec-maven-plugin</artifactId>
+          <version>1.5.0</version>
         </plugin>
       </plugins>
     </pluginManagement>

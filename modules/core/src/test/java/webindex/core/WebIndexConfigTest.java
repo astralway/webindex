@@ -12,14 +12,18 @@
  * the License.
  */
 
-package webindex.ui;
+package webindex.core;
 
-import io.dropwizard.Configuration;
-import webindex.core.DataConfig;
+import org.junit.Assert;
+import org.junit.Test;
 
-public class WebIndexConfig extends Configuration {
+public class WebIndexConfigTest {
 
-  public static DataConfig getDataConfig() {
-    return DataConfig.load();
+  @Test
+  public void testBasic() throws Exception {
+    WebIndexConfig config = WebIndexConfig.load("../../conf/webindex.yml.example", false);
+    Assert.assertEquals("webindex_search", config.accumuloIndexTable);
+    Assert.assertEquals("webindex", config.fluoApp);
+    Assert.assertEquals("/cc/temp", config.hdfsTempDir);
   }
 }

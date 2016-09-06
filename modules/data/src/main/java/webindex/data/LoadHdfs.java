@@ -37,7 +37,7 @@ import org.archive.io.ArchiveRecord;
 import org.archive.io.warc.WARCReaderFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import webindex.core.DataConfig;
+import webindex.core.WebIndexConfig;
 import webindex.core.models.Page;
 import webindex.data.fluo.PageLoader;
 import webindex.data.spark.IndexEnv;
@@ -57,7 +57,7 @@ public class LoadHdfs {
     IndexEnv.validateDataDir(dataDir);
 
     final String hadoopConfDir = IndexEnv.getHadoopConfDir();
-    final int rateLimit = DataConfig.load().getLoadRateLimit();
+    final int rateLimit = WebIndexConfig.load().getLoadRateLimit();
 
     List<String> loadPaths = new ArrayList<>();
     FileSystem hdfs = IndexEnv.getHDFS();

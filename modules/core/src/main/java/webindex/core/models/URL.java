@@ -18,6 +18,8 @@ import java.io.Serializable;
 import java.util.Objects;
 import java.util.function.Function;
 
+import com.google.common.net.HostSpecifier;
+import com.google.common.net.InternetDomainName;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.validator.routines.InetAddressValidator;
 import org.slf4j.Logger;
@@ -61,6 +63,19 @@ public class URL implements Serializable {
       log.debug(msg);
     }
     throw new IllegalArgumentException(msg);
+  }
+
+  public static String domainFromHost(String host) {
+    return InternetDomainName.from(host).topPrivateDomain().name();
+  }
+
+  public static boolean isValidHost(String host) {
+    return HostSpecifier.isValid(host) && InternetDomainName.isValid(host)
+        && InternetDomainName.from(host).isUnderPublicSuffix();
+  }
+
+  public static URL from(String rawUrl) {
+    return URL.from(rawUrl, URL::domainFromHost, URL::isValidHost);
   }
 
   public static URL from(String rawUrl, Function<String, String> domainFromHost,
@@ -129,6 +144,10 @@ public class URL implements Serializable {
     }
 
     return new URL(domain, host, path, port, secure, ipHost);
+  }
+
+  public static boolean isValid(String rawUrl) {
+    return URL.isValid(rawUrl, URL::domainFromHost, URL::isValidHost);
   }
 
   public static boolean isValid(String rawUrl, Function<String, String> domainFromHost,

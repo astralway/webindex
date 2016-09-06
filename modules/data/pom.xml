@@ -32,7 +32,6 @@
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
-      <version>14.0.1</version>
     </dependency>
     <dependency>
       <groupId>commons-io</groupId>
@@ -64,10 +63,6 @@
     <dependency>
       <groupId>org.apache.fluo</groupId>
       <artifactId>fluo-core</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.fluo</groupId>
-      <artifactId>fluo-mapreduce</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.fluo</groupId>
@@ -148,41 +143,47 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-shade-plugin</artifactId>
-        <executions>
-          <execution>
-            <goals>
-              <goal>shade</goal>
-            </goals>
-            <phase>package</phase>
-            <configuration>
-              <shadedArtifactAttached>true</shadedArtifactAttached>
-              <shadedClassifierName>shaded</shadedClassifierName>
-              <!-- Relocate Thrift because Accumulo 1.8 uses Thrift 0.9.3 and Spark uses 0.9.1.  -->
-              <relocations>
-                <relocation>
-                  <pattern>org.apache.thrift</pattern>
-                  <shadedPattern>webindex.org.apache.thrift</shadedPattern>
-                </relocation>
-              </relocations>
-              <filters>
-                <filter>
-                  <artifact>*:*</artifact>
-                  <excludes>
-                    <exclude>META-INF/*.SF</exclude>
-                    <exclude>META-INF/*.DSA</exclude>
-                    <exclude>META-INF/*.RSA</exclude>
-                  </excludes>
-                </filter>
-              </filters>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-    </plugins>
-  </build>
+  <profiles>
+    <profile>
+      <id>create-shade-jar</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-shade-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>spark-shade-jar</id>
+                <goals>
+                  <goal>shade</goal>
+                </goals>
+                <phase>package</phase>
+                <configuration>
+                  <shadedArtifactAttached>true</shadedArtifactAttached>
+                  <shadedClassifierName>shaded</shadedClassifierName>
+                  <!-- Relocate Thrift because Accumulo 1.8 uses Thrift 0.9.3 and Spark uses 0.9.1.  -->
+                  <relocations>
+                    <relocation>
+                      <pattern>org.apache.thrift</pattern>
+                      <shadedPattern>webindex.org.apache.thrift</shadedPattern>
+                    </relocation>
+                  </relocations>
+                  <filters>
+                    <filter>
+                      <artifact>*:*</artifact>
+                      <excludes>
+                        <exclude>META-INF/*.SF</exclude>
+                        <exclude>META-INF/*.DSA</exclude>
+                        <exclude>META-INF/*.RSA</exclude>
+                      </excludes>
+                    </filter>
+                  </filters>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>
