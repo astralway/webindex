@@ -36,16 +36,17 @@ import org.archive.io.ArchiveReader;
 import org.archive.io.ArchiveRecord;
 import scala.Tuple2;
 import webindex.core.Constants;
+import webindex.core.IndexClient;
 import webindex.core.models.Link;
 import webindex.core.models.Page;
 import webindex.core.models.URL;
+import webindex.core.models.UriInfo;
 import webindex.data.fluo.DomainMap;
 import webindex.data.fluo.PageObserver;
-import webindex.data.fluo.UriCountExport;
+
 import webindex.data.fluo.UriMap;
-import webindex.data.fluo.UriMap.UriInfo;
+
 import webindex.data.util.ArchiveUtil;
-import webindex.data.util.FluoConstants;
 import webindex.serialization.WebindexKryoFactory;
 
 public class IndexUtil {
@@ -119,7 +120,7 @@ public class IndexUtil {
           List<Tuple2<RowColumn, Bytes>> ret = new ArrayList<>();
           String pageID = page.getPageID();
           if (links1.size() > 0) {
-            addRCV(ret, "p:" + pageID, FluoConstants.PAGE_CUR_COL, gson.toJson(page));
+            addRCV(ret, "p:" + pageID, Constants.PAGE_CUR_COL, gson.toJson(page));
           }
           for (Link link : links1) {
             addRCV(ret, "p:" + link.getPageID(), new Column(Constants.INLINKS, pageID),
@@ -133,12 +134,12 @@ public class IndexUtil {
           List<Tuple2<RowColumn, Bytes>> ret = new ArrayList<>();
           String uri = t._1();
           UriInfo uriInfo = t._2();
-          addRCV(ret, "t:" + UriCountExport.revEncodeLong(uriInfo.linksTo) + ":" + uri,
-              Column.EMPTY, uriInfo.linksTo);
+          addRCV(ret, "t:" + IndexClient.revEncodeLong(uriInfo.linksTo) + ":" + uri, Column.EMPTY,
+              uriInfo.linksTo);
           String domain = URL.fromPageID(t._1()).getReverseDomain();
-          String domainRow = UriCountExport.encodeDomainRankPageId(domain, uriInfo.linksTo, uri);
+          String domainRow = IndexClient.encodeDomainRankPageId(domain, uriInfo.linksTo, uri);
           addRCV(ret, domainRow, new Column(Constants.RANK, ""), uriInfo.linksTo);
-          addRCV(ret, "p:" + uri, FluoConstants.PAGE_INCOUNT_COL, uriInfo.linksTo);
+          addRCV(ret, "p:" + uri, Constants.PAGE_INCOUNT_COL, uriInfo.linksTo);
           return ret;
         }));
 

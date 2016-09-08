@@ -38,7 +38,7 @@ import org.apache.fluo.api.config.FluoConfiguration;
 import org.apache.fluo.api.data.Bytes;
 import org.apache.fluo.api.data.RowColumn;
 import org.apache.fluo.core.util.AccumuloUtil;
-import org.apache.fluo.recipes.accumulo.export.TableInfo;
+import org.apache.fluo.recipes.accumulo.export.AccumuloExporter;
 import org.apache.fluo.recipes.accumulo.ops.TableOperations;
 import org.apache.fluo.recipes.core.common.TableOptimizations;
 import org.apache.fluo.recipes.spark.FluoSparkHelper;
@@ -56,9 +56,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import webindex.core.WebIndexConfig;
 import webindex.core.models.Page;
+import webindex.core.models.UriInfo;
 import webindex.data.FluoApp;
 import webindex.data.fluo.PageObserver;
-import webindex.data.fluo.UriMap.UriInfo;
 
 public class IndexEnv {
 
@@ -197,11 +197,12 @@ public class IndexEnv {
     }
   }
 
-  public void configureApplication(FluoConfiguration appConfig) {
-    FluoApp.configureApplication(appConfig,
-        new TableInfo(fluoConfig.getAccumuloInstance(), fluoConfig.getAccumuloZookeepers(),
-            fluoConfig.getAccumuloUser(), fluoConfig.getAccumuloPassword(), accumuloTable),
-        numBuckets, numTablets);
+  public void configureApplication(FluoConfiguration config) {
+    FluoApp.configureApplication(
+        config,
+        new AccumuloExporter.Configuration(fluoConfig.getAccumuloInstance(), fluoConfig
+            .getAccumuloZookeepers(), fluoConfig.getAccumuloUser(), fluoConfig
+            .getAccumuloPassword(), accumuloTable), numBuckets, numTablets);
   }
 
   public void initializeIndexes(JavaSparkContext ctx, JavaRDD<Page> pages, IndexStats stats)

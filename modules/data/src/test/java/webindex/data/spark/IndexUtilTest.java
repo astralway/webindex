@@ -34,8 +34,8 @@ import scala.Tuple2;
 import webindex.core.models.Link;
 import webindex.core.models.Page;
 import webindex.core.models.URL;
+import webindex.core.models.UriInfo;
 import webindex.data.SparkTestUtil;
-import webindex.data.fluo.UriMap.UriInfo;
 
 public class IndexUtilTest {
 

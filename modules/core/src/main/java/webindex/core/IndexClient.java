@@ -14,17 +14,31 @@
 
 package webindex.core;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Optional;
 
 import com.google.gson.Gson;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.lexicoder.Lexicoder;
+import org.apache.accumulo.core.client.lexicoder.ReverseLexicoder;
+import org.apache.accumulo.core.client.lexicoder.ULongLexicoder;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.commons.codec.binary.Hex;
+import org.apache.fluo.api.data.Bytes;
+import org.apache.fluo.api.data.Column;
+import org.apache.fluo.api.data.RowColumn;
+import org.apache.fluo.recipes.accumulo.export.AccumuloExporter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import webindex.core.models.DomainStats;
@@ -34,6 +48,10 @@ import webindex.core.models.Page;
 import webindex.core.models.Pages;
 import webindex.core.models.TopResults;
 import webindex.core.models.URL;
+import webindex.core.models.UriInfo;
+import webindex.core.models.export.DomainUpdate;
+import webindex.core.models.export.PageUpdate;
+import webindex.core.models.export.UriUpdate;
 import webindex.core.util.Pager;
 
 public class IndexClient {
@@ -230,5 +248,80 @@ public class IndexClient {
       log.error("Table {} not found", accumuloIndexTable);
     }
     return links;
+  }
+
+  public static Collection<Mutation> genDomainMutations(DomainUpdate update, long seq) {
+    Map<RowColumn, Bytes> oldData = genDomainData(update.getDomain(), update.getOldPageCount());
+    Map<RowColumn, Bytes> newData = genDomainData(update.getDomain(), update.getNewPageCount());
+    return AccumuloExporter.generateMutations(seq, oldData, newData);
+  }
+
+  public static Map<RowColumn, Bytes> genDomainData(String domain, Long pageCount) {
+    if (pageCount == 0) {
+      return Collections.emptyMap();
+    }
+    return Collections.singletonMap(new RowColumn("d:" + domain, Constants.PAGECOUNT_COL),
+        Bytes.of(pageCount + ""));
+  }
+
+  public static Collection<Mutation> genPageMutations(PageUpdate update, long seq) {
+    int listSize = update.getAddedLinks().size() + update.getDeletedLinks().size() + 1;
+    ArrayList<Mutation> mutations = new ArrayList<>(listSize);
+
+    Mutation jsonMutation = new Mutation("p:" + update.getUri());
+    if (update.getJson().equals(Page.DELETE_JSON)) {
+      jsonMutation.putDelete(Constants.PAGE, Constants.CUR, seq);
+    } else {
+      jsonMutation.put(Constants.PAGE, Constants.CUR, seq, update.getJson());
+    }
+    mutations.add(jsonMutation);
+
+    // invert links on export
+    for (Link link : update.getAddedLinks()) {
+      Mutation m = new Mutation("p:" + link.getPageID());
+      m.put(Constants.INLINKS, update.getUri(), seq, link.getAnchorText());
+      mutations.add(m);
+    }
+
+    for (Link link : update.getDeletedLinks()) {
+      Mutation m = new Mutation("p:" + link.getPageID());
+      m.putDelete(Constants.INLINKS, update.getUri(), seq);
+      mutations.add(m);
+    }
+    return mutations;
+  }
+
+  public static Collection<Mutation> genUriMutations(UriUpdate update, long seq) {
+    Map<RowColumn, Bytes> oldData = genUriData(update.getUri(), update.getOldInfo());
+    Map<RowColumn, Bytes> newData = genUriData(update.getUri(), update.getNewInfo());
+    return AccumuloExporter.generateMutations(seq, oldData, newData);
+  }
+
+  public static Map<RowColumn, Bytes> genUriData(String uri, UriInfo info) {
+    if (info.equals(UriInfo.ZERO)) {
+      return Collections.emptyMap();
+    }
+
+    Map<RowColumn, Bytes> rcMap = new HashMap<>();
+    Bytes linksTo = Bytes.of("" + info.linksTo);
+    rcMap.put(new RowColumn(createTotalRow(uri, info.linksTo), Column.EMPTY), linksTo);
+    String domain = URL.fromPageID(uri).getReverseDomain();
+    String domainRow = encodeDomainRankPageId(domain, info.linksTo, uri);
+    rcMap.put(new RowColumn(domainRow, new Column(Constants.RANK, "")), linksTo);
+    rcMap.put(new RowColumn("p:" + uri, Constants.PAGE_INCOUNT_COL), linksTo);
+    return rcMap;
+  }
+
+  public static String revEncodeLong(Long num) {
+    Lexicoder<Long> lexicoder = new ReverseLexicoder<>(new ULongLexicoder());
+    return Hex.encodeHexString(lexicoder.encode(num));
+  }
+
+  public static String encodeDomainRankPageId(String domain, long linksTo, String pageId) {
+    return "d:" + domain + ":" + revEncodeLong(linksTo) + ":" + pageId;
+  }
+
+  private static String createTotalRow(String uri, long curr) {
+    return "t:" + revEncodeLong(curr) + ":" + uri;
   }
 }

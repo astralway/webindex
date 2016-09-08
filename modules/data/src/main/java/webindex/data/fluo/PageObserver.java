@@ -14,7 +14,9 @@
 
 package webindex.data.fluo;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -24,7 +26,6 @@ import org.apache.fluo.api.client.TransactionBase;
 import org.apache.fluo.api.data.Bytes;
 import org.apache.fluo.api.data.Column;
 import org.apache.fluo.api.observer.AbstractObserver;
-import org.apache.fluo.recipes.accumulo.export.AccumuloExport;
 import org.apache.fluo.recipes.core.data.RowHasher;
 import org.apache.fluo.recipes.core.export.ExportQueue;
 import org.apache.fluo.recipes.core.map.CollisionFreeMap;
@@ -32,11 +33,13 @@ import org.apache.fluo.recipes.core.types.TypedSnapshotBase.Value;
 import org.apache.fluo.recipes.core.types.TypedTransactionBase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import webindex.core.Constants;
 import webindex.core.models.Link;
 import webindex.core.models.Page;
+import webindex.core.models.UriInfo;
+import webindex.core.models.export.IndexUpdate;
+import webindex.core.models.export.PageUpdate;
 import webindex.data.FluoApp;
-import webindex.data.fluo.UriMap.UriInfo;
-import webindex.data.util.FluoConstants;
 
 public class PageObserver extends AbstractObserver {
 
@@ -44,7 +47,7 @@ public class PageObserver extends AbstractObserver {
   private static final Gson gson = new Gson();
 
   private CollisionFreeMap<String, UriInfo> uriMap;
-  private ExportQueue<String, AccumuloExport<String>> exportQ;
+  private ExportQueue<String, IndexUpdate> exportQ;
 
   private static final RowHasher PAGE_ROW_HASHER = new RowHasher("p");
 
@@ -61,18 +64,18 @@ public class PageObserver extends AbstractObserver {
   @Override
   public void process(TransactionBase tx, Bytes row, Column col) throws Exception {
 
-    TypedTransactionBase ttx = FluoConstants.TYPEL.wrap(tx);
+    TypedTransactionBase ttx = Constants.TYPEL.wrap(tx);
 
     Map<Column, Value> pages =
-        ttx.get().row(row).columns(FluoConstants.PAGE_NEW_COL, FluoConstants.PAGE_CUR_COL);
+        ttx.get().row(row).columns(Constants.PAGE_NEW_COL, Constants.PAGE_CUR_COL);
 
-    String nextJson = pages.get(FluoConstants.PAGE_NEW_COL).toString("");
+    String nextJson = pages.get(Constants.PAGE_NEW_COL).toString("");
     if (nextJson.isEmpty()) {
       log.error("An empty page was set at row {} col {}", row.toString(), col.toString());
       return;
     }
 
-    Page curPage = Page.fromJson(gson, pages.get(FluoConstants.PAGE_CUR_COL).toString(""));
+    Page curPage = Page.fromJson(gson, pages.get(Constants.PAGE_CUR_COL).toString(""));
     Set<Link> curLinks = curPage.getOutboundLinks();
 
     Map<String, UriInfo> updates = new HashMap<>();
@@ -80,10 +83,10 @@ public class PageObserver extends AbstractObserver {
 
     Page nextPage = Page.fromJson(gson, nextJson);
     if (nextPage.isDelete()) {
-      ttx.mutate().row(row).col(FluoConstants.PAGE_CUR_COL).delete();
+      ttx.mutate().row(row).col(Constants.PAGE_CUR_COL).delete();
       updates.put(pageUri, new UriInfo(0, -1));
     } else {
-      ttx.mutate().row(row).col(FluoConstants.PAGE_CUR_COL).set(nextJson);
+      ttx.mutate().row(row).col(Constants.PAGE_CUR_COL).set(nextJson);
       if (curPage.isEmpty()) {
         updates.put(pageUri, new UriInfo(0, 1));
       }
@@ -91,26 +94,26 @@ public class PageObserver extends AbstractObserver {
 
     Set<Link> nextLinks = nextPage.getOutboundLinks();
 
-    Sets.SetView<Link> addLinks = Sets.difference(nextLinks, curLinks);
+    List<Link> addLinks = new ArrayList<>(Sets.difference(nextLinks, curLinks));
     for (Link link : addLinks) {
       updates.put(link.getPageID(), new UriInfo(1, 0));
     }
 
-    Sets.SetView<Link> delLinks = Sets.difference(curLinks, nextLinks);
+    List<Link> delLinks = new ArrayList<>(Sets.difference(curLinks, nextLinks));
     for (Link link : delLinks) {
       updates.put(link.getPageID(), new UriInfo(-1, 0));
     }
 
     uriMap.update(tx, updates);
 
-    exportQ.add(tx, pageUri, new PageExport(nextJson, addLinks, delLinks));
+    exportQ.add(tx, pageUri, new PageUpdate(pageUri, nextJson, addLinks, delLinks));
 
     // clean up
-    ttx.mutate().row(row).col(FluoConstants.PAGE_NEW_COL).delete();
+    ttx.mutate().row(row).col(Constants.PAGE_NEW_COL).delete();
   }
 
   @Override
   public ObservedColumn getObservedColumn() {
-    return new ObservedColumn(FluoConstants.PAGE_NEW_COL, NotificationType.STRONG);
+    return new ObservedColumn(Constants.PAGE_NEW_COL, NotificationType.STRONG);
   }
 }
