@@ -98,7 +98,7 @@ public class IndexIT extends AccumuloExportITBase {
       if (p.isEmpty() || p.getOutboundLinks().isEmpty()) {
         continue;
       }
-      pageMap.put(URL.fromPageID(p.getPageID()), p);
+      pageMap.put(URL.fromUri(p.getUri()), p);
     }
     ar.close();
     return pageMap;

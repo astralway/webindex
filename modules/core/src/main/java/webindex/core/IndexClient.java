@@ -20,7 +20,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Optional;
 
 import com.google.gson.Gson;
 import org.apache.accumulo.core.client.Connector;
@@ -80,7 +79,7 @@ public class IndexClient {
         if (entry.isNext()) {
           results.setNext(row);
         } else {
-          String url = URL.fromPageID(row.split(":", 3)[2]).toString();
+          String url = URL.fromUri(row.split(":", 3)[2]).toString();
           Long num = Long.parseLong(entry.getValue().toString());
           results.addResult(url, num);
         }
@@ -113,7 +112,7 @@ public class IndexClient {
 
     try {
       Scanner scanner = conn.createScanner(accumuloIndexTable, Authorizations.EMPTY);
-      scanner.setRange(Range.exact("p:" + url.toPageID(), Constants.PAGE));
+      scanner.setRange(Range.exact("p:" + url.toUri(), Constants.PAGE));
       for (Map.Entry<Key, Value> entry : scanner) {
         switch (entry.getKey().getColumnQualifier().toString()) {
           case Constants.INCOUNT:
@@ -131,7 +130,7 @@ public class IndexClient {
     }
 
     if (page == null) {
-      page = new Page(url.toPageID());
+      page = new Page(url.toUri());
     }
     page.setNumInbound(incount);
     return page;
@@ -172,8 +171,7 @@ public class IndexClient {
               pages.setNext(entry.getKey().getRowData().toString().split(":", 3)[2]);
             } else {
               String url =
-                  URL.fromPageID(entry.getKey().getRowData().toString().split(":", 4)[3])
-                      .toString();
+                  URL.fromUri(entry.getKey().getRowData().toString().split(":", 4)[3]).toString();
               Long count = Long.parseLong(entry.getValue().toString());
               pages.addPage(url, count);
             }
@@ -204,18 +202,18 @@ public class IndexClient {
 
     try {
       Scanner scanner = conn.createScanner(accumuloIndexTable, Authorizations.EMPTY);
-      String row = "p:" + url.toPageID();
+      String row = "p:" + url.toUri();
       if (linkType.equals("in")) {
         Page page = getPage(rawUrl);
         String cf = Constants.INLINKS;
         links.setTotal(page.getNumInbound());
         Pager pager = Pager.build(scanner, Range.exact(row, cf), PAGE_SIZE, entry -> {
-          String pageID = entry.getKey().getColumnQualifier().toString();
+          String uri = entry.getKey().getColumnQualifier().toString();
           if (entry.isNext()) {
-            links.setNext(pageID);
+            links.setNext(uri);
           } else {
             String anchorText = entry.getValue().toString();
-            links.addLink(Link.of(pageID, anchorText));
+            links.addLink(Link.of(uri, anchorText));
           }
         });
         if (next.isEmpty()) {
@@ -238,7 +236,7 @@ public class IndexClient {
               links.addLink(l);
               add++;
             } else {
-              links.setNext(l.getPageID());
+              links.setNext(l.getUri());
               break;
             }
           }
@@ -278,13 +276,13 @@ public class IndexClient {
 
     // invert links on export
     for (Link link : update.getAddedLinks()) {
-      Mutation m = new Mutation("p:" + link.getPageID());
+      Mutation m = new Mutation("p:" + link.getUri());
       m.put(Constants.INLINKS, update.getUri(), seq, link.getAnchorText());
       mutations.add(m);
     }
 
     for (Link link : update.getDeletedLinks()) {
-      Mutation m = new Mutation("p:" + link.getPageID());
+      Mutation m = new Mutation("p:" + link.getUri());
       m.putDelete(Constants.INLINKS, update.getUri(), seq);
       mutations.add(m);
     }
@@ -305,8 +303,8 @@ public class IndexClient {
     Map<RowColumn, Bytes> rcMap = new HashMap<>();
     Bytes linksTo = Bytes.of("" + info.linksTo);
     rcMap.put(new RowColumn(createTotalRow(uri, info.linksTo), Column.EMPTY), linksTo);
-    String domain = URL.fromPageID(uri).getReverseDomain();
-    String domainRow = encodeDomainRankPageId(domain, info.linksTo, uri);
+    String domain = URL.fromUri(uri).getReverseDomain();
+    String domainRow = encodeDomainRankUri(domain, info.linksTo, uri);
     rcMap.put(new RowColumn(domainRow, new Column(Constants.RANK, "")), linksTo);
     rcMap.put(new RowColumn("p:" + uri, Constants.PAGE_INCOUNT_COL), linksTo);
     return rcMap;
@@ -317,8 +315,8 @@ public class IndexClient {
     return Hex.encodeHexString(lexicoder.encode(num));
   }
 
-  public static String encodeDomainRankPageId(String domain, long linksTo, String pageId) {
-    return "d:" + domain + ":" + revEncodeLong(linksTo) + ":" + pageId;
+  public static String encodeDomainRankUri(String domain, long linksTo, String uri) {
+    return "d:" + domain + ":" + revEncodeLong(linksTo) + ":" + uri;
   }
 
   private static String createTotalRow(String uri, long curr) {

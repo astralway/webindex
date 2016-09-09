@@ -23,14 +23,14 @@ public class LinkTest {
   public void testBasic() {
     Link link1 = Link.of("com.a>>o>/", "anchor text");
     Assert.assertEquals("http://a.com/", link1.getUrl());
-    Assert.assertEquals("com.a>>o>/", link1.getPageID());
+    Assert.assertEquals("com.a>>o>/", link1.getUri());
     Assert.assertEquals("anchor text", link1.getAnchorText());
 
     Link link2 = Link.of("com.a>>o>/", "other text");
     Assert.assertEquals(link1, link2);
 
     Link link3 = Link.of(URLTest.from("http://a.com"), "more other text");
-    Assert.assertEquals("com.a>>o>/", link3.getPageID());
+    Assert.assertEquals("com.a>>o>/", link3.getUri());
     Assert.assertEquals(link1, link3);
   }
 

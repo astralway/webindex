@@ -106,11 +106,11 @@ public class IndexUtilTest {
 
   private List<Page> getPagesSet1() {
     List<Page> pages = new ArrayList<>();
-    Page pageA = new Page(URL.from("http://a.com/1").toPageID());
+    Page pageA = new Page(URL.from("http://a.com/1").toUri());
     pageA.addOutbound(Link.of(URL.from("http://b.com/1"), "b1"));
     pageA.addOutbound(Link.of(URL.from("http://b.com/3"), "b3"));
     pageA.addOutbound(Link.of(URL.from("http://c.com/1"), "c1"));
-    Page pageB = new Page(URL.from("http://b.com").toPageID());
+    Page pageB = new Page(URL.from("http://b.com").toUri());
     pageB.addOutbound(Link.of(URL.from("http://c.com/1"), "c1"));
     pageB.addOutbound(Link.of(URL.from("http://b.com/2"), "b2"));
     pageB.addOutbound(Link.of(URL.from("http://b.com/3"), "b3"));

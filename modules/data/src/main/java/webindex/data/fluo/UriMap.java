@@ -93,7 +93,7 @@ public class UriMap {
 
         exportQ.add(tx, uri, new UriUpdate(uri, oldVal, newVal));
 
-        String pageDomain = URL.fromPageID(uri).getReverseDomain();
+        String pageDomain = URL.fromUri(uri).getReverseDomain();
         if (oldVal.equals(UriInfo.ZERO) && !newVal.equals(UriInfo.ZERO)) {
           domainUpdates.merge(pageDomain, 1L, (o, n) -> o + n);
         } else if (newVal.equals(UriInfo.ZERO) && !oldVal.equals(UriInfo.ZERO)) {

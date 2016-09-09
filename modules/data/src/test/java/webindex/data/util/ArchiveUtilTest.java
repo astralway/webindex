@@ -43,7 +43,7 @@ public class ArchiveUtilTest {
     Assert
         .assertEquals(
             "com.1079ishot>>o>/presale-password-trey-songz-young-jeezy-pre-christmas-bash/screen-shot-2011-10-27-at-11-12-06-am/",
-            page.getPageID());
+            page.getUri());
 
     Assert.assertEquals("2015-04-18T03:35:13Z", page.getCrawlDate());
     Assert.assertEquals("nginx/1.6.2", page.getServer());

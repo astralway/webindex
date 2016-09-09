@@ -32,7 +32,7 @@ public class URL implements Serializable {
   private static final String URL_SEP_REGEX = "[/?#]";
   private static final String HTTP_PROTO = "http://";
   private static final String HTTPS_PROTO = "https://";
-  private static final String PAGE_ID_SEP = ">";
+  private static final String URI_SEP = ">";
   public static final InetAddressValidator validator = InetAddressValidator.getInstance();
 
   private static final long serialVersionUID = 1L;
@@ -81,8 +81,8 @@ public class URL implements Serializable {
   public static URL from(String rawUrl, Function<String, String> domainFromHost,
       Function<String, Boolean> isValidHost) {
 
-    if (rawUrl.contains(PAGE_ID_SEP)) {
-      badUrl(false, "Skipping raw URL as it contains '" + PAGE_ID_SEP + "':" + rawUrl);
+    if (rawUrl.contains(URI_SEP)) {
+      badUrl(false, "Skipping raw URL as it contains '" + URI_SEP + "':" + rawUrl);
     }
 
     String trimUrl = rawUrl.trim();
@@ -227,21 +227,21 @@ public class URL implements Serializable {
     return url.toString();
   }
 
-  public String toPageID() {
+  public String toUri() {
     String reverseDomain = getReverseDomain();
     String nonDomain = getReverseHost().substring(reverseDomain.length());
     String portStr = "";
     if ((!secure && port != 80) || (secure && port != 443)) {
       portStr = Integer.toString(port);
     }
-    return reverseDomain + PAGE_ID_SEP + nonDomain + PAGE_ID_SEP + (secure ? "s" : "o") + portStr
-        + PAGE_ID_SEP + path;
+    return reverseDomain + URI_SEP + nonDomain + URI_SEP + (secure ? "s" : "o") + portStr + URI_SEP
+        + path;
   }
 
-  public static URL fromPageID(String pageID) {
-    String[] idArgs = pageID.split(PAGE_ID_SEP);
+  public static URL fromUri(String uri) {
+    String[] idArgs = uri.split(URI_SEP);
     if (idArgs.length != 4) {
-      throw new IllegalArgumentException("Page ID has too few or many parts: " + pageID);
+      throw new IllegalArgumentException("Page ID has too few or many parts: " + uri);
     }
     String domain = idArgs[0];
     String host = idArgs[0] + idArgs[1];
@@ -257,7 +257,7 @@ public class URL implements Serializable {
       port = 443;
     } else if (!idArgs[2].startsWith("o")) {
       throw new IllegalArgumentException("Page ID does not have port info beg with 's' or 'o': "
-          + pageID);
+          + uri);
     }
     if (idArgs[2].length() > 1) {
       port = Integer.parseInt(idArgs[2].substring(1));

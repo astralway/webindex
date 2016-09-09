@@ -96,12 +96,12 @@ public class PageObserver extends AbstractObserver {
 
     List<Link> addLinks = new ArrayList<>(Sets.difference(nextLinks, curLinks));
     for (Link link : addLinks) {
-      updates.put(link.getPageID(), new UriInfo(1, 0));
+      updates.put(link.getUri(), new UriInfo(1, 0));
     }
 
     List<Link> delLinks = new ArrayList<>(Sets.difference(curLinks, nextLinks));
     for (Link link : delLinks) {
-      updates.put(link.getPageID(), new UriInfo(-1, 0));
+      updates.put(link.getUri(), new UriInfo(-1, 0));
     }
 
     uriMap.update(tx, updates);

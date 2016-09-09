@@ -64,13 +64,12 @@ public class PageLoader implements Loader {
 
     switch (action) {
       case DELETE:
-        ttx.mutate().row(rowHasher.addHash(delUrl.toPageID())).col(Constants.PAGE_NEW_COL)
+        ttx.mutate().row(rowHasher.addHash(delUrl.toUri())).col(Constants.PAGE_NEW_COL)
             .set(Page.DELETE_JSON);
         break;
       case UPDATE:
         String newJson = gson.toJson(page);
-        ttx.mutate().row(rowHasher.addHash(page.getPageID())).col(Constants.PAGE_NEW_COL)
-            .set(newJson);
+        ttx.mutate().row(rowHasher.addHash(page.getUri())).col(Constants.PAGE_NEW_COL).set(newJson);
         break;
       default:
         log.error("PageUpdate called with no action");
