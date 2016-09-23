@@ -21,6 +21,7 @@ import java.util.Optional;
 
 import org.apache.fluo.api.client.TransactionBase;
 import org.apache.fluo.api.config.FluoConfiguration;
+import org.apache.fluo.api.metrics.Meter;
 import org.apache.fluo.api.observer.Observer.Context;
 import org.apache.fluo.recipes.core.export.ExportQueue;
 import org.apache.fluo.recipes.core.map.CollisionFreeMap;
@@ -70,6 +71,8 @@ public class UriMap {
 
     private ExportQueue<String, IndexUpdate> exportQ;
     private CollisionFreeMap<String, Long> domainMap;
+    private Meter linksNew;
+    private Meter linksChanged;
 
     @Override
     public void init(String mapId, Context observerContext) throws Exception {
@@ -78,6 +81,8 @@ public class UriMap {
       domainMap =
           CollisionFreeMap.getInstance(DomainMap.DOMAIN_MAP_ID,
               observerContext.getAppConfiguration());
+      linksNew = observerContext.getMetricsReporter().meter("webindex_links_new");
+      linksChanged = observerContext.getMetricsReporter().meter("webindex_links_changed");
     }
 
     @Override
@@ -92,10 +97,12 @@ public class UriMap {
         UriInfo newVal = update.getNewValue().orElse(UriInfo.ZERO);
 
         exportQ.add(tx, uri, new UriUpdate(uri, oldVal, newVal));
+        linksChanged.mark();
 
         String pageDomain = URL.fromUri(uri).getReverseDomain();
         if (oldVal.equals(UriInfo.ZERO) && !newVal.equals(UriInfo.ZERO)) {
           domainUpdates.merge(pageDomain, 1L, (o, n) -> o + n);
+          linksNew.mark();
         } else if (newVal.equals(UriInfo.ZERO) && !oldVal.equals(UriInfo.ZERO)) {
           domainUpdates.merge(pageDomain, -1L, (o, n) -> o + n);
         }

@@ -56,7 +56,8 @@ case "$1" in
 dev)
   pkill -9 -f webindex-dev-server
   cd $WI_HOME
-  mvn -q compile -P webindex-dev-server -Dlog4j.configuration=file:$log4j_config
+  dev_args="${@:2}"
+  mvn -q compile -P webindex-dev-server -Dlog4j.configuration=file:$log4j_config -Dexec.args="$dev_args"
   ;;
 getpaths)
   mkdir -p $DATA_DIR

@@ -41,7 +41,8 @@ public class DevServerIT {
   @BeforeClass
   public static void init() throws Exception {
     tempPath = Files.createTempDirectory(Paths.get("target/"), "webindex-dev-");
-    devServer = new DevServer(Paths.get("src/test/resources/5-pages.txt"), 24567, null, tempPath);
+    Path dataPath = Paths.get("src/test/resources/5-pages.txt");
+    devServer = new DevServer(dataPath, 24567, null, tempPath, false);
     devServer.start();
   }
 

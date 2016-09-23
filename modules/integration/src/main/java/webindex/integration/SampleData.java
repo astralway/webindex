@@ -14,6 +14,7 @@
 
 package webindex.integration;
 
+import java.io.BufferedWriter;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -41,23 +42,26 @@ public class SampleData {
 
     Gson gson = new Gson();
     long count = 0;
-    List<String> pages = new ArrayList<>();
-    ArchiveReader ar = WARCReaderFactory.get(new URL(sourceURL), 0);
-    for (ArchiveRecord r : ar) {
-      Page p = ArchiveUtil.buildPage(r);
-      if (p.isEmpty() || p.getOutboundLinks().isEmpty()) {
-        log.debug("Skipping {}", p.getUrl());
-        continue;
-      }
-      log.debug("Found {} {}", p.getUrl(), p.getNumOutbound());
-      String json = gson.toJson(p);
-      pages.add(json);
-      count++;
-      if (count == numPages) {
-        break;
+    try (BufferedWriter writer = Files.newBufferedWriter(path)) {
+      ArchiveReader ar = WARCReaderFactory.get(new URL(sourceURL), 0);
+      for (ArchiveRecord r : ar) {
+        Page p = ArchiveUtil.buildPage(r);
+        if (p.isEmpty() || p.getOutboundLinks().isEmpty()) {
+          log.debug("Skipping {}", p.getUrl());
+          continue;
+        }
+        log.debug("Found {} {}", p.getUrl(), p.getNumOutbound());
+        String json = gson.toJson(p);
+        writer.write(json);
+        writer.newLine();
+        count++;
+        if (count == numPages) {
+          break;
+        } else if ((count % 1000) == 0) {
+          log.info("Wrote {} of {} pages to {}", count, numPages, path);
+        }
       }
     }
-    Files.write(path, pages);
     log.info("Wrote {} pages to {}", numPages, path);
   }
 }
