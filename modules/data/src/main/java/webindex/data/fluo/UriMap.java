@@ -14,17 +14,14 @@
 
 package webindex.data.fluo;
 
-import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
 
-import com.google.common.base.Preconditions;
 import org.apache.fluo.api.client.TransactionBase;
 import org.apache.fluo.api.config.FluoConfiguration;
 import org.apache.fluo.api.observer.Observer.Context;
-import org.apache.fluo.recipes.accumulo.export.AccumuloExport;
 import org.apache.fluo.recipes.core.export.ExportQueue;
 import org.apache.fluo.recipes.core.map.CollisionFreeMap;
 import org.apache.fluo.recipes.core.map.CollisionFreeMap.Options;
@@ -32,6 +29,9 @@ import org.apache.fluo.recipes.core.map.Combiner;
 import org.apache.fluo.recipes.core.map.Update;
 import org.apache.fluo.recipes.core.map.UpdateObserver;
 import webindex.core.models.URL;
+import webindex.core.models.UriInfo;
+import webindex.core.models.export.IndexUpdate;
+import webindex.core.models.export.UriUpdate;
 import webindex.data.FluoApp;
 
 /**
@@ -41,59 +41,6 @@ import webindex.data.FluoApp;
 public class UriMap {
 
   public static final String URI_MAP_ID = "um";
-
-  public static class UriInfo implements Serializable {
-
-    private static final long serialVersionUID = 1L;
-
-    public static final UriInfo ZERO = new UriInfo(0, 0);
-
-    // the numbers of documents that link to this URI
-    public long linksTo;
-
-    // the number of documents with this URI. Should be 0 or 1
-    public int docs;
-
-    public UriInfo() {}
-
-    public UriInfo(long linksTo, int docs) {
-      this.linksTo = linksTo;
-      this.docs = docs;
-    }
-
-    public void add(UriInfo other) {
-      Preconditions.checkArgument(this != ZERO);
-      this.linksTo += other.linksTo;
-      this.docs += other.docs;
-    }
-
-    @Override
-    public String toString() {
-      return linksTo + " " + docs;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (o instanceof UriInfo) {
-        UriInfo oui = (UriInfo) o;
-        return linksTo == oui.linksTo && docs == oui.docs;
-      }
-
-      return false;
-    }
-
-    @Override
-    public int hashCode() {
-      return docs + (int) linksTo;
-    }
-
-    public static UriInfo merge(UriInfo u1, UriInfo u2) {
-      UriInfo total = new UriInfo(0, 0);
-      total.add(u1);
-      total.add(u2);
-      return total;
-    }
-  }
 
   /**
    * Combines updates made to the uri map
@@ -121,7 +68,7 @@ public class UriMap {
    */
   public static class UriUpdateObserver extends UpdateObserver<String, UriInfo> {
 
-    private ExportQueue<String, AccumuloExport<String>> exportQ;
+    private ExportQueue<String, IndexUpdate> exportQ;
     private CollisionFreeMap<String, Long> domainMap;
 
     @Override
@@ -140,13 +87,13 @@ public class UriMap {
       while (updates.hasNext()) {
         Update<String, UriInfo> update = updates.next();
 
+        String uri = update.getKey();
         UriInfo oldVal = update.getOldValue().orElse(UriInfo.ZERO);
         UriInfo newVal = update.getNewValue().orElse(UriInfo.ZERO);
 
-        exportQ.add(tx, update.getKey(),
-            new UriCountExport(update.getOldValue(), update.getNewValue()));
+        exportQ.add(tx, uri, new UriUpdate(uri, oldVal, newVal));
 
-        String pageDomain = URL.fromPageID(update.getKey()).getReverseDomain();
+        String pageDomain = URL.fromUri(uri).getReverseDomain();
         if (oldVal.equals(UriInfo.ZERO) && !newVal.equals(UriInfo.ZERO)) {
           domainUpdates.merge(pageDomain, 1L, (o, n) -> o + n);
         } else if (newVal.equals(UriInfo.ZERO) && !oldVal.equals(UriInfo.ZERO)) {
@@ -160,7 +107,6 @@ public class UriMap {
 
   /**
    * A helper method for configuring the uri map before initializing Fluo.
-   *
    */
   public static void configure(FluoConfiguration config, int numBuckets, int numTablets) {
     CollisionFreeMap.configure(config, new Options(URI_MAP_ID, UriCombiner.class,

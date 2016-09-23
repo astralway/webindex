@@ -16,15 +16,15 @@ package webindex.serialization;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Optional;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.pool.KryoFactory;
 import webindex.core.models.Link;
-import webindex.data.fluo.DomainExport;
-import webindex.data.fluo.PageExport;
-import webindex.data.fluo.UriCountExport;
-import webindex.data.fluo.UriMap.UriInfo;
+import webindex.core.models.UriInfo;
+import webindex.core.models.export.DomainUpdate;
+import webindex.core.models.export.IndexUpdate;
+import webindex.core.models.export.PageUpdate;
+import webindex.core.models.export.UriUpdate;
 
 public class WebindexKryoFactory implements KryoFactory, Serializable {
 
@@ -38,12 +38,12 @@ public class WebindexKryoFactory implements KryoFactory, Serializable {
     // same order it would be ok) and ran into issue where Spark and Fluo code were using different
     // ids for some reason.
     kryo.register(UriInfo.class, 9);
-    kryo.register(DomainExport.class, 10);
-    kryo.register(UriCountExport.class, 11);
-    kryo.register(PageExport.class, 12);
-    kryo.register(ArrayList.class, 13);
-    kryo.register(Link.class, 14);
-    kryo.register(Optional.class, 15);
+    kryo.register(IndexUpdate.class, 10);
+    kryo.register(DomainUpdate.class, 11);
+    kryo.register(PageUpdate.class, 12);
+    kryo.register(UriUpdate.class, 13);
+    kryo.register(ArrayList.class, 14);
+    kryo.register(Link.class, 15);
 
     kryo.setRegistrationRequired(true);
 

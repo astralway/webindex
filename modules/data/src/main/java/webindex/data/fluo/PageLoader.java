@@ -25,9 +25,9 @@ import org.apache.fluo.recipes.core.data.RowHasher;
 import org.apache.fluo.recipes.core.types.TypedTransactionBase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import webindex.core.Constants;
 import webindex.core.models.Page;
 import webindex.core.models.URL;
-import webindex.data.util.FluoConstants;
 
 public class PageLoader implements Loader {
 
@@ -57,20 +57,19 @@ public class PageLoader implements Loader {
   @Override
   public void load(TransactionBase tx, Context context) throws Exception {
 
-    TypedTransactionBase ttx = FluoConstants.TYPEL.wrap(tx);
+    TypedTransactionBase ttx = Constants.TYPEL.wrap(tx);
 
     Gson gson = new Gson();
     RowHasher rowHasher = PageObserver.getPageRowHasher();
 
     switch (action) {
       case DELETE:
-        ttx.mutate().row(rowHasher.addHash(delUrl.toPageID())).col(FluoConstants.PAGE_NEW_COL)
+        ttx.mutate().row(rowHasher.addHash(delUrl.toUri())).col(Constants.PAGE_NEW_COL)
             .set(Page.DELETE_JSON);
         break;
       case UPDATE:
         String newJson = gson.toJson(page);
-        ttx.mutate().row(rowHasher.addHash(page.getPageID())).col(FluoConstants.PAGE_NEW_COL)
-            .set(newJson);
+        ttx.mutate().row(rowHasher.addHash(page.getUri())).col(Constants.PAGE_NEW_COL).set(newJson);
         break;
       default:
         log.error("PageUpdate called with no action");

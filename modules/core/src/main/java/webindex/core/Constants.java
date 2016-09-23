@@ -14,6 +14,10 @@
 
 package webindex.core;
 
+import org.apache.fluo.api.data.Column;
+import org.apache.fluo.recipes.core.types.StringEncoder;
+import org.apache.fluo.recipes.core.types.TypeLayer;
+
 public class Constants {
 
   // Column Families
@@ -32,4 +36,12 @@ public class Constants {
   public static final String CUR = "cur";
   // for domains
   public static final String PAGECOUNT = "pagecount";
+
+  // Columns
+  public static final Column PAGE_NEW_COL = new Column(PAGE, NEW);
+  public static final Column PAGE_CUR_COL = new Column(PAGE, CUR);
+  public static final Column PAGE_INCOUNT_COL = new Column(PAGE, INCOUNT);
+  public static final Column PAGECOUNT_COL = new Column(DOMAIN, PAGECOUNT);
+
+  public static final TypeLayer TYPEL = new TypeLayer(new StringEncoder());
 }

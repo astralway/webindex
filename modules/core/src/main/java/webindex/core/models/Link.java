@@ -22,16 +22,16 @@ public class Link implements Serializable, Comparable<Link> {
   private static final long serialVersionUID = 1L;
 
   private String url;
-  private String pageID;
+  private String uri;
   private String anchorText;
 
   public Link() {}
 
-  public Link(String pageID, String anchorText) {
-    Objects.requireNonNull(pageID);
+  public Link(String uri, String anchorText) {
+    Objects.requireNonNull(uri);
     Objects.requireNonNull(anchorText);
-    this.url = URL.fromPageID(pageID).toString();
-    this.pageID = pageID;
+    this.url = URL.fromUri(uri).toString();
+    this.uri = uri;
     this.anchorText = anchorText;
   }
 
@@ -39,8 +39,8 @@ public class Link implements Serializable, Comparable<Link> {
     return url;
   }
 
-  public String getPageID() {
-    return pageID;
+  public String getUri() {
+    return uri;
   }
 
   public String getAnchorText() {
@@ -48,27 +48,27 @@ public class Link implements Serializable, Comparable<Link> {
   }
 
 
-  public static Link of(String pageID, String anchorText) {
-    return new Link(pageID, anchorText);
+  public static Link of(String uri, String anchorText) {
+    return new Link(uri, anchorText);
   }
 
-  public static Link of(String pageID) {
-    return new Link(pageID, "");
+  public static Link of(String uri) {
+    return new Link(uri, "");
   }
 
   public static Link of(URL url, String anchorText) {
-    return new Link(url.toPageID(), anchorText);
+    return new Link(url.toUri(), anchorText);
   }
 
   public static Link of(URL url) {
-    return new Link(url.toPageID(), "");
+    return new Link(url.toUri(), "");
   }
 
   @Override
   public boolean equals(Object o) {
     if (o instanceof Link) {
       Link other = (Link) o;
-      return url.equals(other.url) && pageID.equals(other.pageID);
+      return url.equals(other.url) && uri.equals(other.uri);
     }
     return false;
   }
@@ -76,13 +76,13 @@ public class Link implements Serializable, Comparable<Link> {
   @Override
   public int hashCode() {
     int result = url.hashCode();
-    result = 31 * result + pageID.hashCode();
+    result = 31 * result + uri.hashCode();
     return result;
   }
 
   @Override
   public int compareTo(Link o) {
-    int c = pageID.compareTo(o.pageID);
+    int c = uri.compareTo(o.uri);
     if (c == 0) {
       c = url.compareTo(o.url);
     }

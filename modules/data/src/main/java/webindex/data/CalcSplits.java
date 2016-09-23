@@ -28,7 +28,7 @@ import org.archive.io.ArchiveReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import webindex.core.models.Page;
-import webindex.data.fluo.UriMap.UriInfo;
+import webindex.core.models.UriInfo;
 import webindex.data.spark.IndexEnv;
 import webindex.data.spark.IndexStats;
 import webindex.data.spark.IndexUtil;

@@ -20,17 +20,18 @@ import java.util.Optional;
 import org.apache.fluo.api.client.TransactionBase;
 import org.apache.fluo.api.config.FluoConfiguration;
 import org.apache.fluo.api.observer.Observer.Context;
-import org.apache.fluo.recipes.accumulo.export.AccumuloExport;
 import org.apache.fluo.recipes.core.export.ExportQueue;
 import org.apache.fluo.recipes.core.map.CollisionFreeMap;
 import org.apache.fluo.recipes.core.map.CollisionFreeMap.Options;
 import org.apache.fluo.recipes.core.map.Combiner;
 import org.apache.fluo.recipes.core.map.Update;
 import org.apache.fluo.recipes.core.map.UpdateObserver;
+import webindex.core.models.export.DomainUpdate;
+import webindex.core.models.export.IndexUpdate;
 import webindex.data.FluoApp;
 
-
 public class DomainMap {
+
   public static final String DOMAIN_MAP_ID = "dm";
 
   /**
@@ -59,7 +60,7 @@ public class DomainMap {
    */
   public static class DomainUpdateObserver extends UpdateObserver<String, Long> {
 
-    private ExportQueue<String, AccumuloExport<String>> exportQ;
+    private ExportQueue<String, IndexUpdate> exportQ;
 
     @Override
     public void init(String mapId, Context observerContext) throws Exception {
@@ -71,15 +72,16 @@ public class DomainMap {
     public void updatingValues(TransactionBase tx, Iterator<Update<String, Long>> updates) {
       while (updates.hasNext()) {
         Update<String, Long> update = updates.next();
-        exportQ.add(tx, update.getKey(),
-            new DomainExport(update.getOldValue(), update.getNewValue()));
+        String domain = update.getKey();
+        Long oldVal = update.getOldValue().orElse(0L);
+        Long newVal = update.getNewValue().orElse(0L);
+        exportQ.add(tx, domain, new DomainUpdate(domain, oldVal, newVal));
       }
     }
   }
 
   /**
    * A helper method for configuring the domain map before initializing Fluo.
-   *
    */
   public static void configure(FluoConfiguration config, int numBuckets, int numTablets) {
     CollisionFreeMap.configure(config, new Options(DOMAIN_MAP_ID, DomainCombiner.class,

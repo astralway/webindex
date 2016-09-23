@@ -36,16 +36,17 @@ import org.archive.io.ArchiveReader;
 import org.archive.io.ArchiveRecord;
 import scala.Tuple2;
 import webindex.core.Constants;
+import webindex.core.IndexClient;
 import webindex.core.models.Link;
 import webindex.core.models.Page;
 import webindex.core.models.URL;
+import webindex.core.models.UriInfo;
 import webindex.data.fluo.DomainMap;
 import webindex.data.fluo.PageObserver;
-import webindex.data.fluo.UriCountExport;
+
 import webindex.data.fluo.UriMap;
-import webindex.data.fluo.UriMap.UriInfo;
+
 import webindex.data.util.ArchiveUtil;
-import webindex.data.util.FluoConstants;
 import webindex.serialization.WebindexKryoFactory;
 
 public class IndexUtil {
@@ -75,10 +76,10 @@ public class IndexUtil {
       List<Tuple2<String, UriInfo>> ret = new ArrayList<>();
 
       if (!page.isEmpty()) {
-        ret.add(new Tuple2<>(page.getPageID(), new UriInfo(0, 1)));
+        ret.add(new Tuple2<>(page.getUri(), new UriInfo(0, 1)));
 
         for (Link link : page.getOutboundLinks()) {
-          ret.add(new Tuple2<>(link.getPageID(), new UriInfo(1, 0)));
+          ret.add(new Tuple2<>(link.getUri(), new UriInfo(1, 0)));
         }
       }
       return ret;
@@ -92,7 +93,7 @@ public class IndexUtil {
   public static JavaPairRDD<String, Long> createDomainMap(JavaPairRDD<String, UriInfo> uriMap) {
 
     JavaPairRDD<String, Long> domainMap =
-        uriMap.mapToPair(t -> new Tuple2<>(URL.fromPageID(t._1()).getReverseDomain(), 1L))
+        uriMap.mapToPair(t -> new Tuple2<>(URL.fromUri(t._1()).getReverseDomain(), 1L))
             .reduceByKey(Long::sum);
 
     domainMap.persist(StorageLevel.DISK_ONLY());
@@ -117,12 +118,12 @@ public class IndexUtil {
           stats.addExternalLinks(links1.size());
 
           List<Tuple2<RowColumn, Bytes>> ret = new ArrayList<>();
-          String pageID = page.getPageID();
+          String uri = page.getUri();
           if (links1.size() > 0) {
-            addRCV(ret, "p:" + pageID, FluoConstants.PAGE_CUR_COL, gson.toJson(page));
+            addRCV(ret, "p:" + uri, Constants.PAGE_CUR_COL, gson.toJson(page));
           }
           for (Link link : links1) {
-            addRCV(ret, "p:" + link.getPageID(), new Column(Constants.INLINKS, pageID),
+            addRCV(ret, "p:" + link.getUri(), new Column(Constants.INLINKS, uri),
                 link.getAnchorText());
           }
           return ret;
@@ -133,12 +134,12 @@ public class IndexUtil {
           List<Tuple2<RowColumn, Bytes>> ret = new ArrayList<>();
           String uri = t._1();
           UriInfo uriInfo = t._2();
-          addRCV(ret, "t:" + UriCountExport.revEncodeLong(uriInfo.linksTo) + ":" + uri,
-              Column.EMPTY, uriInfo.linksTo);
-          String domain = URL.fromPageID(t._1()).getReverseDomain();
-          String domainRow = UriCountExport.encodeDomainRankPageId(domain, uriInfo.linksTo, uri);
+          addRCV(ret, "t:" + IndexClient.revEncodeLong(uriInfo.linksTo) + ":" + uri, Column.EMPTY,
+              uriInfo.linksTo);
+          String domain = URL.fromUri(t._1()).getReverseDomain();
+          String domainRow = IndexClient.encodeDomainRankUri(domain, uriInfo.linksTo, uri);
           addRCV(ret, domainRow, new Column(Constants.RANK, ""), uriInfo.linksTo);
-          addRCV(ret, "p:" + uri, FluoConstants.PAGE_INCOUNT_COL, uriInfo.linksTo);
+          addRCV(ret, "p:" + uri, Constants.PAGE_INCOUNT_COL, uriInfo.linksTo);
           return ret;
         }));
 
@@ -166,9 +167,9 @@ public class IndexUtil {
       }
       Set<Link> links1 = page.getOutboundLinks();
       List<Tuple2<RowColumn, Bytes>> ret = new ArrayList<>();
-      String pageID = page.getPageID();
+      String uri = page.getUri();
       if (links1.size() > 0) {
-        String hashedRow = PageObserver.getPageRowHasher().addHash(pageID).toString();
+        String hashedRow = PageObserver.getPageRowHasher().addHash(uri).toString();
         addRCV(ret, hashedRow, new Column(Constants.PAGE, Constants.CUR), gson.toJson(page));
       }
       return ret;

@@ -30,7 +30,7 @@ public class Page implements Serializable {
   public static final String DELETE_JSON = "delete";
 
   private String url;
-  private String pageID;
+  private String uri;
   private Long numInbound;
   private Long numOutbound = 0L;
   private String crawlDate;
@@ -47,10 +47,10 @@ public class Page implements Serializable {
     this.isDelete = isDelete;
   }
 
-  public Page(String pageID) {
-    Objects.requireNonNull(pageID);
-    this.url = URL.fromPageID(pageID).toString();
-    this.pageID = pageID;
+  public Page(String uri) {
+    Objects.requireNonNull(uri);
+    this.url = URL.fromUri(uri).toString();
+    this.uri = uri;
   }
 
   public String getServer() {
@@ -65,8 +65,8 @@ public class Page implements Serializable {
     return url;
   }
 
-  public String getPageID() {
-    return pageID;
+  public String getUri() {
+    return uri;
   }
 
   public Set<Link> getOutboundLinks() {
@@ -100,7 +100,7 @@ public class Page implements Serializable {
   }
 
   public String getDomain() {
-    return URL.fromPageID(pageID).getDomain();
+    return URL.fromUri(uri).getDomain();
   }
 
   public Long getNumInbound() {

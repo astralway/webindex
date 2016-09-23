@@ -23,9 +23,9 @@ public class PageTest {
   @Test
   public void testBasic() {
 
-    Page page = new Page(URLTest.from("http://example.com").toPageID());
+    Page page = new Page(URLTest.from("http://example.com").toUri());
     Assert.assertEquals("http://example.com/", page.getUrl());
-    Assert.assertEquals("com.example>>o>/", page.getPageID());
+    Assert.assertEquals("com.example>>o>/", page.getUri());
     Assert.assertEquals(Long.valueOf(0), page.getNumOutbound());
     Assert.assertTrue(page.addOutbound(Link.of(URLTest.from("http://test1.com"), "test1")));
     Assert.assertEquals(Long.valueOf(1), page.getNumOutbound());

@@ -58,7 +58,7 @@ public class ArchiveUtil {
         log.error("Unexpected exception while parsing raw page URL: " + rawPageUrl, e);
         return Page.EMPTY;
       }
-      Page page = new Page(pageUrl.toPageID());
+      Page page = new Page(pageUrl.toUri());
       page.setCrawlDate(archiveRecord.getHeader().getDate());
       try {
         JSONObject responseMeta =

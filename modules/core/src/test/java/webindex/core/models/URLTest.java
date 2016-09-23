@@ -26,7 +26,7 @@ public class URLTest {
   }
 
   public static String toID(String rawUrl) {
-    return from(rawUrl).toPageID();
+    return from(rawUrl).toUri();
   }
 
 
@@ -124,24 +124,24 @@ public class URLTest {
   public void testId() {
     URL u1 = urlSecure("a.b.c.com", "/", 8329);
     URL u2 = from("https://a.b.C.com:8329");
-    String r1 = u2.toPageID();
+    String r1 = u2.toUri();
     Assert.assertEquals("com.c>.b.a>s8329>/", r1);
-    URL u3 = URL.fromPageID(r1);
+    URL u3 = URL.fromUri(r1);
     Assert.assertEquals(u1, u2);
     Assert.assertEquals(u1, u3);
     Assert.assertEquals(u2, u3);
 
     URL u4 = url80("d.com", "/a/b/c");
-    String id4 = u4.toPageID();
+    String id4 = u4.toUri();
     Assert.assertEquals("com.d>>o>/a/b/c", id4);
-    Assert.assertEquals(u4, URL.fromPageID(id4));
+    Assert.assertEquals(u4, URL.fromUri(id4));
 
     URL u5 = from("http://1.2.3.4/a/b/c");
-    String id5 = u5.toPageID();
+    String id5 = u5.toUri();
     Assert.assertEquals("1.2.3.4>>o>/a/b/c", id5);
-    Assert.assertEquals(u5, URL.fromPageID(id5));
+    Assert.assertEquals(u5, URL.fromUri(id5));
 
-    Assert.assertEquals("com.b>.a>s80>/", from("https://a.b.com:80").toPageID());
+    Assert.assertEquals("com.b>.a>s80>/", from("https://a.b.com:80").toUri());
   }
 
   @Test
@@ -205,9 +205,9 @@ public class URLTest {
     Assert.assertEquals("au.com.d", from("http://www.d.com.au").getReverseDomain());
 
     u = from("https://www.d.com.au:9443/a/bc");
-    Assert.assertEquals("au.com.d>.www>s9443>/a/bc", u.toPageID());
+    Assert.assertEquals("au.com.d>.www>s9443>/a/bc", u.toUri());
     Assert.assertEquals("https://www.d.com.au:9443/a/bc", u.toString());
-    URL u2 = URL.fromPageID(u.toPageID());
+    URL u2 = URL.fromUri(u.toUri());
     Assert.assertEquals("https://www.d.com.au:9443/a/bc", u2.toString());
     Assert.assertEquals("d.com.au", u2.getDomain());
     Assert.assertEquals("www.d.com.au", u2.getHost());
