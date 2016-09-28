@@ -25,6 +25,7 @@ import com.google.gson.Gson;
 import org.apache.fluo.api.client.TransactionBase;
 import org.apache.fluo.api.data.Bytes;
 import org.apache.fluo.api.data.Column;
+import org.apache.fluo.api.metrics.Meter;
 import org.apache.fluo.api.observer.AbstractObserver;
 import org.apache.fluo.recipes.core.data.RowHasher;
 import org.apache.fluo.recipes.core.export.ExportQueue;
@@ -48,6 +49,9 @@ public class PageObserver extends AbstractObserver {
 
   private CollisionFreeMap<String, UriInfo> uriMap;
   private ExportQueue<String, IndexUpdate> exportQ;
+  private Meter pagesIngested;
+  private Meter linksIngested;
+  private Meter pagesChanged;
 
   private static final RowHasher PAGE_ROW_HASHER = new RowHasher("p");
 
@@ -59,6 +63,9 @@ public class PageObserver extends AbstractObserver {
   public void init(Context context) throws Exception {
     exportQ = ExportQueue.getInstance(FluoApp.EXPORT_QUEUE_ID, context.getAppConfiguration());
     uriMap = CollisionFreeMap.getInstance(UriMap.URI_MAP_ID, context.getAppConfiguration());
+    pagesIngested = context.getMetricsReporter().meter("webindex_pages_ingested");
+    linksIngested = context.getMetricsReporter().meter("webindex_links_ingested");
+    pagesChanged = context.getMetricsReporter().meter("webindex_pages_changed");
   }
 
   @Override
@@ -90,6 +97,7 @@ public class PageObserver extends AbstractObserver {
       if (curPage.isEmpty()) {
         updates.put(pageUri, new UriInfo(0, 1));
       }
+      pagesIngested.mark();
     }
 
     Set<Link> nextLinks = nextPage.getOutboundLinks();
@@ -98,6 +106,7 @@ public class PageObserver extends AbstractObserver {
     for (Link link : addLinks) {
       updates.put(link.getUri(), new UriInfo(1, 0));
     }
+    linksIngested.mark(addLinks.size());
 
     List<Link> delLinks = new ArrayList<>(Sets.difference(curLinks, nextLinks));
     for (Link link : delLinks) {
@@ -107,6 +116,7 @@ public class PageObserver extends AbstractObserver {
     uriMap.update(tx, updates);
 
     exportQ.add(tx, pageUri, new PageUpdate(pageUri, nextJson, addLinks, delLinks));
+    pagesChanged.mark();
 
     // clean up
     ttx.mutate().row(row).col(Constants.PAGE_NEW_COL).delete();

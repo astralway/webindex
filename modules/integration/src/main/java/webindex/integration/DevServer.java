@@ -19,6 +19,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.beust.jcommander.JCommander;
+import com.beust.jcommander.ParameterException;
 import com.google.gson.Gson;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
@@ -27,6 +29,7 @@ import org.apache.fluo.api.client.FluoClient;
 import org.apache.fluo.api.client.FluoFactory;
 import org.apache.fluo.api.client.LoaderExecutor;
 import org.apache.fluo.api.config.FluoConfiguration;
+import org.apache.fluo.api.config.SimpleConfiguration;
 import org.apache.fluo.api.mini.MiniFluo;
 import org.apache.fluo.recipes.test.AccumuloExportITBase;
 import org.slf4j.Logger;
@@ -46,24 +49,37 @@ public class DevServer {
   private int webPort;
   private Path templatePath;
   private MiniAccumuloCluster cluster;
+  private MiniFluo miniFluo;
   private WebServer webServer;
   private IndexClient client;
-  private AtomicBoolean started = new AtomicBoolean(false);
+  private AtomicBoolean running = new AtomicBoolean(false);
   private Path baseDir;
+  private boolean metrics;
 
-  public DevServer(Path dataPath, int webPort, Path templatePath, Path baseDir) {
+  public DevServer(Path dataPath, int webPort, Path templatePath, Path baseDir, boolean metrics) {
     this.dataPath = dataPath;
     this.webPort = webPort;
     this.templatePath = templatePath;
     this.baseDir = baseDir;
+    this.metrics = metrics;
     this.webServer = new WebServer();
   }
 
   public IndexClient getIndexClient() {
-    if (!started.get()) {
-      throw new IllegalStateException("DevServer must be started before retrieving index client");
+    if (!running.get()) {
+      throw new IllegalStateException("DevServer must be running before retrieving index client");
     }
     return client;
+  }
+
+  public SimpleConfiguration configureMetrics(SimpleConfiguration config) {
+    if (metrics) {
+      config.setProperty("fluo.metrics.reporter.graphite.enable", true);
+      config.setProperty("fluo.metrics.reporter.graphite.host", "localhost");
+      config.setProperty("fluo.metrics.reporter.graphite.port", 2003);
+      config.setProperty("fluo.metrics.reporter.graphite.frequency", 30);
+    }
+    return config;
   }
 
   public void start() throws Exception {
@@ -77,8 +93,9 @@ public class DevServer {
 
     FluoConfiguration config = new FluoConfiguration();
     AccumuloExportITBase.configureFromMAC(config, cluster);
-    config.setApplicationName("webindex-dev");
+    config.setApplicationName("webindex");
     config.setAccumuloTable("webindex");
+    configureMetrics(config);
 
     String exportTable = "webindex_search";
 
@@ -98,8 +115,12 @@ public class DevServer {
 
     log.info("Loading data from {}", dataPath);
     Gson gson = new Gson();
-    try (MiniFluo miniFluo = FluoFactory.newMiniFluo(config);
-        FluoClient client = FluoFactory.newClient(miniFluo.getClientConfiguration())) {
+    miniFluo = FluoFactory.newMiniFluo(config);
+
+    running.set(true);
+
+    try (FluoClient client =
+        FluoFactory.newClient(configureMetrics(miniFluo.getClientConfiguration()))) {
 
       try (LoaderExecutor le = client.newLoaderExecutor()) {
 
@@ -118,11 +139,10 @@ public class DevServer {
       miniFluo.waitForObservers();
       log.info("Observers finished");
     }
-
-    started.set(true);
   }
 
   public void stop() {
+    miniFluo.close();
     webServer.stop();
     try {
       cluster.stop();
@@ -132,28 +152,38 @@ public class DevServer {
   }
 
   public static void main(String[] args) throws Exception {
-    String dataLocation = "data/1K-pages.txt";
-    String templateLocation = "modules/ui/src/main/resources/spark/template/freemarker";
-    if (args.length == 2) {
-      dataLocation = args[0];
-      templateLocation = args[1];
-    }
-    log.info("Looking for data at {}", dataLocation);
 
-    Path dataPath = Paths.get(dataLocation);
+    DevServerOpts opts = new DevServerOpts();
+    JCommander commander = new JCommander(opts);
+    commander.setProgramName("webindex dev");
+    try {
+      commander.parse(args);
+    } catch (ParameterException e) {
+      System.out.println(e.getMessage() + "\n");
+      commander.usage();
+      System.exit(1);
+    }
+
+    if (opts.help) {
+      commander.usage();
+      System.exit(1);
+    }
+
+    Path dataPath = Paths.get(String.format("data/%d-pages.txt", opts.numPages));
     if (Files.notExists(dataPath)) {
       log.info("Generating sample data at {} for dev server", dataPath);
-      SampleData.generate(dataPath, 1000);
+      SampleData.generate(dataPath, opts.numPages);
     }
+    log.info("Loading data at {}", dataPath);
 
-    Path templatePath = Paths.get(templateLocation);
+    Path templatePath = Paths.get(opts.templateDir);
     if (Files.notExists(templatePath)) {
-      log.info("Template location {} does not exits", templateLocation);
+      log.info("Template location {} does not exits", templatePath);
       throw new IllegalArgumentException("Template location does not exist");
     }
 
-    DevServer devServer =
-        new DevServer(dataPath, 4567, templatePath, Files.createTempDirectory("webindex-dev-"));
+    Path baseDir = Files.createTempDirectory(Paths.get("target"), "webindex-dev-");
+    DevServer devServer = new DevServer(dataPath, 4567, templatePath, baseDir, opts.metrics);
     devServer.start();
   }
 }

@@ -19,6 +19,7 @@ import java.util.Optional;
 
 import org.apache.fluo.api.client.TransactionBase;
 import org.apache.fluo.api.config.FluoConfiguration;
+import org.apache.fluo.api.metrics.Meter;
 import org.apache.fluo.api.observer.Observer.Context;
 import org.apache.fluo.recipes.core.export.ExportQueue;
 import org.apache.fluo.recipes.core.map.CollisionFreeMap;
@@ -61,11 +62,15 @@ public class DomainMap {
   public static class DomainUpdateObserver extends UpdateObserver<String, Long> {
 
     private ExportQueue<String, IndexUpdate> exportQ;
+    private Meter domainsNew;
+    private Meter domainsChanged;
 
     @Override
     public void init(String mapId, Context observerContext) throws Exception {
       exportQ =
           ExportQueue.getInstance(FluoApp.EXPORT_QUEUE_ID, observerContext.getAppConfiguration());
+      domainsNew = observerContext.getMetricsReporter().meter("webindex_domains_new");
+      domainsChanged = observerContext.getMetricsReporter().meter("webindex_domains_changed");
     }
 
     @Override
@@ -75,7 +80,11 @@ public class DomainMap {
         String domain = update.getKey();
         Long oldVal = update.getOldValue().orElse(0L);
         Long newVal = update.getNewValue().orElse(0L);
+        if (oldVal == 0L && newVal > 0L) {
+          domainsNew.mark();
+        }
         exportQ.add(tx, domain, new DomainUpdate(domain, oldVal, newVal));
+        domainsChanged.mark();
       }
     }
   }
