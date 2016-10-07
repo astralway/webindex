@@ -17,6 +17,7 @@ package webindex.data;
 import org.apache.fluo.api.config.FluoConfiguration;
 import org.apache.fluo.api.config.ObserverSpecification;
 import org.apache.fluo.recipes.accumulo.export.AccumuloExporter;
+import org.apache.fluo.recipes.core.data.RowHasher;
 import org.apache.fluo.recipes.core.export.ExportQueue;
 import org.apache.fluo.recipes.kryo.KryoSimplerSerializer;
 import webindex.core.models.export.IndexUpdate;
@@ -45,5 +46,7 @@ public class FluoApp {
         new ExportQueue.Options(EXPORT_QUEUE_ID, IndexExporter.class.getName(), String.class
             .getName(), IndexUpdate.class.getName(), numBuckets).setBucketsPerTablet(
             numBuckets / numTablets).setExporterConfiguration(aeConf));
+
+    RowHasher.configure(fluoConfig, PageObserver.getPageRowHasher().getPrefix(), numTablets);
   }
 }

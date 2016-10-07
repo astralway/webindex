@@ -188,10 +188,7 @@ public class IndexEnv {
   public void setFluoTableSplits() {
     final String table = fluoConfig.getAccumuloTable();
     try {
-      TableOptimizations tableOptimizations =
-          TableOptimizations.getConfiguredOptimizations(getFluoConfig());
-      tableOptimizations.merge(PageObserver.getPageRowHasher().getTableOptimizations(numTablets));
-      TableOperations.optimizeTable(getFluoConfig(), tableOptimizations);
+      TableOperations.optimizeTable(getFluoConfig());
     } catch (Exception e) {
       throw new IllegalStateException("Failed to add splits to Fluo's Accumulo table " + table, e);
     }
