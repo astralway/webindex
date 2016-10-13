@@ -14,7 +14,7 @@
 
 package webindex.data.fluo;
 
-import java.util.Collection;
+import java.util.function.Consumer;
 
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.fluo.api.metrics.Meter;
@@ -48,22 +48,23 @@ public class IndexExporter extends AccumuloExporter<String, IndexUpdate> {
   }
 
   @Override
-  protected Collection<Mutation> translate(SequencedExport<String, IndexUpdate> export) {
+  protected void translate(SequencedExport<String, IndexUpdate> export, Consumer<Mutation> consumer) {
     if (export.getValue() instanceof DomainUpdate) {
       domainsExported.mark();
-      return IndexClient.genDomainMutations((DomainUpdate) export.getValue(), export.getSequence());
+      IndexClient.genDomainMutations((DomainUpdate) export.getValue(), export.getSequence(),
+          consumer);
     } else if (export.getValue() instanceof PageUpdate) {
       pagesExported.mark();
-      return IndexClient.genPageMutations((PageUpdate) export.getValue(), export.getSequence());
+      IndexClient.genPageMutations((PageUpdate) export.getValue(), export.getSequence(), consumer);
     } else if (export.getValue() instanceof UriUpdate) {
       linksExported.mark();
-      return IndexClient.genUriMutations((UriUpdate) export.getValue(), export.getSequence());
+      IndexClient.genUriMutations((UriUpdate) export.getValue(), export.getSequence(), consumer);
+    } else {
+      String msg =
+          "An object with an IndexUpdate class (" + export.getValue().getClass().toString()
+              + ") was placed on the export queue";
+      log.error(msg);
+      throw new IllegalStateException(msg);
     }
-
-    String msg =
-        "An object with an IndexUpdate class (" + export.getValue().getClass().toString()
-            + ") was placed on the export queue";
-    log.error(msg);
-    throw new IllegalStateException(msg);
   }
 }

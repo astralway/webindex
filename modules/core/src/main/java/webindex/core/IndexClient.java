@@ -14,12 +14,11 @@
 
 package webindex.core;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import com.google.gson.Gson;
 import org.apache.accumulo.core.client.Connector;
@@ -248,10 +247,10 @@ public class IndexClient {
     return links;
   }
 
-  public static Collection<Mutation> genDomainMutations(DomainUpdate update, long seq) {
+  public static void genDomainMutations(DomainUpdate update, long seq, Consumer<Mutation> consumer) {
     Map<RowColumn, Bytes> oldData = genDomainData(update.getDomain(), update.getOldPageCount());
     Map<RowColumn, Bytes> newData = genDomainData(update.getDomain(), update.getNewPageCount());
-    return AccumuloExporter.generateMutations(seq, oldData, newData);
+    AccumuloExporter.generateMutations(seq, oldData, newData, consumer);
   }
 
   public static Map<RowColumn, Bytes> genDomainData(String domain, Long pageCount) {
@@ -262,37 +261,33 @@ public class IndexClient {
         Bytes.of(pageCount + ""));
   }
 
-  public static Collection<Mutation> genPageMutations(PageUpdate update, long seq) {
-    int listSize = update.getAddedLinks().size() + update.getDeletedLinks().size() + 1;
-    ArrayList<Mutation> mutations = new ArrayList<>(listSize);
-
+  public static void genPageMutations(PageUpdate update, long seq, Consumer<Mutation> consumer) {
     Mutation jsonMutation = new Mutation("p:" + update.getUri());
     if (update.getJson().equals(Page.DELETE_JSON)) {
       jsonMutation.putDelete(Constants.PAGE, Constants.CUR, seq);
     } else {
       jsonMutation.put(Constants.PAGE, Constants.CUR, seq, update.getJson());
     }
-    mutations.add(jsonMutation);
+    consumer.accept(jsonMutation);
 
     // invert links on export
     for (Link link : update.getAddedLinks()) {
       Mutation m = new Mutation("p:" + link.getUri());
       m.put(Constants.INLINKS, update.getUri(), seq, link.getAnchorText());
-      mutations.add(m);
+      consumer.accept(m);
     }
 
     for (Link link : update.getDeletedLinks()) {
       Mutation m = new Mutation("p:" + link.getUri());
       m.putDelete(Constants.INLINKS, update.getUri(), seq);
-      mutations.add(m);
+      consumer.accept(m);
     }
-    return mutations;
   }
 
-  public static Collection<Mutation> genUriMutations(UriUpdate update, long seq) {
+  public static void genUriMutations(UriUpdate update, long seq, Consumer<Mutation> consumer) {
     Map<RowColumn, Bytes> oldData = genUriData(update.getUri(), update.getOldInfo());
     Map<RowColumn, Bytes> newData = genUriData(update.getUri(), update.getNewInfo());
-    return AccumuloExporter.generateMutations(seq, oldData, newData);
+    AccumuloExporter.generateMutations(seq, oldData, newData, consumer);
   }
 
   public static Map<RowColumn, Bytes> genUriData(String uri, UriInfo info) {
