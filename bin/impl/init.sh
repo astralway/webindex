@@ -45,19 +45,11 @@ $FLUO_CMD new $FLUO_APP
 
 FLUO_APP_LIB=$FLUO_APP_HOME/lib
 cp $WI_DATA_JAR $FLUO_APP_LIB
-mvn dependency:get -Dartifact=org.apache.fluo:fluo-recipes-core:1.0.0-incubating-SNAPSHOT:jar -Ddest=$FLUO_APP_LIB
-mvn dependency:get -Dartifact=org.apache.fluo:fluo-recipes-kryo:1.0.0-incubating-SNAPSHOT:jar -Ddest=$FLUO_APP_LIB
-mvn dependency:get -Dartifact=org.apache.fluo:fluo-recipes-accumulo:1.0.0-incubating-SNAPSHOT:jar -Ddest=$FLUO_APP_LIB
-# Add kryo and its dependencies
-mvn dependency:get -Dartifact=com.esotericsoftware:kryo:3.0.3:jar -Ddest=$FLUO_APP_LIB
-mvn dependency:get -Dartifact=com.esotericsoftware:minlog:1.3.0:jar -Ddest=$FLUO_APP_LIB
-mvn dependency:get -Dartifact=com.esotericsoftware:reflectasm:1.10.1:jar -Ddest=$FLUO_APP_LIB
-mvn dependency:get -Dartifact=org.objenesis:objenesis:2.1:jar -Ddest=$FLUO_APP_LIB
+mvn package -Pcopy-dependencies -DskipTests -DoutputDirectory=$FLUO_APP_LIB
 # Add webindex core and its dependencies
 cp $WI_HOME/modules/core/target/webindex-core-$WI_VERSION.jar $FLUO_APP_LIB
-mvn dependency:get -Dartifact=commons-validator:commons-validator:1.4.1:jar -Ddest=$FLUO_APP_LIB
 
-java -cp $WI_DATA_DEP_JAR webindex.data.Configure $WI_CONFIG
+$FLUO_CMD exec $FLUO_APP webindex.data.Configure $WI_CONFIG
 
 $FLUO_CMD init $FLUO_APP --force
 
