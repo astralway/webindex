@@ -20,18 +20,19 @@
 # ======
 test -z "$HADOOP_PREFIX" && export HADOOP_PREFIX=/path/to/hadoop
 test -z "$HADOOP_CONF_DIR" && export HADOOP_CONF_DIR=/path/to/hadoop/etc/hadoop
-# Set to version of Hadoop installed on system
-export HADOOP_VERSION=2.7.2
 
 # Fluo
 # ====
 test -z "$FLUO_HOME" && export FLUO_HOME=/path/to/fluo
 
+#set the Accumulo and Fluo versions that should be included in the shaded jar created for Spark.
+export FLUO_VERSION=`$FLUO_HOME/bin/fluo version`
+export ACCUMULO_VERSION=`accumulo version`
+
 # Spark
 # =====
 test -z "$SPARK_HOME" && export SPARK_HOME=/path/to/spark
-# Set to version of Spark installed on system
-export SPARK_VERSION=1.6.2
+
 # Number of Spark executor instances
 export WI_EXECUTOR_INSTANCES=2
 # Amount of memory given to each Spark executor

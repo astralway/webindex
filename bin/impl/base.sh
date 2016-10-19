@@ -54,7 +54,7 @@ if [ ! -f $WI_DATA_DEP_JAR ]; then
   echo "Building $WI_DATA_DEP_JAR"
   cd $WI_HOME
 
-  : ${SPARK_VERSION?"SPARK_VERSION must be set in bash env or conf/webindex-env.sh"}
-  : ${HADOOP_VERSION?"HADOOP_VERSION must be set in bash env or conf/webindex-env.sh"}
-  mvn clean package -Pcreate-shade-jar -DskipTests -Dspark.version=$SPARK_VERSION -Dhadoop.version=$HADOOP_VERSION
+  : ${ACCUMULO_VERSION?"ACCUMULO_VERSION must be set in bash env or conf/webindex-env.sh"}
+  : ${FLUO_VERSION?"FLUO_VERSION must be set in bash env or conf/webindex-env.sh"}
+  mvn clean package -Pcreate-shade-jar -DskipTests -Dfluo.version=$FLUO_VERSION -Daccumulo.version=$ACCUMULO_VERSION
 fi
