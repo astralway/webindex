@@ -2,11 +2,22 @@
 ---
 [![Build Status][ti]][tl] [![Apache License][li]][ll]
 
-WebIndex is an example [Apache Fluo][fluo] application that uses [Common Crawl][cc] web crawl data
-to index links to web pages in multiple ways. It has a simple UI to view the resulting indexes. If
-you are new to Fluo, you may want start with the [phrasecount][pc] application as the WebIndex
-application is more complicated. For more information on how the WebIndex application works, view
-the [tables](docs/tables.md) and [code](docs/code-guide.md) documentation.
+Webindex is an example [Apache Fluo][fluo] application that incrementally indexes links to web pages
+in multiple ways. If you are new to Fluo, you may want start with the [Fluo tour][tour] as the
+WebIndex application is more complicated. For more information on how the WebIndex application
+works, view the [tables](docs/tables.md) and [code](docs/code-guide.md) documentation.
+
+Webindex utilizes multiple projects.  [Common Crawl][cc] web crawl data is used as the input.
+[Apache Spark][spark] is used to initialize Fluo and incrementally load data into Fluo.  [Apache
+Accumulo][accumulo] is used to hold the indexes and Fluo's data.  Fluo is used to continuously
+combine new and historical information about web pages and update an external index when changes
+occur. Webindex has simple UI built using [Spark Java][sparkjava] that allows querying the indexes.
+
+Below is a video showing repeatedly querying stackoverflow.com while Webindex was running for three
+days on EC2.  The video was made by querying the Webindex instance periodically and taking a
+screenshot.  More details about this video are available in this [blog post][bp].
+
+[![Querying stackoverflow.com](http://img.youtube.com/vi/mJJNJbPN2EI/0.jpg)](http://www.youtube.com/watch?v=mJJNJbPN2EI)
 
 ## Running WebIndex
 
@@ -48,6 +59,10 @@ is started, start the development server the option `--metrics` to start sending
 Fluo metrics can be viewed in Grafana.  To view application-specific metrics for Webindex, import
 the WebIndex Grafana dashboard located at `contrib/webindex-dashboard.json`.
 
+[tour]: https://fluo.apache.org/tour/
+[sparkjava]: http://sparkjava.com/
+[spark]: https://spark.apache.org/
+[accumulo]: https://accumulo.apache.org/
 [fluo]: https://fluo.apache.org/
 [pc]: https://github.com/astralway/phrasecount
 [Uno]: https://github.com/astralway/uno
@@ -58,3 +73,4 @@ the WebIndex Grafana dashboard located at `contrib/webindex-dashboard.json`.
 [li]: http://img.shields.io/badge/license-ASL-blue.svg
 [ll]: https://github.com/astralway/webindex/blob/master/LICENSE
 [logo]: contrib/webindex.png
+[bp]: https://fluo.apache.org/blog/2016/01/11/webindex-long-run/#videos-from-run
