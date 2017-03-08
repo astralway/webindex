@@ -14,69 +14,38 @@
 
 package webindex.data.fluo;
 
-import java.util.Iterator;
-import java.util.Optional;
-
 import org.apache.fluo.api.client.TransactionBase;
 import org.apache.fluo.api.config.FluoConfiguration;
 import org.apache.fluo.api.metrics.Meter;
-import org.apache.fluo.api.observer.Observer.Context;
+import org.apache.fluo.api.metrics.MetricsReporter;
+import org.apache.fluo.recipes.core.combine.ChangeObserver;
+import org.apache.fluo.recipes.core.combine.CombineQueue;
 import org.apache.fluo.recipes.core.export.ExportQueue;
-import org.apache.fluo.recipes.core.map.CollisionFreeMap;
-import org.apache.fluo.recipes.core.map.CollisionFreeMap.Options;
-import org.apache.fluo.recipes.core.map.Combiner;
-import org.apache.fluo.recipes.core.map.Update;
-import org.apache.fluo.recipes.core.map.UpdateObserver;
 import webindex.core.models.export.DomainUpdate;
 import webindex.core.models.export.IndexUpdate;
-import webindex.data.FluoApp;
 
 public class DomainMap {
 
   public static final String DOMAIN_MAP_ID = "dm";
 
   /**
-   * Combines updates made to the domain map
-   */
-  public static class DomainCombiner implements Combiner<String, Long> {
-    @Override
-    public Optional<Long> combine(String key, Iterator<Long> updates) {
-      long l = 0;
-
-      while (updates.hasNext()) {
-        l += updates.next();
-      }
-
-      if (l == 0) {
-        // returning absent will delete the map entry
-        return Optional.empty();
-      } else {
-        return Optional.of(l);
-      }
-    }
-  }
-
-  /**
    * Observes domain map updates and adds those updates to an export queue.
    */
-  public static class DomainUpdateObserver extends UpdateObserver<String, Long> {
+  public static class DomainUpdateObserver implements ChangeObserver<String, Long> {
 
     private ExportQueue<String, IndexUpdate> exportQ;
     private Meter domainsNew;
     private Meter domainsChanged;
 
-    @Override
-    public void init(String mapId, Context observerContext) throws Exception {
-      exportQ =
-          ExportQueue.getInstance(FluoApp.EXPORT_QUEUE_ID, observerContext.getAppConfiguration());
-      domainsNew = observerContext.getMetricsReporter().meter("webindex_domains_new");
-      domainsChanged = observerContext.getMetricsReporter().meter("webindex_domains_changed");
+    DomainUpdateObserver(ExportQueue<String, IndexUpdate> exportQ, MetricsReporter reporter) {
+      this.exportQ = exportQ;
+      domainsNew = reporter.meter("webindex_domains_new");
+      domainsChanged = reporter.meter("webindex_domains_changed");
     }
 
     @Override
-    public void updatingValues(TransactionBase tx, Iterator<Update<String, Long>> updates) {
-      while (updates.hasNext()) {
-        Update<String, Long> update = updates.next();
+    public void process(TransactionBase tx, Iterable<Change<String, Long>> updates) {
+      for (Change<String, Long> update : updates) {
         String domain = update.getKey();
         Long oldVal = update.getOldValue().orElse(0L);
         Long newVal = update.getNewValue().orElse(0L);
@@ -93,8 +62,7 @@ public class DomainMap {
    * A helper method for configuring the domain map before initializing Fluo.
    */
   public static void configure(FluoConfiguration config, int numBuckets, int numTablets) {
-    CollisionFreeMap.configure(config, new Options(DOMAIN_MAP_ID, DomainCombiner.class,
-        DomainUpdateObserver.class, String.class, Long.class, numBuckets)
-        .setBucketsPerTablet(numBuckets / numTablets));
+    CombineQueue.configure(DOMAIN_MAP_ID).keyType(String.class).valueType(Long.class)
+        .buckets(numBuckets).bucketsPerTablet(numBuckets / numTablets).save(config);
   }
 }

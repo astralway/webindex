@@ -18,8 +18,6 @@ import java.io.BufferedWriter;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 
 import com.google.gson.Gson;
 import org.archive.io.ArchiveReader;

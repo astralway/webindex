@@ -15,6 +15,7 @@
 package webindex.core.models;
 
 import java.io.Serializable;
+import java.util.Optional;
 
 import com.google.common.base.Preconditions;
 
@@ -70,5 +71,13 @@ public class UriInfo implements Serializable {
     total.add(u1);
     total.add(u2);
     return total;
+  }
+
+  public static Optional<UriInfo> reduce(Iterable<UriInfo> uriInfos) {
+    UriInfo sum = new UriInfo();
+    for (UriInfo uriInfo : uriInfos) {
+      sum.add(uriInfo);
+    }
+    return sum.equals(ZERO) ? Optional.empty() : Optional.of(sum);
   }
 }

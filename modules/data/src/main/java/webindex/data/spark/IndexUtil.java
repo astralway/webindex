@@ -25,8 +25,8 @@ import org.apache.fluo.api.data.Bytes;
 import org.apache.fluo.api.data.Column;
 import org.apache.fluo.api.data.RowColumn;
 import org.apache.fluo.api.data.RowColumnValue;
-import org.apache.fluo.recipes.core.map.CollisionFreeMap;
-import org.apache.fluo.recipes.core.map.CollisionFreeMap.Initializer;
+import org.apache.fluo.recipes.core.combine.CombineQueue;
+import org.apache.fluo.recipes.core.combine.CombineQueue.Initializer;
 import org.apache.fluo.recipes.kryo.KryoSimplerSerializer;
 import org.apache.hadoop.io.Text;
 import org.apache.spark.api.java.JavaPairRDD;
@@ -176,7 +176,7 @@ public class IndexUtil {
     });
 
     Initializer<String, UriInfo> uriMapInitializer =
-        CollisionFreeMap.getInitializer(UriMap.URI_MAP_ID, numBuckets, serializer);
+        CombineQueue.getInitializer(UriMap.URI_MAP_ID, numBuckets, serializer);
 
     fluoIndex = fluoIndex.union(uriMap.mapToPair(t -> {
       RowColumnValue rcv = uriMapInitializer.convert(t._1(), t._2());
@@ -184,7 +184,7 @@ public class IndexUtil {
     }));
 
     Initializer<String, Long> domainMapInitializer =
-        CollisionFreeMap.getInitializer(DomainMap.DOMAIN_MAP_ID, numBuckets, serializer);
+        CombineQueue.getInitializer(DomainMap.DOMAIN_MAP_ID, numBuckets, serializer);
 
     fluoIndex = fluoIndex.union(domainMap.mapToPair(t -> {
       RowColumnValue rcv = domainMapInitializer.convert(t._1(), t._2());
