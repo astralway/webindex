@@ -64,7 +64,7 @@ getpaths)
   PATHS_FILE="$2".wat.paths
   if [ ! -f $DATA_DIR/$PATHS_FILE ]; then
     rm -f $DATA_DIR/wat.paths.gz
-    PATHS_URL=https://aws-publicdatasets.s3.amazonaws.com/common-crawl/crawl-data/CC-MAIN-$2/wat.paths.gz
+    PATHS_URL=https://commoncrawl.s3.amazonaws.com/crawl-data/CC-MAIN-$2/wat.paths.gz
     if [[ `wget -S --spider $PATHS_URL 2>&1 | grep 'HTTP/1.1 200 OK'` ]]; then
       wget -P $DATA_DIR $PATHS_URL
       gzip -d $DATA_DIR/wat.paths.gz
