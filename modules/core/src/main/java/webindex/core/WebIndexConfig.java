@@ -25,7 +25,7 @@ public class WebIndexConfig {
 
   private static final Logger log = LoggerFactory.getLogger(WebIndexConfig.class);
 
-  public static String CC_URL_PREFIX = "https://aws-publicdatasets.s3.amazonaws.com/";
+  public static String CC_URL_PREFIX = "https://commoncrawl.s3.amazonaws.com/";
   public static final String WI_EXECUTOR_INSTANCES = "WI_EXECUTOR_INSTANCES";
 
   public String fluoHome;
