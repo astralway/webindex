@@ -30,24 +30,24 @@ public class FluoApp {
 
   public static final String EXPORT_QUEUE_ID = "eq";
 
-  public static void configureApplication(FluoConfiguration fluoConfig, String exportTable,
-      int numBuckets, int numTablets) {
+  public static void configureApplication(FluoConfiguration connectionConfig,
+      FluoConfiguration appConfig, String exportTable, int numBuckets, int numTablets) {
 
-    fluoConfig.setObserverProvider(WebindexObservers.class);
+    appConfig.setObserverProvider(WebindexObservers.class);
 
-    KryoSimplerSerializer.setKryoFactory(fluoConfig, WebindexKryoFactory.class);
+    KryoSimplerSerializer.setKryoFactory(appConfig, WebindexKryoFactory.class);
 
-    UriMap.configure(fluoConfig, numBuckets, numTablets);
-    DomainMap.configure(fluoConfig, numBuckets, numTablets);
+    UriMap.configure(appConfig, numBuckets, numTablets);
+    DomainMap.configure(appConfig, numBuckets, numTablets);
 
     ExportQueue.configure(EXPORT_QUEUE_ID).keyType(String.class).valueType(IndexUpdate.class)
-        .buckets(numBuckets).bucketsPerTablet(numBuckets / numTablets).save(fluoConfig);
+        .buckets(numBuckets).bucketsPerTablet(numBuckets / numTablets).save(appConfig);
 
     AccumuloExporter.configure(EXPORT_QUEUE_ID)
-        .instance(fluoConfig.getAccumuloInstance(), fluoConfig.getAccumuloZookeepers())
-        .credentials(fluoConfig.getAccumuloUser(), fluoConfig.getAccumuloPassword())
-        .table(exportTable).save(fluoConfig);
+        .instance(connectionConfig.getAccumuloInstance(), connectionConfig.getAccumuloZookeepers())
+        .credentials(connectionConfig.getAccumuloUser(), connectionConfig.getAccumuloPassword())
+        .table(exportTable).save(appConfig);
 
-    RowHasher.configure(fluoConfig, PageObserver.getPageRowHasher().getPrefix(), numTablets);
+    RowHasher.configure(appConfig, PageObserver.getPageRowHasher().getPrefix(), numTablets);
   }
 }

@@ -102,7 +102,7 @@ public class DevServer {
     log.info("Initializing Accumulo & Fluo");
     IndexEnv env = new IndexEnv(config, exportTable, "/tmp", TEST_SPLITS, TEST_SPLITS);
     env.initAccumuloIndexTable();
-    env.configureApplication(config);
+    env.configureApplication(config, config);
 
     FluoFactory.newAdmin(config).initialize(
         new FluoAdmin.InitializationOptions().setClearTable(true).setClearZookeeper(true));

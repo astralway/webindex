@@ -191,8 +191,9 @@ public class IndexEnv {
     }
   }
 
-  public void configureApplication(FluoConfiguration config) {
-    FluoApp.configureApplication(config, accumuloTable, numBuckets, numTablets);
+  public void configureApplication(FluoConfiguration connectionConfig, FluoConfiguration appConfig) {
+    FluoApp
+        .configureApplication(connectionConfig, appConfig, accumuloTable, numBuckets, numTablets);
   }
 
   public void initializeIndexes(JavaSparkContext ctx, JavaRDD<Page> pages, IndexStats stats)
