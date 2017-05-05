@@ -30,9 +30,9 @@ export FLUO_VERSION=`$FLUO_HOME/bin/fluo version`
 export ACCUMULO_VERSION=`accumulo version`
 
 # Accumulo client will likely not work without correct thrift version
-if [ $ACCUMULO_VERSION '<' "1.8" ]; then
+if [[ $ACCUMULO_VERSION < "1.8" ]]; then
   THRIFT_VERSION="0.9.1"
-elif [ $ACCUMULO_VERSION '<' "2.0" ]; then
+elif [[ $ACCUMULO_VERSION < "2.0" ]]; then
   THRIFT_VERSION="0.9.3"
 else
   THRIFT_VERSION="10.0.0"
