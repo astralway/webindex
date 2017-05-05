@@ -56,5 +56,6 @@ if [ ! -f $WI_DATA_DEP_JAR ]; then
 
   : ${ACCUMULO_VERSION?"ACCUMULO_VERSION must be set in bash env or conf/webindex-env.sh"}
   : ${FLUO_VERSION?"FLUO_VERSION must be set in bash env or conf/webindex-env.sh"}
-  mvn clean package -Pcreate-shade-jar -DskipTests -Dfluo.version=$FLUO_VERSION -Daccumulo.version=$ACCUMULO_VERSION
+  : ${THRIFT_VERSION?"THRIFT_VERSION must be set in bash env or conf/webindex-env.sh"}
+  mvn clean package -Pcreate-shade-jar -DskipTests -Dfluo.version=$FLUO_VERSION -Daccumulo.version=$ACCUMULO_VERSION -Dthrift.version=$THRIFT_VERSION
 fi
