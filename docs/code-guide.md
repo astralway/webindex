@@ -46,7 +46,8 @@ inbound link counts to the export queue.
 ### Domain Map Observer
 
 A CombineQueue is setup to track the number of unique URIs observed in each domain.  The
-SummingCombiner from Fluo Recipes combines updates. [DomainCombineQ.DomainUpdateObserver][DomainMap] is called when
+SummingCombiner from Fluo Recipes combines updates.
+[DomainCombineQ.DomainUpdateObserver][DomainCombineQ] is called when
 a keys value changes and it queues the changes on the export queue. 
 
 ### Export Queue
