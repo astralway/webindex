@@ -30,10 +30,10 @@ import webindex.core.models.export.IndexUpdate;
 import webindex.core.models.export.UriUpdate;
 
 /**
- * This class contains code related to a CollisionFreeMap that keeps track of the count of
- * information about URIs.
+ * This class contains code related to a CombineQueue that keeps track of the count of information
+ * about URIs.
  */
-public class UriMap {
+public class UriCombineQ {
 
   public static final String URI_MAP_ID = "um";
 

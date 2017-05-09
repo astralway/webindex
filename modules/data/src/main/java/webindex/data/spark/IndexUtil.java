@@ -41,10 +41,10 @@ import webindex.core.models.Link;
 import webindex.core.models.Page;
 import webindex.core.models.URL;
 import webindex.core.models.UriInfo;
-import webindex.data.fluo.DomainMap;
+import webindex.data.fluo.DomainCombineQ;
 import webindex.data.fluo.PageObserver;
 
-import webindex.data.fluo.UriMap;
+import webindex.data.fluo.UriCombineQ;
 
 import webindex.data.util.ArchiveUtil;
 import webindex.serialization.WebindexKryoFactory;
@@ -175,16 +175,16 @@ public class IndexUtil {
       return ret;
     });
 
-    Initializer<String, UriInfo> uriMapInitializer =
-        CombineQueue.getInitializer(UriMap.URI_MAP_ID, numBuckets, serializer);
+    Initializer<String, UriInfo> uriCombineQueueInitializer =
+        CombineQueue.getInitializer(UriCombineQ.URI_MAP_ID, numBuckets, serializer);
 
     fluoIndex = fluoIndex.union(uriMap.mapToPair(t -> {
-      RowColumnValue rcv = uriMapInitializer.convert(t._1(), t._2());
+      RowColumnValue rcv = uriCombineQueueInitializer.convert(t._1(), t._2());
       return new Tuple2<>(new RowColumn(rcv.getRow(), rcv.getColumn()), rcv.getValue());
     }));
 
     Initializer<String, Long> domainMapInitializer =
-        CombineQueue.getInitializer(DomainMap.DOMAIN_MAP_ID, numBuckets, serializer);
+        CombineQueue.getInitializer(DomainCombineQ.DOMAIN_COMBINE_Q_ID, numBuckets, serializer);
 
     fluoIndex = fluoIndex.union(domainMap.mapToPair(t -> {
       RowColumnValue rcv = domainMapInitializer.convert(t._1(), t._2());

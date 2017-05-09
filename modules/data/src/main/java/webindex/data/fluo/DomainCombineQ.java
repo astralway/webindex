@@ -24,9 +24,9 @@ import org.apache.fluo.recipes.core.export.ExportQueue;
 import webindex.core.models.export.DomainUpdate;
 import webindex.core.models.export.IndexUpdate;
 
-public class DomainMap {
+public class DomainCombineQ {
 
-  public static final String DOMAIN_MAP_ID = "dm";
+  public static final String DOMAIN_COMBINE_Q_ID = "dm";
 
   /**
    * Observes domain map updates and adds those updates to an export queue.
@@ -62,7 +62,7 @@ public class DomainMap {
    * A helper method for configuring the domain map before initializing Fluo.
    */
   public static void configure(FluoConfiguration config, int numBuckets, int numTablets) {
-    CombineQueue.configure(DOMAIN_MAP_ID).keyType(String.class).valueType(Long.class)
+    CombineQueue.configure(DOMAIN_COMBINE_Q_ID).keyType(String.class).valueType(Long.class)
         .buckets(numBuckets).bucketsPerTablet(numBuckets / numTablets).save(config);
   }
 }

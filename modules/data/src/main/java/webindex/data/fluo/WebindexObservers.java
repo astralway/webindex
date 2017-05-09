@@ -42,28 +42,28 @@ public class WebindexObservers implements ObserverProvider {
     ExportQueue<String, IndexUpdate> exportQ =
         ExportQueue.getInstance(FluoApp.EXPORT_QUEUE_ID, appCfg);
 
-    // Create a CFM that tracks the number of pages linking to a URI.
-    CombineQueue<String, UriInfo> uriMap = CombineQueue.getInstance(UriMap.URI_MAP_ID, appCfg);
+    // Create a combineQ that tracks the number of pages linking to a URI.
+    CombineQueue<String, UriInfo> uriQ = CombineQueue.getInstance(UriCombineQ.URI_MAP_ID, appCfg);
 
-    // Create a CFM that tracks the number of unique URIs observed per domain.
-    CombineQueue<String, Long> domainMap =
-        CombineQueue.getInstance(DomainMap.DOMAIN_MAP_ID, appCfg);
+    // Create a combineQ that tracks the number of unique URIs observed per domain.
+    CombineQueue<String, Long> domainQ =
+        CombineQueue.getInstance(DomainCombineQ.DOMAIN_COMBINE_Q_ID, appCfg);
 
     // Register an observer that handles changes to pages content.
     obsRegistry.forColumn(Constants.PAGE_NEW_COL, NotificationType.STRONG).withId("PageObserver")
-        .useObserver(new PageObserver(uriMap, exportQ, reporter));
+        .useObserver(new PageObserver(uriQ, exportQ, reporter));
 
     // Register an observer to processes queued export data.
     exportQ.registerObserver(obsRegistry, new AccumuloExporter<>(FluoApp.EXPORT_QUEUE_ID, appCfg,
         new IndexUpdateTranslator(reporter)));
 
     // Register an observer to process updates to the URI map.
-    uriMap.registerObserver(obsRegistry, UriInfo::reduce, new UriMap.UriUpdateObserver(exportQ,
-        domainMap, reporter));
+    uriQ.registerObserver(obsRegistry, UriInfo::reduce, new UriCombineQ.UriUpdateObserver(exportQ,
+        domainQ, reporter));
 
     // Register an observer to process updates to the domain map.
-    domainMap.registerObserver(obsRegistry, new SummingCombiner<>(),
-        new DomainMap.DomainUpdateObserver(exportQ, reporter));
+    domainQ.registerObserver(obsRegistry, new SummingCombiner<>(),
+        new DomainCombineQ.DomainUpdateObserver(exportQ, reporter));
   }
 
 }

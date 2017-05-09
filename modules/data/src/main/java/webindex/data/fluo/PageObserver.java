@@ -47,7 +47,7 @@ public class PageObserver implements Observer {
   private static final Logger log = LoggerFactory.getLogger(PageObserver.class);
   private static final Gson gson = new Gson();
 
-  private CombineQueue<String, UriInfo> uriMap;
+  private CombineQueue<String, UriInfo> uriQ;
   private ExportQueue<String, IndexUpdate> exportQ;
   private Meter pagesIngested;
   private Meter linksIngested;
@@ -59,9 +59,9 @@ public class PageObserver implements Observer {
     return PAGE_ROW_HASHER;
   }
 
-  PageObserver(CombineQueue<String, UriInfo> uriMap, ExportQueue<String, IndexUpdate> exportQ,
+  PageObserver(CombineQueue<String, UriInfo> uriQ, ExportQueue<String, IndexUpdate> exportQ,
       MetricsReporter reporter) {
-    this.uriMap = uriMap;
+    this.uriQ = uriQ;
     this.exportQ = exportQ;
     pagesIngested = reporter.meter("webindex_pages_ingested");
     linksIngested = reporter.meter("webindex_links_ingested");
@@ -114,7 +114,7 @@ public class PageObserver implements Observer {
       updates.put(link.getUri(), new UriInfo(-1, 0));
     }
 
-    uriMap.addAll(tx, updates);
+    uriQ.addAll(tx, updates);
 
     exportQ.add(tx, pageUri, new PageUpdate(pageUri, nextJson, addLinks, delLinks));
     pagesChanged.mark();

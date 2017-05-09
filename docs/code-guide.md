@@ -35,17 +35,18 @@ All Observers are setup by [WebindexObservers].  This class wires up everything 
 The [PageObserver] computes changes to links in a page.  It queues `+1` and `-1`  for  new and
 deleted URIs to the uriMap.  It also queues up changes in URIs to the export queue.
 
-### URI Map 
+### URI Combine Queue
 
-A Collision Free Map is setup to track the number of pages linking to a URI.  The `reduce()` function
-in [UriInfo] combines multiple updates into a single value.  [UriMap.UriUpdateObserver][UriMap] is called when
-a keys values changes.  The update observer queues '+1' and '-1' to the domain map.  The update
-observer also queues change in URI inbound link counts to the export queue.
+A CombineQueue is setup to track the number of pages linking to a URI.  The `reduce()` function in
+[UriInfo] combines multiple updates into a single value.
+[UriCombineQ.UriUpdateObserver][UriCombineQ] is called when a keys values changes.  The update
+observer queues '+1' and '-1' to the domain map.  The update observer also queues change in URI
+inbound link counts to the export queue.
 
 ### Domain Map Observer
 
-A Collision Free Map is setup to track the number of unique URIs observed in each domain.  The
-SummingCombiner from Fluo Recipes combines updates. [DomainMap.DomainUpdateObserver][DomainMap] is called when
+A CombineQueue is setup to track the number of unique URIs observed in each domain.  The
+SummingCombiner from Fluo Recipes combines updates. [DomainCombineQ.DomainUpdateObserver][DomainMap] is called when
 a keys value changes and it queues the changes on the export queue. 
 
 ### Export Queue
@@ -68,8 +69,8 @@ These objects are translated to mutations using code in the [IndexClient].
 [PageLoader]: ../modules/data/src/main/java/webindex/data/fluo/PageLoader.java
 [PageObserver]: ../modules/data/src/main/java/webindex/data/fluo/PageObserver.java
 [WebindexObservers]: ../modules/data/src/main/java/webindex/data/fluo/WebindexObservers.java
-[UriMap]: ../modules/data/src/main/java/webindex/data/fluo/UriMap.java
-[DomainMap]: ../modules/data/src/main/java/webindex/data/fluo/DomainMap.java
+[UriCombineQ]: ../modules/data/src/main/java/webindex/data/fluo/UriCombineQ.java
+[DomainCombineQ]: ../modules/data/src/main/java/webindex/data/fluo/DomainCombineQ.java
 [IndexUpdateTranslator]: ../modules/data/src/main/java/webindex/data/fluo/IndexUpdateTranslator.java
 [IndexUpdate]: ../modules/core/src/main/java/webindex/core/models/export/IndexUpdate.java
 [DomainUpdate]: ../modules/core/src/main/java/webindex/core/models/export/DomainUpdate.java

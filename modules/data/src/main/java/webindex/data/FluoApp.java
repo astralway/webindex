@@ -20,9 +20,9 @@ import org.apache.fluo.recipes.core.data.RowHasher;
 import org.apache.fluo.recipes.core.export.ExportQueue;
 import org.apache.fluo.recipes.kryo.KryoSimplerSerializer;
 import webindex.core.models.export.IndexUpdate;
-import webindex.data.fluo.DomainMap;
+import webindex.data.fluo.DomainCombineQ;
 import webindex.data.fluo.PageObserver;
-import webindex.data.fluo.UriMap;
+import webindex.data.fluo.UriCombineQ;
 import webindex.data.fluo.WebindexObservers;
 import webindex.serialization.WebindexKryoFactory;
 
@@ -37,8 +37,8 @@ public class FluoApp {
 
     KryoSimplerSerializer.setKryoFactory(appConfig, WebindexKryoFactory.class);
 
-    UriMap.configure(appConfig, numBuckets, numTablets);
-    DomainMap.configure(appConfig, numBuckets, numTablets);
+    UriCombineQ.configure(appConfig, numBuckets, numTablets);
+    DomainCombineQ.configure(appConfig, numBuckets, numTablets);
 
     ExportQueue.configure(EXPORT_QUEUE_ID).keyType(String.class).valueType(IndexUpdate.class)
         .buckets(numBuckets).bucketsPerTablet(numBuckets / numTablets).save(appConfig);
