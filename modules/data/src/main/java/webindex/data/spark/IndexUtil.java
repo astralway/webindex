@@ -176,7 +176,7 @@ public class IndexUtil {
     });
 
     Initializer<String, UriInfo> uriCombineQueueInitializer =
-        CombineQueue.getInitializer(UriCombineQ.URI_MAP_ID, numBuckets, serializer);
+        CombineQueue.getInitializer(UriCombineQ.URI_COMBINE_Q_ID, numBuckets, serializer);
 
     fluoIndex = fluoIndex.union(uriMap.mapToPair(t -> {
       RowColumnValue rcv = uriCombineQueueInitializer.convert(t._1(), t._2());

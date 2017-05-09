@@ -35,7 +35,7 @@ import webindex.core.models.export.UriUpdate;
  */
 public class UriCombineQ {
 
-  public static final String URI_MAP_ID = "um";
+  public static final String URI_COMBINE_Q_ID = "um";
 
   /**
    * Observes uri map updates and adds those updates to an export queue.
@@ -43,14 +43,14 @@ public class UriCombineQ {
   public static class UriUpdateObserver implements ChangeObserver<String, UriInfo> {
 
     private ExportQueue<String, IndexUpdate> exportQ;
-    private CombineQueue<String, Long> domainMap;
+    private CombineQueue<String, Long> domainQ;
     private Meter linksNew;
     private Meter linksChanged;
 
     public UriUpdateObserver(ExportQueue<String, IndexUpdate> exportQ,
         CombineQueue<String, Long> domainMap, MetricsReporter metricsReporter) {
       this.exportQ = exportQ;
-      this.domainMap = domainMap;
+      this.domainQ = domainMap;
       linksNew = metricsReporter.meter("webindex_links_new");
       linksChanged = metricsReporter.meter("webindex_links_changed");
     }
@@ -77,7 +77,7 @@ public class UriCombineQ {
         }
       }
 
-      domainMap.addAll(tx, domainUpdates);
+      domainQ.addAll(tx, domainUpdates);
     }
   }
 
@@ -85,7 +85,7 @@ public class UriCombineQ {
    * A helper method for configuring the uri map before initializing Fluo.
    */
   public static void configure(FluoConfiguration config, int numBuckets, int numTablets) {
-    CombineQueue.configure(URI_MAP_ID).keyType(String.class).valueType(UriInfo.class)
+    CombineQueue.configure(URI_COMBINE_Q_ID).keyType(String.class).valueType(UriInfo.class)
         .buckets(numBuckets).bucketsPerTablet(numBuckets / numTablets).save(config);
   }
 }

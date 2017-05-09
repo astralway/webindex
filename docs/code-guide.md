@@ -33,7 +33,7 @@ All Observers are setup by [WebindexObservers].  This class wires up everything 
 ### Page Observer
 
 The [PageObserver] computes changes to links in a page.  It queues `+1` and `-1`  for  new and
-deleted URIs to the uriMap.  It also queues up changes in URIs to the export queue.
+deleted URIs to the uriQ.  It also queues up changes in URIs to the export queue.
 
 ### URI Combine Queue
 
