@@ -43,7 +43,7 @@ A CombineQueue is setup to track the number of pages linking to a URI.  The `red
 observer queues '+1' and '-1' to the domain map.  The update observer also queues change in URI
 inbound link counts to the export queue.
 
-### Domain Map Observer
+### Domain Combine Queue
 
 A CombineQueue is setup to track the number of unique URIs observed in each domain.  The
 SummingCombiner from Fluo Recipes combines updates.
