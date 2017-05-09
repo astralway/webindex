@@ -50,8 +50,8 @@ public class WebindexObservers implements ObserverProvider {
         CombineQueue.getInstance(DomainMap.DOMAIN_MAP_ID, appCfg);
 
     // Register an observer that handles changes to pages content.
-    obsRegistry.register(Constants.PAGE_NEW_COL, NotificationType.STRONG, new PageObserver(uriMap,
-        exportQ, reporter));
+    obsRegistry.forColumn(Constants.PAGE_NEW_COL, NotificationType.STRONG).withId("PageObserver")
+        .useObserver(new PageObserver(uriMap, exportQ, reporter));
 
     // Register an observer to processes queued export data.
     exportQ.registerObserver(obsRegistry, new AccumuloExporter<>(FluoApp.EXPORT_QUEUE_ID, appCfg,
