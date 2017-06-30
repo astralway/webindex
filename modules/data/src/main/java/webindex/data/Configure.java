@@ -15,6 +15,7 @@
 package webindex.data;
 
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
 import java.util.Iterator;
@@ -40,9 +41,10 @@ public class Configure {
     IndexEnv env = new IndexEnv(webIndexConfig);
     env.initAccumuloIndexTable();
 
+    FluoConfiguration connectionConfig =
+        new FluoConfiguration(new File(webIndexConfig.getFluoPropsPath()));
     FluoConfiguration appConfig = new FluoConfiguration();
-    env.configureApplication(appConfig);
-
+    env.configureApplication(connectionConfig, appConfig);
     Iterator<String> iter = appConfig.getKeys();
     try (PrintWriter out =
         new PrintWriter(new BufferedWriter(new FileWriter(webIndexConfig.getFluoPropsPath(), true)))) {

@@ -26,10 +26,11 @@ import org.apache.fluo.api.client.TransactionBase;
 import org.apache.fluo.api.data.Bytes;
 import org.apache.fluo.api.data.Column;
 import org.apache.fluo.api.metrics.Meter;
-import org.apache.fluo.api.observer.AbstractObserver;
+import org.apache.fluo.api.metrics.MetricsReporter;
+import org.apache.fluo.api.observer.Observer;
+import org.apache.fluo.recipes.core.combine.CombineQueue;
 import org.apache.fluo.recipes.core.data.RowHasher;
 import org.apache.fluo.recipes.core.export.ExportQueue;
-import org.apache.fluo.recipes.core.map.CollisionFreeMap;
 import org.apache.fluo.recipes.core.types.TypedSnapshotBase.Value;
 import org.apache.fluo.recipes.core.types.TypedTransactionBase;
 import org.slf4j.Logger;
@@ -40,14 +41,13 @@ import webindex.core.models.Page;
 import webindex.core.models.UriInfo;
 import webindex.core.models.export.IndexUpdate;
 import webindex.core.models.export.PageUpdate;
-import webindex.data.FluoApp;
 
-public class PageObserver extends AbstractObserver {
+public class PageObserver implements Observer {
 
   private static final Logger log = LoggerFactory.getLogger(PageObserver.class);
   private static final Gson gson = new Gson();
 
-  private CollisionFreeMap<String, UriInfo> uriMap;
+  private CombineQueue<String, UriInfo> uriQ;
   private ExportQueue<String, IndexUpdate> exportQ;
   private Meter pagesIngested;
   private Meter linksIngested;
@@ -59,13 +59,14 @@ public class PageObserver extends AbstractObserver {
     return PAGE_ROW_HASHER;
   }
 
-  @Override
-  public void init(Context context) throws Exception {
-    exportQ = ExportQueue.getInstance(FluoApp.EXPORT_QUEUE_ID, context.getAppConfiguration());
-    uriMap = CollisionFreeMap.getInstance(UriMap.URI_MAP_ID, context.getAppConfiguration());
-    pagesIngested = context.getMetricsReporter().meter("webindex_pages_ingested");
-    linksIngested = context.getMetricsReporter().meter("webindex_links_ingested");
-    pagesChanged = context.getMetricsReporter().meter("webindex_pages_changed");
+  PageObserver(CombineQueue<String, UriInfo> uriQ, ExportQueue<String, IndexUpdate> exportQ,
+      MetricsReporter reporter) {
+    this.uriQ = uriQ;
+    this.exportQ = exportQ;
+    pagesIngested = reporter.meter("webindex_pages_ingested");
+    linksIngested = reporter.meter("webindex_links_ingested");
+    pagesChanged = reporter.meter("webindex_pages_changed");
+
   }
 
   @Override
@@ -113,17 +114,12 @@ public class PageObserver extends AbstractObserver {
       updates.put(link.getUri(), new UriInfo(-1, 0));
     }
 
-    uriMap.update(tx, updates);
+    uriQ.addAll(tx, updates);
 
     exportQ.add(tx, pageUri, new PageUpdate(pageUri, nextJson, addLinks, delLinks));
     pagesChanged.mark();
 
     // clean up
     ttx.mutate().row(row).col(Constants.PAGE_NEW_COL).delete();
-  }
-
-  @Override
-  public ObservedColumn getObservedColumn() {
-    return new ObservedColumn(Constants.PAGE_NEW_COL, NotificationType.STRONG);
   }
 }

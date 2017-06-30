@@ -26,14 +26,10 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import webindex.core.IndexClient;
 import webindex.core.models.Pages;
 
 public class DevServerIT {
-
-  private static final Logger log = LoggerFactory.getLogger(DevServerIT.class);
 
   static DevServer devServer;
   static Path tempPath;

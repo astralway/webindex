@@ -76,7 +76,7 @@ public class IndexIT extends AccumuloExportITBase {
     ctx = SparkTestUtil.getSparkContext(getClass().getSimpleName());
     env = new IndexEnv(config, exportTable, "/tmp", TEST_SPLITS, TEST_SPLITS);
     env.initAccumuloIndexTable();
-    env.configureApplication(config);
+    env.configureApplication(config, config);
   }
 
   @Override

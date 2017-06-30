@@ -15,38 +15,39 @@
 package webindex.data;
 
 import org.apache.fluo.api.config.FluoConfiguration;
-import org.apache.fluo.api.config.ObserverSpecification;
-import org.apache.fluo.recipes.accumulo.export.AccumuloExporter;
+import org.apache.fluo.recipes.accumulo.export.function.AccumuloExporter;
 import org.apache.fluo.recipes.core.data.RowHasher;
 import org.apache.fluo.recipes.core.export.ExportQueue;
 import org.apache.fluo.recipes.kryo.KryoSimplerSerializer;
 import webindex.core.models.export.IndexUpdate;
-import webindex.data.fluo.DomainMap;
-import webindex.data.fluo.IndexExporter;
+import webindex.data.fluo.DomainCombineQ;
 import webindex.data.fluo.PageObserver;
-import webindex.data.fluo.UriMap;
+import webindex.data.fluo.UriCombineQ;
+import webindex.data.fluo.WebindexObservers;
 import webindex.serialization.WebindexKryoFactory;
 
 public class FluoApp {
 
   public static final String EXPORT_QUEUE_ID = "eq";
 
-  public static void configureApplication(FluoConfiguration fluoConfig,
-      AccumuloExporter.Configuration aeConf, int numBuckets, int numTablets) {
+  public static void configureApplication(FluoConfiguration connectionConfig,
+      FluoConfiguration appConfig, String exportTable, int numBuckets, int numTablets) {
 
-    fluoConfig.addObserver(new ObserverSpecification(PageObserver.class.getName()));
+    appConfig.setObserverProvider(WebindexObservers.class);
 
-    KryoSimplerSerializer.setKryoFactory(fluoConfig, WebindexKryoFactory.class);
+    KryoSimplerSerializer.setKryoFactory(appConfig, WebindexKryoFactory.class);
 
-    UriMap.configure(fluoConfig, numBuckets, numTablets);
-    DomainMap.configure(fluoConfig, numBuckets, numTablets);
+    UriCombineQ.configure(appConfig, numBuckets, numTablets);
+    DomainCombineQ.configure(appConfig, numBuckets, numTablets);
 
-    ExportQueue.configure(
-        fluoConfig,
-        new ExportQueue.Options(EXPORT_QUEUE_ID, IndexExporter.class.getName(), String.class
-            .getName(), IndexUpdate.class.getName(), numBuckets).setBucketsPerTablet(
-            numBuckets / numTablets).setExporterConfiguration(aeConf));
+    ExportQueue.configure(EXPORT_QUEUE_ID).keyType(String.class).valueType(IndexUpdate.class)
+        .buckets(numBuckets).bucketsPerTablet(numBuckets / numTablets).save(appConfig);
 
-    RowHasher.configure(fluoConfig, PageObserver.getPageRowHasher().getPrefix(), numTablets);
+    AccumuloExporter.configure(EXPORT_QUEUE_ID)
+        .instance(connectionConfig.getAccumuloInstance(), connectionConfig.getAccumuloZookeepers())
+        .credentials(connectionConfig.getAccumuloUser(), connectionConfig.getAccumuloPassword())
+        .table(exportTable).save(appConfig);
+
+    RowHasher.configure(appConfig, PageObserver.getPageRowHasher().getPrefix(), numTablets);
   }
 }

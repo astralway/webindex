@@ -36,7 +36,7 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.fluo.api.data.Bytes;
 import org.apache.fluo.api.data.Column;
 import org.apache.fluo.api.data.RowColumn;
-import org.apache.fluo.recipes.accumulo.export.AccumuloExporter;
+import org.apache.fluo.recipes.accumulo.export.function.AccumuloTranslator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import webindex.core.models.DomainStats;
@@ -250,7 +250,7 @@ public class IndexClient {
   public static void genDomainMutations(DomainUpdate update, long seq, Consumer<Mutation> consumer) {
     Map<RowColumn, Bytes> oldData = genDomainData(update.getDomain(), update.getOldPageCount());
     Map<RowColumn, Bytes> newData = genDomainData(update.getDomain(), update.getNewPageCount());
-    AccumuloExporter.generateMutations(seq, oldData, newData, consumer);
+    AccumuloTranslator.generateMutations(seq, oldData, newData, consumer);
   }
 
   public static Map<RowColumn, Bytes> genDomainData(String domain, Long pageCount) {
@@ -287,7 +287,7 @@ public class IndexClient {
   public static void genUriMutations(UriUpdate update, long seq, Consumer<Mutation> consumer) {
     Map<RowColumn, Bytes> oldData = genUriData(update.getUri(), update.getOldInfo());
     Map<RowColumn, Bytes> newData = genUriData(update.getUri(), update.getNewInfo());
-    AccumuloExporter.generateMutations(seq, oldData, newData, consumer);
+    AccumuloTranslator.generateMutations(seq, oldData, newData, consumer);
   }
 
   public static Map<RowColumn, Bytes> genUriData(String uri, UriInfo info) {
