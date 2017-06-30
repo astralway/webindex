@@ -43,7 +43,8 @@ public class WebindexObservers implements ObserverProvider {
         ExportQueue.getInstance(FluoApp.EXPORT_QUEUE_ID, appCfg);
 
     // Create a combineQ that tracks the number of pages linking to a URI.
-    CombineQueue<String, UriInfo> uriQ = CombineQueue.getInstance(UriCombineQ.URI_COMBINE_Q_ID, appCfg);
+    CombineQueue<String, UriInfo> uriQ =
+        CombineQueue.getInstance(UriCombineQ.URI_COMBINE_Q_ID, appCfg);
 
     // Create a combineQ that tracks the number of unique URIs observed per domain.
     CombineQueue<String, Long> domainQ =
