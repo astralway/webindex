@@ -21,7 +21,7 @@ public class WebIndexConfigTest {
 
   @Test
   public void testBasic() throws Exception {
-    WebIndexConfig config = WebIndexConfig.load("../../conf/webindex.yml.example", false);
+    WebIndexConfig config = WebIndexConfig.load("../../conf/webindex.yml", false);
     Assert.assertEquals("webindex_search", config.accumuloIndexTable);
     Assert.assertEquals("webindex", config.fluoApp);
     Assert.assertEquals("/cc/temp", config.hdfsTempDir);

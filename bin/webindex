@@ -18,30 +18,30 @@ BIN_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 export WI_HOME=$( cd "$( dirname "$BIN_DIR" )" && pwd )
 export WI_VERSION=0.0.1-SNAPSHOT
 
-if [ -f $WI_HOME/conf/webindex-env.sh ]; then
-  . $WI_HOME/conf/webindex-env.sh
-else
-  . $WI_HOME/conf/webindex-env.sh.example
+if [ ! -f $WI_HOME/conf/webindex-env.sh ]; then
+  echo "webindex-env.sh must exist in $WI_HOME/conf"
+  exit 1
 fi
+. "$WI_HOME/conf/webindex-env.sh"
 
-mkdir -p $WI_HOME/logs
+mkdir -p "$WI_HOME/logs"
 
 export WI_CONFIG=$WI_HOME/conf/webindex.yml
-if [ ! -f $WI_CONFIG ]; then
-  export WI_CONFIG=$WI_HOME/conf/webindex.yml.example
-  if [ ! -f $WI_CONFIG ]; then
-    echo "Could not find webindex.yml or webindex.yml.example in $WI_HOME/conf"
-    exit 1
-  fi
+if [ ! -f "$WI_CONFIG" ]; then
+  echo "webindex.yml must exist in $WI_HOME/conf"
+  exit 1
 fi
 
 log4j_config=$WI_HOME/conf/log4j.properties
-if [ ! -f $log4j_config ]; then
-  log4j_config=$WI_HOME/conf/log4j.properties.example
-  if [ ! -f $log4j_config ]; then
-    echo "Could not find logj4.properties or log4j.properties.example in $WI_HOME/conf"
-    exit 1
-  fi
+if [ ! -f "$log4j_config" ]; then
+  echo "logj4.properties must exist in $WI_HOME/conf"
+  exit 1
+fi
+
+conn_props=$FLUO_HOME/conf/connection.properties
+if [ ! -f "$conn_props" ]; then
+  echo "connection.properties must exist in $FLUO_HOME/conf"
+  exit 1
 fi
 
 function get_prop {
@@ -116,13 +116,8 @@ load-hdfs)
     exit 1
   fi
   . $BIN_DIR/impl/base.sh
-  FLUO_PROPS=$FLUO_HOME/apps/`get_prop fluoApp`/conf/fluo.properties
-  if [ ! -f $FLUO_PROPS ]; then
-    echo "Fluo properties file must exist at $FLUO_PROPS"
-    exit 1
-  fi
   COMMAND="$SPARK_SUBMIT --class webindex.data.LoadHdfs $COMMON_SPARK_OPTS \
-    --files $FLUO_PROPS $WI_DATA_DEP_JAR $2"
+    --files $conn_props $WI_DATA_DEP_JAR $2"
   if [ "$3" != "-fg" ]; then
     nohup ${COMMAND} &> $COMMAND_LOGFILE &
     echo "Started load-hdfs.  Logs are being output to $COMMAND_LOGFILE"
@@ -136,13 +131,8 @@ load-s3)
     exit 1
   fi
   . $BIN_DIR/impl/base.sh
-  FLUO_PROPS=$FLUO_HOME/apps/`get_prop fluoApp`/conf/fluo.properties
-  if [ ! -f $FLUO_PROPS ]; then
-    echo "Fluo properties file must exist at $FLUO_PROPS"
-    exit 1
-  fi
   COMMAND="$SPARK_SUBMIT --class webindex.data.LoadS3 $COMMON_SPARK_OPTS \
-    --files $FLUO_PROPS $WI_DATA_DEP_JAR $DATA_DIR/"$2".wat.paths $3"
+    --files $conn_props $WI_DATA_DEP_JAR $DATA_DIR/"$2".wat.paths $3"
   if [ "$4" != "-fg" ]; then
     nohup ${COMMAND} &> $COMMAND_LOGFILE &
     echo "Started load-s3.  Logs are being output to $COMMAND_LOGFILE"

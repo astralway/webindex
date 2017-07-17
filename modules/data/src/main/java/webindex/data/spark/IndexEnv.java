@@ -34,6 +34,8 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.fluo.api.client.FluoAdmin;
+import org.apache.fluo.api.client.FluoFactory;
 import org.apache.fluo.api.config.FluoConfiguration;
 import org.apache.fluo.api.data.Bytes;
 import org.apache.fluo.api.data.RowColumn;
@@ -70,8 +72,12 @@ public class IndexEnv {
   private int numBuckets;
 
   public IndexEnv(WebIndexConfig webIndexConfig) {
-    this(getFluoConfig(webIndexConfig), webIndexConfig.accumuloIndexTable,
-        webIndexConfig.hdfsTempDir, webIndexConfig.numBuckets, webIndexConfig.numTablets);
+    this(webIndexConfig, getFluoConfig(webIndexConfig));
+  }
+
+  public IndexEnv(WebIndexConfig webIndexConfig, FluoConfiguration fluoConfig) {
+    this(fluoConfig, webIndexConfig.accumuloIndexTable, webIndexConfig.hdfsTempDir,
+        webIndexConfig.numBuckets, webIndexConfig.numTablets);
   }
 
   public IndexEnv(FluoConfiguration fluoConfig, String accumuloTable, String hdfsTempDir,
@@ -99,9 +105,14 @@ public class IndexEnv {
   }
 
   private static FluoConfiguration getFluoConfig(WebIndexConfig webIndexConfig) {
-    Preconditions.checkArgument(new File(webIndexConfig.getFluoPropsPath()).exists(),
+    File connPropsFile = new File(webIndexConfig.getConnPropsPath());
+    Preconditions.checkArgument(connPropsFile.exists(),
         "fluoPropsPath must be set in webindex.yml and exist");
-    return new FluoConfiguration(new File(webIndexConfig.getFluoPropsPath()));
+    FluoConfiguration fluoConfig = new FluoConfiguration(connPropsFile);
+    fluoConfig.setApplicationName(webIndexConfig.fluoApp);
+    try (FluoAdmin admin = FluoFactory.newAdmin(fluoConfig)) {
+      return admin.getSharedConfig();
+    }
   }
 
   public FluoConfiguration getFluoConfig() {

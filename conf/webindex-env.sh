@@ -24,6 +24,7 @@ test -z "$HADOOP_CONF_DIR" && export HADOOP_CONF_DIR=/path/to/hadoop/etc/hadoop
 # Fluo
 # ====
 test -z "$FLUO_HOME" && export FLUO_HOME=/path/to/fluo
+test -z "$FLUO_YARN_HOME" && export FLUO_YARN_HOME=/path/to/fluo
 
 #set the Accumulo and Fluo versions that should be included in the shaded jar created for Spark.
 export FLUO_VERSION=`$FLUO_HOME/bin/fluo version`
@@ -35,7 +36,7 @@ if [[ $ACCUMULO_VERSION < "1.8" ]]; then
 elif [[ $ACCUMULO_VERSION < "2.0" ]]; then
   THRIFT_VERSION="0.9.3"
 else
-  THRIFT_VERSION="10.0.0"
+  THRIFT_VERSION="0.10.0"
 fi
 
 # Spark

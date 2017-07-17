@@ -20,6 +20,7 @@ import java.io.FileWriter;
 import java.io.PrintWriter;
 import java.util.Iterator;
 
+import com.google.common.base.Preconditions;
 import org.apache.fluo.api.config.FluoConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,22 +33,27 @@ public class Configure {
 
   public static void main(String[] args) throws Exception {
 
-    if (args.length != 1) {
-      log.error("Usage: Configure");
+    if (args.length != 2) {
+      log.error("Usage: Configure <webindexConfigPath> <fluoAppProps>");
       System.exit(1);
     }
-    WebIndexConfig webIndexConfig = WebIndexConfig.load();
+    WebIndexConfig webIndexConfig = WebIndexConfig.load(args[0]);
+    String appPropsPath = args[1];
+    Preconditions.checkArgument(new File(appPropsPath).exists(), "File does not exist: "
+        + appPropsPath);
 
-    IndexEnv env = new IndexEnv(webIndexConfig);
+    FluoConfiguration fluoConfig =
+        new FluoConfiguration(new File(webIndexConfig.getConnPropsPath()));
+    fluoConfig.load(new File(appPropsPath));
+
+
+    IndexEnv env = new IndexEnv(webIndexConfig, fluoConfig);
     env.initAccumuloIndexTable();
 
-    FluoConfiguration connectionConfig =
-        new FluoConfiguration(new File(webIndexConfig.getFluoPropsPath()));
     FluoConfiguration appConfig = new FluoConfiguration();
-    env.configureApplication(connectionConfig, appConfig);
+    env.configureApplication(fluoConfig, appConfig);
     Iterator<String> iter = appConfig.getKeys();
-    try (PrintWriter out =
-        new PrintWriter(new BufferedWriter(new FileWriter(webIndexConfig.getFluoPropsPath(), true)))) {
+    try (PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(appPropsPath, true)))) {
       while (iter.hasNext()) {
         String key = iter.next();
         out.println(key + " = " + appConfig.getRawString(key));
