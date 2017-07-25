@@ -60,13 +60,13 @@ $SED "s#^.*fluo.observer.init.dir=[^ ]*#fluo.observer.init.dir=${app_lib}#" "$ap
 
 java -cp "$app_lib/*:$("$fluo_cmd" classpath)" webindex.data.Configure "$WI_CONFIG" "$app_props"
 
-"$fluo_cmd" setup "$app_props" --force
+"$fluo_cmd" init "$app_props" --force
 
 "$SPARK_SUBMIT" --class webindex.data.Init $COMMON_SPARK_OPTS \
     --conf spark.shuffle.service.enabled=true \
     --conf spark.executor.extraJavaOptions=-XX:+UseCompressedOops \
     $WI_DATA_DEP_JAR $1
 
-"$fluo_yarn_cmd" start "$fluo_app"
+"$fluo_yarn_cmd" start "$fluo_app" "$FLUO_YARN_HOME/conf/fluo-yarn.properties"
 
 echo "Webindex init has completed successfully."
