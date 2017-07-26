@@ -39,7 +39,7 @@ public class WebIndexConfig {
   public int loadRateLimit = 0;
 
   public String getConnPropsPath() {
-    return addSlash(fluoHome) + "conf/connection.properties";
+    return addSlash(fluoHome) + "conf/fluo-conn.properties";
   }
 
   public int getNumExecutorInstances() {

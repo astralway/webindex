@@ -70,7 +70,7 @@ public class LoadS3 {
 
       loadRDD.foreachPartition(iter -> {
         final FluoConfiguration fluoConfig =
-            new FluoConfiguration(new File("connection.properties"));
+            new FluoConfiguration(new File("fluo-conn.properties"));
         fluoConfig.setApplicationName(appName);
         final RateLimiter rateLimiter = rateLimit > 0 ? RateLimiter.create(rateLimit) : null;
         try (FluoClient client = FluoFactory.newClient(fluoConfig);

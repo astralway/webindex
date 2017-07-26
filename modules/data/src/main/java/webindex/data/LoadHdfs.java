@@ -80,7 +80,7 @@ public class LoadHdfs {
 
       paths.foreachPartition(iter -> {
         final FluoConfiguration fluoConfig =
-            new FluoConfiguration(new File("connection.properties"));
+            new FluoConfiguration(new File("fluo-conn.properties"));
         fluoConfig.setApplicationName(appName);
         final RateLimiter rateLimiter = rateLimit > 0 ? RateLimiter.create(rateLimit) : null;
         FileSystem fs = IndexEnv.getHDFS(hadoopConfDir);

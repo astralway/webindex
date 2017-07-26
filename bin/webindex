@@ -38,9 +38,9 @@ if [ ! -f "$log4j_config" ]; then
   exit 1
 fi
 
-conn_props=$FLUO_HOME/conf/connection.properties
+conn_props=$FLUO_HOME/conf/fluo-conn.properties
 if [ ! -f "$conn_props" ]; then
-  echo "connection.properties must exist in $FLUO_HOME/conf"
+  echo "fluo-conn.properties must exist in $FLUO_HOME/conf"
   exit 1
 fi
 
