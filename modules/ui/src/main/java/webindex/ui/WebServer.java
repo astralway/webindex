@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
 
 import com.google.gson.Gson;
@@ -140,11 +141,12 @@ public class WebServer {
     File connPropsFile = new File(webIndexConfig.getConnPropsPath());
     FluoConfiguration fluoConfig = new FluoConfiguration(connPropsFile);
     fluoConfig.setApplicationName(webIndexConfig.fluoApp);
-    FluoConfiguration appConfig;
     try (FluoAdmin admin = FluoFactory.newAdmin(fluoConfig)) {
-      appConfig = admin.getSharedConfig();
+      for (Map.Entry<String, String> entry : admin.getApplicationConfig().toMap().entrySet()) {
+        fluoConfig.setProperty(entry.getKey(), entry.getValue());
+      }
     }
-    Connector conn = AccumuloUtil.getConnector(appConfig);
+    Connector conn = AccumuloUtil.getConnector(fluoConfig);
     IndexClient client = new IndexClient(webIndexConfig.accumuloIndexTable, conn);
     WebServer webServer = new WebServer();
     webServer.start(client, 4567, null);

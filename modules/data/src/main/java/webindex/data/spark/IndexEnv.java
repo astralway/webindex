@@ -23,6 +23,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
@@ -109,10 +110,14 @@ public class IndexEnv {
     Preconditions.checkArgument(connPropsFile.exists(),
         "fluoPropsPath must be set in webindex.yml and exist");
     FluoConfiguration fluoConfig = new FluoConfiguration(connPropsFile);
+    Preconditions.checkArgument(!webIndexConfig.fluoApp.isEmpty(), "app name is empty");
     fluoConfig.setApplicationName(webIndexConfig.fluoApp);
     try (FluoAdmin admin = FluoFactory.newAdmin(fluoConfig)) {
-      return admin.getSharedConfig();
+      for (Map.Entry<String, String> entry : admin.getApplicationConfig().toMap().entrySet()) {
+        fluoConfig.setProperty(entry.getKey(), entry.getValue());
+      }
     }
+    return fluoConfig;
   }
 
   public FluoConfiguration getFluoConfig() {
