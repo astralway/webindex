@@ -55,12 +55,11 @@ cp "$WI_HOME/modules/core/target/webindex-core-$WI_VERSION.jar" "$app_lib"
 
 app_props=$FLUO_HOME/conf/${fluo_app}.properties
 cp "$FLUO_HOME/conf/fluo-app.properties" "$app_props"
-$SED "s#fluo.connection.application.name=[^ ]*#fluo.connection.application.name=${fluo_app}#" "$app_props"
 $SED "s#^.*fluo.observer.init.dir=[^ ]*#fluo.observer.init.dir=${app_lib}#" "$app_props"
 
 java -cp "$app_lib/*:$("$fluo_cmd" classpath)" webindex.data.Configure "$WI_CONFIG" "$app_props"
 
-"$fluo_cmd" init "$app_props" --force
+"$fluo_cmd" init "$fluo_app" "$app_props" --force
 
 "$SPARK_SUBMIT" --class webindex.data.Init $COMMON_SPARK_OPTS \
     --conf spark.shuffle.service.enabled=true \
