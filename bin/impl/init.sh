@@ -59,7 +59,7 @@ $SED "s#^.*fluo.observer.init.dir=[^ ]*#fluo.observer.init.dir=${app_lib}#" "$ap
 
 java -cp "$app_lib/*:$("$fluo_cmd" classpath)" webindex.data.Configure "$WI_CONFIG" "$app_props"
 
-"$fluo_cmd" init "$fluo_app" "$app_props" --force
+"$fluo_cmd" init -a "$fluo_app" -p "$app_props" --force
 
 "$SPARK_SUBMIT" --class webindex.data.Init $COMMON_SPARK_OPTS \
     --conf spark.shuffle.service.enabled=true \

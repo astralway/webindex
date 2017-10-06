@@ -219,18 +219,10 @@ test-id)
 kill)
   : ${HADOOP_PREFIX?"HADOOP_PREFIX must be set"}
   FLUO_APP=`get_prop fluoApp`
-  FLUO_CMD=$FLUO_HOME/bin/fluo
-  if [ ! -f $FLUO_CMD ]; then
-    echo "Fluo command script does not exist at $FLUO_CMD"
-    exit 1
-  fi
   echo "Killing the webindex UI web server..."
   pkill -9 -f webindex-web-server
 
-  echo "Stopping the $FLUO_APP Fluo application (if running)..."
-  $FLUO_CMD stop $FLUO_APP
-
-  echo "Killing any webindex Spark jobs running in YARN..."
+  echo "Killing any webindex jobs running in YARN..."
   YARN=$HADOOP_PREFIX/bin/yarn
   $YARN application -list | grep webindex | while read x; do yarn application -kill `echo $x | cut -d ' ' -f 1` ; done
   ;;
