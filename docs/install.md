@@ -22,17 +22,12 @@ First, clone the WebIndex repo:
 
     git clone https://github.com/astralway/webindex.git
 
-Next, create the configuration file `webindex.yml` in the `conf/` directory and edit it
-for your environment.
+Copy the configuration files in `conf/examples` to `conf/` and edit for your environment:
 
-    cd webindex/
-    cp conf/webindex.yml.example conf/webindex.yml
-
-There are a few environment variables that need to be set to run these scripts (see 
-`conf/webindex-env.sh.example` for a list).  If you don't want to set them in your `~/.bashrc`, 
-create `webindex-env.sh` in `conf/` and set them.
-
-    cp conf/webindex-env.sh.example conf/webindex-env.sh
+    cd webindex/conf/
+    cp examples/* .
+    vim webindex.yml
+    vim webindex-env.sh
 
 ## Download the paths file for a crawl
 

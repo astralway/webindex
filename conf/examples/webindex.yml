@@ -1,0 +1,33 @@
+# Copyright 2015 Webindex authors (see AUTHORS)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Accumulo table where indexes are exported for search
+accumuloIndexTable: webindex_search
+# Fluo Application Name
+fluoApp: webindex
+# Webindex builds multiple data sets for its computation.  Each of these data
+# sets needs to be spread across the cluster.  The setting below determines how
+# much each dataset will be split up.  Ideally this would be a small multiple of
+# the number of Accumulo tablet servers.
+numTablets: 20
+# Number of buckets for collision free maps and export queue.  This setting is
+# used during initialization of the Fluo table and when Spark loads the initial
+# data.  The value of numBuckets must be the same for these two task.
+numBuckets: 100
+#This determines how fast each Spark load task will load documents.  Set to 0
+#for no limit.  Setting this to 50 and running 10 conucurrent load task would
+#limit the load rate to 500 documents/sec.
+loadRateLimit: 0
+# HDFS temporary directory
+hdfsTempDir: /cc/temp
