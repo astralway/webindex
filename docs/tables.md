@@ -91,7 +91,7 @@ Resulting Accumulo Table :
                       rank      1:com.d         1
     p:com.a/page1     page      cur             {"outlinkcount": 2, "outlinks":[c.com, b.com]}
                                 incount         0
-    p:com.b           inlinks   com.a/pag1      anchorText
+    p:com.b           inlinks   com.a/page1     anchorText
                       page      cur             {"outlinkcount": 2, "outlinks":[c.com/page1, c.com]}
                                 incount         1
     p:com.c           inlinks   com.a/page1     anchorText
