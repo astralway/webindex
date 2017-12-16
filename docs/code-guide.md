@@ -28,7 +28,7 @@ The [PageLoader] queues updated page content for processing by the [PageObserver
 
 ### Observer Provider
 
-All Observers are setup by [WebindexObservers].  This class wires up everything discussed belowr.
+All Observers are setup by [WebindexObservers].  This class wires up everything discussed below.
 
 ### Page Observer
 
