@@ -31,18 +31,10 @@ set -e
 : "${WI_DATA_JAR?"WI_DATA_JAR must be set"}"
 : "${WI_DATA_DEP_JAR?"WI_DATA_DEP_JAR must be set"}"
 
-echo "Kill any previously running webindex Fluo application or Spark job"
-"$WI_HOME/bin/webindex" kill
-
 fluo_app=$(get_prop fluoApp)
 fluo_cmd=$FLUO_HOME/bin/fluo
 if [ ! -f "$fluo_cmd" ]; then
   echo "Fluo command script does not exist at $fluo_cmd"
-  exit 1
-fi
-fluo_yarn_cmd=$FLUO_YARN_HOME/bin/fluo-yarn
-if [ ! -f "$fluo_yarn_cmd" ]; then
-  echo "Fluo-yarn command script does not exist at $fluo_yarn_cmd"
   exit 1
 fi
 
@@ -65,7 +57,5 @@ java -cp "$app_lib/*:$("$fluo_cmd" classpath)" webindex.data.Configure "$WI_CONF
     --conf spark.shuffle.service.enabled=true \
     --conf spark.executor.extraJavaOptions=-XX:+UseCompressedOops \
     $WI_DATA_DEP_JAR $1
-
-"$fluo_yarn_cmd" start "$fluo_app" "$FLUO_YARN_HOME/conf/fluo-yarn.properties"
 
 echo "Webindex init has completed successfully."

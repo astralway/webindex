@@ -179,53 +179,6 @@ splits)
     ${COMMAND}
   fi
   ;;
-test)
-  COMMAND="$BIN_DIR/impl/test.sh ${@:2}"
-  if [[ $@ != *"-fg"* ]]; then
-    nohup ${COMMAND} &> $COMMAND_LOGFILE &
-    echo "Started webindex test ${@:2}.  Logs are being output to $COMMAND_LOGFILE"
-  else
-    ${COMMAND}
-  fi
-  ;;
-test-id)
-  if [ "$#" -gt 3 ]; then
-    echo "Usage: webindex test-id <ID> [-fg]"
-    exit 1
-  fi
-  if [ -z "$2" ]; then
-    echo "Available tests:"
-    echo "----------------"
-    cat $WI_HOME/conf/webindex-tests.txt
-    exit 1
-  fi
-  TEST_ARGS="`grep $2 $WI_HOME/conf/webindex-tests.txt | cut -d = -f 2`"
-  if [ -z "$TEST_ARGS" ]; then
-    echo "Unknown test ID: $2"
-    echo "Available tests:"
-    echo "----------------"
-    cat $WI_HOME/conf/webindex-tests.txt
-    exit 1
-  fi
-  COMMAND="$BIN_DIR/impl/test.sh $TEST_ARGS"
-  if [[ $@ != *"-fg"* ]]; then
-    COMMAND_LOGFILE=$WI_HOME/logs/test_"$2"_`date +%s`.log
-    nohup ${COMMAND} &> $COMMAND_LOGFILE &
-    echo "Started webindex run-test $2.  Logs are being output to $COMMAND_LOGFILE"
-  else
-    ${COMMAND}
-  fi
-  ;;
-kill)
-  : ${HADOOP_PREFIX?"HADOOP_PREFIX must be set"}
-  FLUO_APP=`get_prop fluoApp`
-  echo "Killing the webindex UI web server..."
-  pkill -9 -f webindex-web-server
-
-  echo "Killing any webindex jobs running in YARN..."
-  YARN=$HADOOP_PREFIX/bin/yarn
-  $YARN application -list | grep webindex | while read x; do yarn application -kill `echo $x | cut -d ' ' -f 1` ; done
-  ;;
 *)
   echo -e "Usage: webindex <command> (<argument>)\n"
   echo -e "Possible commands:\n"
@@ -239,19 +192,6 @@ kill)
   echo "  load-s3 <DATE> <RANGE>      Loads data from S3 into Fluo.  Data is selected using a paths file <DATE> and file <RANGE> (i.e 5-7)"
   echo "  ui                          Starts the webindex UI"
   echo "  splits <SRC>                Calculate splits using data in HDFS <SRC> directory"
-  echo "  kill                        Kills the webindex Fluo application and any webindex Spark jobs (if running)"
-  echo "  test-id <ID>                Starts a pre-configured webindex test indentified by <ID>.  Run without arguments for a list of tests."
-  echo "  test <args>                 Starts a webindex test.  Each test will first remove any previously running test.  It will"
-  echo "                              then initialize the webindex application, start the UI, and load data."
-  echo "                              Tests can be configured by the following arguments." 
-  echo "                              Required args:"
-  echo "                                -d <DATE>   Date of common crawl paths file (required)"
-  echo "                                -i <RANGE>  Init data range (i.e START-END).  Set to 'none' to not initialize with any data."
-  echo "                                -l <RANGE>  Load data range (i.e START-END)"
-  echo "                              Optional args:"
-  echo "                                -s <SRC>    Source (i.e. hdfs, s3) to use when loading data. If not set, defaults to 's3'"
-  echo "                                -e <NUM>    Number of Spark executors to run in all Spark jobs" 
-  echo "                                -m <MEM>    Amount of memory (i.e 512m, 1g) to provide to each Spark executor"
   echo "  test-parser <DATE> <RANGE>  Tests parser on data loaded from S3.  Data is selected using a paths file <DATE> and file <RANGE> (i.e 5-7)"
   echo " "
   echo "NOTE: All commands except getpaths will run in background and output to a log by default.  Add -fg to end of these commands"

@@ -32,11 +32,6 @@ if [ ! -d $FLUO_HOME ]; then
   echo "FLUO_HOME=$FLUO_HOME does not exist"
   exit 1
 fi
-: ${FLUO_YARN_HOME?"FLUO_YARN_HOME must be set in bash env or conf/webindex-env.sh"}
-if [ ! -d $FLUO_YARN_HOME ]; then
-  echo "FLUO_YARN_HOME=$FLUO_YARN_HOME does not exist"
-  exit 1
-fi
 
 : ${WI_EXECUTOR_INSTANCES?"WI_EXECUTOR_INSTANCES must be set in bash env or conf/webindex-env.sh"}
 : ${WI_EXECUTOR_MEMORY?"WI_EXECUTOR_MEMORY must be set in bash env or conf/webindex-env.sh"}

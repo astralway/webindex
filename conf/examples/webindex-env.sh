@@ -16,21 +16,17 @@
 # export statement to use the correct directory.  Remove the test statement
 # to override any previously set environment.
 
-# Hadoop
-# ======
+## Installation directories
 test -z "$HADOOP_PREFIX" && export HADOOP_PREFIX=/path/to/hadoop
 test -z "$HADOOP_CONF_DIR" && export HADOOP_CONF_DIR=/path/to/hadoop/etc/hadoop
-
-# Fluo
-# ====
 test -z "$FLUO_HOME" && export FLUO_HOME=/path/to/fluo
-test -z "$FLUO_YARN_HOME" && export FLUO_YARN_HOME=/path/to/fluo
+test -z "$SPARK_HOME" && export SPARK_HOME=/path/to/spark
 
-#set the Accumulo and Fluo versions that should be included in the shaded jar created for Spark.
+## Accumulo and Fluo versions that should be included in the shaded jar created for Spark.
 export FLUO_VERSION=`$FLUO_HOME/bin/fluo version`
 export ACCUMULO_VERSION=`accumulo version`
 
-# Accumulo client will likely not work without correct thrift version
+## Accumulo client will likely not work without correct thrift version
 if [[ $ACCUMULO_VERSION < "1.8" ]]; then
   THRIFT_VERSION="0.9.1"
 elif [[ $ACCUMULO_VERSION < "2.0" ]]; then
@@ -39,10 +35,7 @@ else
   THRIFT_VERSION="0.10.0"
 fi
 
-# Spark
-# =====
-test -z "$SPARK_HOME" && export SPARK_HOME=/path/to/spark
-
+## Spark
 # Number of Spark executor instances
 export WI_EXECUTOR_INSTANCES=2
 # Amount of memory given to each Spark executor
