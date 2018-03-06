@@ -75,7 +75,7 @@ public class WebIndexConfig {
   public static WebIndexConfig load() {
     final String homePath = getEnvPath("WI_HOME");
     final String userPath = homePath + "/conf/webindex.yml";
-    final String defaultPath = homePath + "/conf/webindex.yml.example";
+    final String defaultPath = homePath + "/conf/examples/webindex.yml";
     if ((new File(userPath).exists())) {
       log.info("Using user config at {}", userPath);
       return load(userPath);
