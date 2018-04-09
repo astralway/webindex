@@ -126,6 +126,13 @@
       <groupId>org.apache.spark</groupId>
       <artifactId>spark-core_2.10</artifactId>
       <scope>provided</scope>
+      <exclusions>
+        <!-- Excluded as we only want Kryo's asm dependency -->
+        <exclusion>
+          <groupId>asm</groupId>
+          <artifactId>asm</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <!-- Test Dependencies -->
     <dependency>
@@ -167,7 +174,7 @@
                 <phase>package</phase>
                 <configuration>
                   <!--define the specific dependencies to copy into the Fluo application dir-->
-                  <includeArtifactIds>fluo-recipes-core,fluo-recipes-accumulo,fluo-recipes-kryo,kryo,minlog,reflectasm,objenesis,commons-validator,yamlbeans</includeArtifactIds>
+                  <includeArtifactIds>fluo-recipes-core,fluo-recipes-accumulo,fluo-recipes-kryo,kryo,minlog,reflectasm,asm,objenesis,commons-validator,yamlbeans</includeArtifactIds>
                 </configuration>
               </execution>
             </executions>

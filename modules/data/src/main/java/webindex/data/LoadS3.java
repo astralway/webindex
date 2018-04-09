@@ -53,7 +53,10 @@ public class LoadS3 {
       System.exit(1);
     }
 
-    final int rateLimit = WebIndexConfig.load().getLoadRateLimit();
+    final WebIndexConfig webIndexConfig = WebIndexConfig.load();
+
+    final int rateLimit = webIndexConfig.getLoadRateLimit();
+    final String appName = webIndexConfig.fluoApp;
 
     SparkConf sparkConf = new SparkConf().setAppName("webindex-load-s3");
     try (JavaSparkContext ctx = new JavaSparkContext(sparkConf)) {
@@ -66,7 +69,9 @@ public class LoadS3 {
       final String prefix = WebIndexConfig.CC_URL_PREFIX;
 
       loadRDD.foreachPartition(iter -> {
-        final FluoConfiguration fluoConfig = new FluoConfiguration(new File("fluo.properties"));
+        final FluoConfiguration fluoConfig =
+            new FluoConfiguration(new File("fluo-conn.properties"));
+        fluoConfig.setApplicationName(appName);
         final RateLimiter rateLimiter = rateLimit > 0 ? RateLimiter.create(rateLimit) : null;
         try (FluoClient client = FluoFactory.newClient(fluoConfig);
             LoaderExecutor le = client.newLoaderExecutor()) {

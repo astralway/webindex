@@ -18,30 +18,30 @@ BIN_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 export WI_HOME=$( cd "$( dirname "$BIN_DIR" )" && pwd )
 export WI_VERSION=0.0.1-SNAPSHOT
 
-if [ -f $WI_HOME/conf/webindex-env.sh ]; then
-  . $WI_HOME/conf/webindex-env.sh
-else
-  . $WI_HOME/conf/webindex-env.sh.example
+if [ ! -f $WI_HOME/conf/webindex-env.sh ]; then
+  echo "webindex-env.sh must exist in $WI_HOME/conf"
+  exit 1
 fi
+. "$WI_HOME/conf/webindex-env.sh"
 
-mkdir -p $WI_HOME/logs
+mkdir -p "$WI_HOME/logs"
 
 export WI_CONFIG=$WI_HOME/conf/webindex.yml
-if [ ! -f $WI_CONFIG ]; then
-  export WI_CONFIG=$WI_HOME/conf/webindex.yml.example
-  if [ ! -f $WI_CONFIG ]; then
-    echo "Could not find webindex.yml or webindex.yml.example in $WI_HOME/conf"
-    exit 1
-  fi
+if [ ! -f "$WI_CONFIG" ]; then
+  echo "webindex.yml must exist in $WI_HOME/conf"
+  exit 1
 fi
 
 log4j_config=$WI_HOME/conf/log4j.properties
-if [ ! -f $log4j_config ]; then
-  log4j_config=$WI_HOME/conf/log4j.properties.example
-  if [ ! -f $log4j_config ]; then
-    echo "Could not find logj4.properties or log4j.properties.example in $WI_HOME/conf"
-    exit 1
-  fi
+if [ ! -f "$log4j_config" ]; then
+  echo "logj4.properties must exist in $WI_HOME/conf"
+  exit 1
+fi
+
+conn_props=$FLUO_HOME/conf/fluo-conn.properties
+if [ ! -f "$conn_props" ]; then
+  echo "fluo-conn.properties must exist in $FLUO_HOME/conf"
+  exit 1
 fi
 
 function get_prop {
@@ -116,13 +116,8 @@ load-hdfs)
     exit 1
   fi
   . $BIN_DIR/impl/base.sh
-  FLUO_PROPS=$FLUO_HOME/apps/`get_prop fluoApp`/conf/fluo.properties
-  if [ ! -f $FLUO_PROPS ]; then
-    echo "Fluo properties file must exist at $FLUO_PROPS"
-    exit 1
-  fi
   COMMAND="$SPARK_SUBMIT --class webindex.data.LoadHdfs $COMMON_SPARK_OPTS \
-    --files $FLUO_PROPS $WI_DATA_DEP_JAR $2"
+    --files $conn_props $WI_DATA_DEP_JAR $2"
   if [ "$3" != "-fg" ]; then
     nohup ${COMMAND} &> $COMMAND_LOGFILE &
     echo "Started load-hdfs.  Logs are being output to $COMMAND_LOGFILE"
@@ -136,13 +131,8 @@ load-s3)
     exit 1
   fi
   . $BIN_DIR/impl/base.sh
-  FLUO_PROPS=$FLUO_HOME/apps/`get_prop fluoApp`/conf/fluo.properties
-  if [ ! -f $FLUO_PROPS ]; then
-    echo "Fluo properties file must exist at $FLUO_PROPS"
-    exit 1
-  fi
   COMMAND="$SPARK_SUBMIT --class webindex.data.LoadS3 $COMMON_SPARK_OPTS \
-    --files $FLUO_PROPS $WI_DATA_DEP_JAR $DATA_DIR/"$2".wat.paths $3"
+    --files $conn_props $WI_DATA_DEP_JAR $DATA_DIR/"$2".wat.paths $3"
   if [ "$4" != "-fg" ]; then
     nohup ${COMMAND} &> $COMMAND_LOGFILE &
     echo "Started load-s3.  Logs are being output to $COMMAND_LOGFILE"
@@ -189,61 +179,6 @@ splits)
     ${COMMAND}
   fi
   ;;
-test)
-  COMMAND="$BIN_DIR/impl/test.sh ${@:2}"
-  if [[ $@ != *"-fg"* ]]; then
-    nohup ${COMMAND} &> $COMMAND_LOGFILE &
-    echo "Started webindex test ${@:2}.  Logs are being output to $COMMAND_LOGFILE"
-  else
-    ${COMMAND}
-  fi
-  ;;
-test-id)
-  if [ "$#" -gt 3 ]; then
-    echo "Usage: webindex test-id <ID> [-fg]"
-    exit 1
-  fi
-  if [ -z "$2" ]; then
-    echo "Available tests:"
-    echo "----------------"
-    cat $WI_HOME/conf/webindex-tests.txt
-    exit 1
-  fi
-  TEST_ARGS="`grep $2 $WI_HOME/conf/webindex-tests.txt | cut -d = -f 2`"
-  if [ -z "$TEST_ARGS" ]; then
-    echo "Unknown test ID: $2"
-    echo "Available tests:"
-    echo "----------------"
-    cat $WI_HOME/conf/webindex-tests.txt
-    exit 1
-  fi
-  COMMAND="$BIN_DIR/impl/test.sh $TEST_ARGS"
-  if [[ $@ != *"-fg"* ]]; then
-    COMMAND_LOGFILE=$WI_HOME/logs/test_"$2"_`date +%s`.log
-    nohup ${COMMAND} &> $COMMAND_LOGFILE &
-    echo "Started webindex run-test $2.  Logs are being output to $COMMAND_LOGFILE"
-  else
-    ${COMMAND}
-  fi
-  ;;
-kill)
-  : ${HADOOP_PREFIX?"HADOOP_PREFIX must be set"}
-  FLUO_APP=`get_prop fluoApp`
-  FLUO_CMD=$FLUO_HOME/bin/fluo
-  if [ ! -f $FLUO_CMD ]; then
-    echo "Fluo command script does not exist at $FLUO_CMD"
-    exit 1
-  fi
-  echo "Killing the webindex UI web server..."
-  pkill -9 -f webindex-web-server
-
-  echo "Stopping the $FLUO_APP Fluo application (if running)..."
-  $FLUO_CMD stop $FLUO_APP
-
-  echo "Killing any webindex Spark jobs running in YARN..."
-  YARN=$HADOOP_PREFIX/bin/yarn
-  $YARN application -list | grep webindex | while read x; do yarn application -kill `echo $x | cut -d ' ' -f 1` ; done
-  ;;
 *)
   echo -e "Usage: webindex <command> (<argument>)\n"
   echo -e "Possible commands:\n"
@@ -257,19 +192,6 @@ kill)
   echo "  load-s3 <DATE> <RANGE>      Loads data from S3 into Fluo.  Data is selected using a paths file <DATE> and file <RANGE> (i.e 5-7)"
   echo "  ui                          Starts the webindex UI"
   echo "  splits <SRC>                Calculate splits using data in HDFS <SRC> directory"
-  echo "  kill                        Kills the webindex Fluo application and any webindex Spark jobs (if running)"
-  echo "  test-id <ID>                Starts a pre-configured webindex test indentified by <ID>.  Run without arguments for a list of tests."
-  echo "  test <args>                 Starts a webindex test.  Each test will first remove any previously running test.  It will"
-  echo "                              then initialize the webindex application, start the UI, and load data."
-  echo "                              Tests can be configured by the following arguments." 
-  echo "                              Required args:"
-  echo "                                -d <DATE>   Date of common crawl paths file (required)"
-  echo "                                -i <RANGE>  Init data range (i.e START-END).  Set to 'none' to not initialize with any data."
-  echo "                                -l <RANGE>  Load data range (i.e START-END)"
-  echo "                              Optional args:"
-  echo "                                -s <SRC>    Source (i.e. hdfs, s3) to use when loading data. If not set, defaults to 's3'"
-  echo "                                -e <NUM>    Number of Spark executors to run in all Spark jobs" 
-  echo "                                -m <MEM>    Amount of memory (i.e 512m, 1g) to provide to each Spark executor"
   echo "  test-parser <DATE> <RANGE>  Tests parser on data loaded from S3.  Data is selected using a paths file <DATE> and file <RANGE> (i.e 5-7)"
   echo " "
   echo "NOTE: All commands except getpaths will run in background and output to a log by default.  Add -fg to end of these commands"

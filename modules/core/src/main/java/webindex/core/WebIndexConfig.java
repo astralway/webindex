@@ -18,6 +18,7 @@ import java.io.File;
 import java.io.FileReader;
 
 import com.esotericsoftware.yamlbeans.YamlReader;
+import com.google.common.base.Preconditions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,8 +38,8 @@ public class WebIndexConfig {
   public String hdfsTempDir;
   public int loadRateLimit = 0;
 
-  public String getFluoPropsPath() {
-    return addSlash(fluoHome) + "apps/" + fluoApp + "/conf/fluo.properties";
+  public String getConnPropsPath() {
+    return addSlash(fluoHome) + "conf/fluo-conn.properties";
   }
 
   public int getNumExecutorInstances() {
@@ -74,7 +75,7 @@ public class WebIndexConfig {
   public static WebIndexConfig load() {
     final String homePath = getEnvPath("WI_HOME");
     final String userPath = homePath + "/conf/webindex.yml";
-    final String defaultPath = homePath + "/conf/webindex.yml.example";
+    final String defaultPath = homePath + "/conf/examples/webindex.yml";
     if ((new File(userPath).exists())) {
       log.info("Using user config at {}", userPath);
       return load(userPath);
@@ -89,6 +90,8 @@ public class WebIndexConfig {
   }
 
   protected static WebIndexConfig load(String configPath, boolean useEnv) {
+    Preconditions.checkArgument(new File(configPath).exists(), "Config does not exist at "
+        + configPath);
     try {
       YamlReader reader = new YamlReader(new FileReader(configPath));
       WebIndexConfig config = reader.read(WebIndexConfig.class);

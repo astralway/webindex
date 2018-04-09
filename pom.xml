@@ -35,9 +35,9 @@
     <module>modules/integration</module>
   </modules>
   <properties>
-    <accumulo.version>1.7.1</accumulo.version>
+    <accumulo.version>1.7.3</accumulo.version>
     <fluo-recipes.version>1.1.0-incubating</fluo-recipes.version>
-    <fluo.version>1.1.0-incubating</fluo.version>
+    <fluo.version>1.2.0</fluo.version>
     <hadoop.version>2.6.3</hadoop.version>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>

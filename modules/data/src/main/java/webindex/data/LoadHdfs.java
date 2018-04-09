@@ -57,7 +57,9 @@ public class LoadHdfs {
     IndexEnv.validateDataDir(dataDir);
 
     final String hadoopConfDir = IndexEnv.getHadoopConfDir();
-    final int rateLimit = WebIndexConfig.load().getLoadRateLimit();
+    final WebIndexConfig webIndexConfig = WebIndexConfig.load();
+    final int rateLimit = webIndexConfig.getLoadRateLimit();
+    final String appName = webIndexConfig.fluoApp;
 
     List<String> loadPaths = new ArrayList<>();
     FileSystem hdfs = IndexEnv.getHDFS();
@@ -77,7 +79,9 @@ public class LoadHdfs {
       JavaRDD<String> paths = ctx.parallelize(loadPaths, loadPaths.size());
 
       paths.foreachPartition(iter -> {
-        final FluoConfiguration fluoConfig = new FluoConfiguration(new File("fluo.properties"));
+        final FluoConfiguration fluoConfig =
+            new FluoConfiguration(new File("fluo-conn.properties"));
+        fluoConfig.setApplicationName(appName);
         final RateLimiter rateLimiter = rateLimit > 0 ? RateLimiter.create(rateLimit) : null;
         FileSystem fs = IndexEnv.getHDFS(hadoopConfDir);
         try (FluoClient client = FluoFactory.newClient(fluoConfig);

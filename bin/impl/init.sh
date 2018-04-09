@@ -14,50 +14,48 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-: ${WI_HOME?"WI_HOME must be set"}
+: "${WI_HOME?"WI_HOME must be set"}"
 
-. $WI_HOME/bin/impl/base.sh
+. "$WI_HOME/bin/impl/base.sh"
+
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  export SED="sed -i .bak"
+else
+  export SED="sed -i"
+fi
 
 # stop if any command fails
 set -e
 
-: ${SPARK_SUBMIT?"SPARK_SUBMIT must be set"}
-: ${WI_DATA_JAR?"WI_DATA_JAR must be set"}
-: ${WI_DATA_DEP_JAR?"WI_DATA_DEP_JAR must be set"}
+: "${SPARK_SUBMIT?"SPARK_SUBMIT must be set"}"
+: "${WI_DATA_JAR?"WI_DATA_JAR must be set"}"
+: "${WI_DATA_DEP_JAR?"WI_DATA_DEP_JAR must be set"}"
 
-echo "Kill any previously running webindex Fluo application or Spark job"
-$WI_HOME/bin/webindex kill
-
-FLUO_APP=`get_prop fluoApp`
-FLUO_CMD=$FLUO_HOME/bin/fluo
-if [ ! -f $FLUO_CMD ]; then
-  echo "Fluo command script does not exist at $FLUO_CMD"
+fluo_app=$(get_prop fluoApp)
+fluo_cmd=$FLUO_HOME/bin/fluo
+if [ ! -f "$fluo_cmd" ]; then
+  echo "Fluo command script does not exist at $fluo_cmd"
   exit 1
 fi
 
-FLUO_APP_HOME=$FLUO_HOME/apps/$FLUO_APP
-if [ -d $FLUO_APP_HOME ]; then
-  echo "Deleting existing $FLUO_APP_HOME"
-  rm -rf $FLUO_APP_HOME
-fi
-
-$FLUO_CMD new $FLUO_APP
-
-FLUO_APP_LIB=$FLUO_APP_HOME/lib
-cp $WI_DATA_JAR $FLUO_APP_LIB
-mvn package -Pcopy-dependencies -DskipTests -DoutputDirectory=$FLUO_APP_LIB
+app_lib=$WI_HOME/target/lib
+mkdir -p "$app_lib"
+cp "$WI_DATA_JAR" "$app_lib"
+mvn package -Pcopy-dependencies -DskipTests -DoutputDirectory="$app_lib"
 # Add webindex core and its dependencies
-cp $WI_HOME/modules/core/target/webindex-core-$WI_VERSION.jar $FLUO_APP_LIB
+cp "$WI_HOME/modules/core/target/webindex-core-$WI_VERSION.jar" "$app_lib"
 
-$FLUO_CMD exec $FLUO_APP webindex.data.Configure $WI_CONFIG
+app_props=$WI_HOME/target/fluo-app.properties
+cp "$FLUO_HOME/conf/fluo-app.properties" "$app_props"
+$SED "s#^.*fluo.observer.init.dir=[^ ]*#fluo.observer.init.dir=${app_lib}#" "$app_props"
 
-$FLUO_CMD init $FLUO_APP --force
+java -cp "$app_lib/*:$("$fluo_cmd" classpath)" webindex.data.Configure "$WI_CONFIG" "$app_props"
 
-$SPARK_SUBMIT --class webindex.data.Init $COMMON_SPARK_OPTS \
+"$fluo_cmd" init -a "$fluo_app" -p "$app_props" --force
+
+"$SPARK_SUBMIT" --class webindex.data.Init $COMMON_SPARK_OPTS \
     --conf spark.shuffle.service.enabled=true \
     --conf spark.executor.extraJavaOptions=-XX:+UseCompressedOops \
     $WI_DATA_DEP_JAR $1
-
-$FLUO_CMD start $FLUO_APP
 
 echo "Webindex init has completed successfully."

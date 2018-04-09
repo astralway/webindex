@@ -19,11 +19,14 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
 
 import com.google.gson.Gson;
 import freemarker.template.Configuration;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.fluo.api.client.FluoAdmin;
+import org.apache.fluo.api.client.FluoFactory;
 import org.apache.fluo.api.config.FluoConfiguration;
 import org.apache.fluo.core.util.AccumuloUtil;
 import org.slf4j.Logger;
@@ -135,8 +138,14 @@ public class WebServer {
 
   public static void main(String[] args) throws Exception {
     WebIndexConfig webIndexConfig = WebIndexConfig.load();
-    File fluoConfigFile = new File(webIndexConfig.getFluoPropsPath());
-    FluoConfiguration fluoConfig = new FluoConfiguration(fluoConfigFile);
+    File connPropsFile = new File(webIndexConfig.getConnPropsPath());
+    FluoConfiguration fluoConfig = new FluoConfiguration(connPropsFile);
+    fluoConfig.setApplicationName(webIndexConfig.fluoApp);
+    try (FluoAdmin admin = FluoFactory.newAdmin(fluoConfig)) {
+      for (Map.Entry<String, String> entry : admin.getApplicationConfig().toMap().entrySet()) {
+        fluoConfig.setProperty(entry.getKey(), entry.getValue());
+      }
+    }
     Connector conn = AccumuloUtil.getConnector(fluoConfig);
     IndexClient client = new IndexClient(webIndexConfig.accumuloIndexTable, conn);
     WebServer webServer = new WebServer();
